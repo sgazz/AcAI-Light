@@ -323,14 +323,14 @@ class RAGService:
                 source_info = {
                     'filename': result['filename'],
                     'page': result['page'],
-                    'score': result.get('combined_score', result.get('score', 0)),
+                    'score': float(result.get('combined_score', result.get('score', 0))),
                     'content': result['content'][:200] + "..." if len(result['content']) > 200 else result['content']
                 }
                 
                 # Dodaj re-ranking informacije ako su dostupne
                 if 'rerank_score' in result:
-                    source_info['rerank_score'] = result['rerank_score']
-                    source_info['original_score'] = result.get('score', 0)
+                    source_info['rerank_score'] = float(result['rerank_score'])
+                    source_info['original_score'] = float(result.get('score', 0))
                 
                 sources.append(source_info)
             
@@ -485,14 +485,14 @@ class RAGService:
                 source_info = {
                     "filename": result["filename"],
                     "page": result["page"],
-                    "score": result.get("combined_score", result.get("score", 0)),
+                    "score": float(result.get("combined_score", result.get("score", 0))),
                     "content": result["content"][:200] + "..." if len(result["content"]) > 200 else result["content"]
                 }
                 
                 # Dodaj re-ranking informacije ako su dostupne
                 if "rerank_score" in result:
-                    source_info["rerank_score"] = result["rerank_score"]
-                    source_info["original_score"] = result.get("score", 0)
+                    source_info["rerank_score"] = float(result["rerank_score"])
+                    source_info["original_score"] = float(result.get("score", 0))
                 
                 # Dodaj multi-step informacije
                 if "sub_query" in result:

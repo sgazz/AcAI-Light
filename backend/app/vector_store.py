@@ -204,6 +204,44 @@ class VectorStore:
             return self.document_metadata[doc_id]
         return None
     
+    def get_document(self, doc_id: str) -> Dict[str, Any]:
+        """Dohvata kompletan sadržaj dokumenta sa stranicama i chunkovima"""
+        if doc_id not in self.document_metadata:
+            return None
+        
+        metadata = self.document_metadata[doc_id]
+        chunks = metadata.get('chunks', [])
+        
+        # Grupiši chunke po stranicama
+        pages = {}
+        for chunk in chunks:
+            page_num = chunk.get('page', 0)
+            if page_num not in pages:
+                pages[page_num] = {
+                    'content': '',
+                    'chunks': []
+                }
+            pages[page_num]['content'] += chunk['content'] + ' '
+            pages[page_num]['chunks'].append(chunk)
+        
+        # Konvertuj u listu stranica
+        pages_list = []
+        for page_num in sorted(pages.keys()):
+            pages_list.append({
+                'page': page_num,
+                'content': pages[page_num]['content'].strip(),
+                'chunks': pages[page_num]['chunks']
+            })
+        
+        return {
+            'id': doc_id,
+            'filename': metadata['filename'],
+            'file_type': metadata['file_type'],
+            'total_pages': metadata['total_pages'],
+            'pages': pages_list,
+            'ocr_info': metadata.get('ocr_info')
+        }
+    
     def list_documents(self) -> List[Dict[str, Any]]:
         """Vraća listu svih dokumenata"""
         return self.documents

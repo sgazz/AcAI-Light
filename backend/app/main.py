@@ -431,9 +431,16 @@ async def get_document_content(doc_id: str, page: int = None):
             page_content = document_data['pages'][page]
             return {
                 "status": "success",
-                "page": page,
-                "content": page_content['content'],
-                "chunks": page_content['chunks']
+                "filename": document_data['filename'],
+                "file_type": document_data['file_type'],
+                "total_pages": len(document_data['pages']),
+                "pages": [
+                    {
+                        "page": page,
+                        "content": page_content['content'],
+                        "chunks": page_content['chunks']
+                    }
+                ]
             }
         else:
             # Vrati sve stranice
@@ -447,6 +454,8 @@ async def get_document_content(doc_id: str, page: int = None):
             
             return {
                 "status": "success",
+                "filename": document_data['filename'],
+                "file_type": document_data['file_type'],
                 "total_pages": len(document_data['pages']),
                 "pages": all_content
             }
