@@ -5,6 +5,7 @@ from .document_processor import DocumentProcessor
 from .vector_store import VectorStore
 from .multi_step_retrieval import MultiStepRetrieval
 from .reranker import Reranker
+from .ocr_service import OCRService
 from .models import Document
 from sqlalchemy.orm import Session
 from ollama import Client
@@ -17,19 +18,66 @@ class RAGService:
         self.vector_store = VectorStore()
         self.reranker = Reranker()
         self.multi_step_retrieval = MultiStepRetrieval(self.vector_store, self.reranker)
+        self.ocr_service = OCRService()
         self.ollama_client = Client(host=ollama_host)
         self.model_name = model_name
     
     def upload_document(self, file_content: bytes, filename: str, db: Session) -> Dict[str, Any]:
-        """Upload i procesiranje dokumenta"""
+        """Upload i procesiranje dokumenta sa OCR podrškom za slike"""
         try:
             # Sačuvaj fajl privremeno
             with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as temp_file:
                 temp_file.write(file_content)
                 temp_file_path = temp_file.name
             
-            # Procesiraj dokument
-            document_data = self.document_processor.process_document(temp_file_path)
+            # Proveri da li je slika i primeni OCR ako je potrebno
+            if self.ocr_service.is_supported_format(filename):
+                # Ekstraktuj tekst iz slike
+                ocr_result = self.ocr_service.extract_text(temp_file_path)
+                
+                if ocr_result['status'] == 'success':
+                    # Kreiraj tekstualni dokument iz OCR rezultata
+                    ocr_text = ocr_result['text']
+                    if ocr_text.strip():  # Ako je OCR uspešan i ima teksta
+                        # Kreiraj privremeni tekst fajl sa OCR rezultatima
+                        ocr_temp_path = temp_file_path + '_ocr.txt'
+                        with open(ocr_temp_path, 'w', encoding='utf-8') as f:
+                            f.write(f"OCR rezultat za {filename}\n")
+                            f.write(f"Confidence: {ocr_result['confidence']:.2f}%\n")
+                            f.write(f"Jezici: {', '.join(ocr_result['languages'])}\n")
+                            f.write("-" * 50 + "\n")
+                            f.write(ocr_text)
+                        
+                        # Procesiraj OCR tekst kao dokument
+                        document_data = self.document_processor.process_document(ocr_temp_path)
+                        
+                        # Dodaj OCR metapodatke
+                        document_data['ocr_info'] = {
+                            'confidence': ocr_result['confidence'],
+                            'languages': ocr_result['languages'],
+                            'image_size': ocr_result['image_size'],
+                            'original_filename': filename
+                        }
+                        
+                        # Obriši OCR temp fajl
+                        os.unlink(ocr_temp_path)
+                    else:
+                        # Ako OCR nije uspešan, koristi običan document processor
+                        document_data = self.document_processor.process_document(temp_file_path)
+                        document_data['ocr_info'] = {
+                            'status': 'no_text_found',
+                            'message': 'OCR nije pronašao tekst u slici'
+                        }
+                else:
+                    # Ako OCR ne uspe, koristi običan document processor
+                    document_data = self.document_processor.process_document(temp_file_path)
+                    document_data['ocr_info'] = {
+                        'status': 'error',
+                        'message': ocr_result['message']
+                    }
+            else:
+                # Običan dokument (nije slika)
+                document_data = self.document_processor.process_document(temp_file_path)
             
             # Dodaj u vector store
             doc_id = self.vector_store.add_document(document_data)
@@ -51,7 +99,8 @@ class RAGService:
             # Obriši privremeni fajl
             os.unlink(temp_file_path)
             
-            return {
+            # Pripremi response
+            response = {
                 'status': 'success',
                 'doc_id': doc_id,
                 'filename': filename,
@@ -59,6 +108,12 @@ class RAGService:
                 'total_pages': document_data['total_pages'],
                 'chunks_created': sum(len(page['chunks']) for page in document_data['pages'])
             }
+            
+            # Dodaj OCR informacije ako postoje
+            if 'ocr_info' in document_data:
+                response['ocr_info'] = document_data['ocr_info']
+            
+            return response
             
         except Exception as e:
             # Ako je dokument već kreiran u vector store-u, obriši ga

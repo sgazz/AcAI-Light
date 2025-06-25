@@ -7,6 +7,7 @@ from ollama import Client
 from sqlalchemy.orm import Session
 from typing import List
 import uuid
+import tempfile
 
 # Učitaj environment varijable
 load_dotenv()
@@ -29,9 +30,11 @@ app.add_middleware(
 from .models import get_db, ChatMessage
 from .prompts import SYSTEM_PROMPT, CONTEXT_PROMPT
 from .rag_service import RAGService
+from .ocr_service import OCRService
 
 # Inicijalizuj RAG servis
 rag_service = RAGService()
+ocr_service = OCRService()  # Dodaj OCR service
 
 def get_conversation_context(session_id: str, db: Session, max_messages: int = 5) -> str:
     """Dohvati prethodne poruke za kontekst"""
@@ -571,5 +574,194 @@ async def get_multi_step_info():
                 "description": "Multi-step retrieval sistem za složene upite"
             }
         }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# OCR Endpoints
+@app.get("/ocr/info")
+async def get_ocr_info():
+    """Dohvata informacije o OCR servisu"""
+    try:
+        info = ocr_service.get_ocr_info()
+        return {
+            "status": "success",
+            "ocr_info": info
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/ocr/extract")
+async def extract_text_from_image(file: UploadFile = File(...)):
+    """Ekstraktuje tekst iz slike koristeći OCR"""
+    try:
+        # Proveri da li je podržan format
+        if not ocr_service.is_supported_format(file.filename):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Format {file.filename} nije podržan. Podržani formati: {ocr_service.get_supported_formats()}"
+            )
+        
+        # Učitaj fajl
+        file_content = await file.read()
+        
+        # Ekstraktuj tekst
+        result = ocr_service.extract_text_from_bytes(
+            file_content, 
+            file.filename,
+            languages=['srp', 'eng']  # Podržani jezici
+        )
+        
+        return {
+            "status": "success",
+            "filename": file.filename,
+            "ocr_result": result
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/ocr/supported-formats")
+async def get_supported_formats():
+    """Dohvata listu podržanih formata slika"""
+    try:
+        return {
+            "status": "success",
+            "supported_formats": ocr_service.get_supported_formats(),
+            "supported_languages": ocr_service.get_supported_languages()
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/ocr/statistics")
+async def get_ocr_statistics():
+    """Dohvata napredne OCR statistike"""
+    try:
+        stats = ocr_service.get_ocr_statistics()
+        return {
+            "status": "success",
+            "ocr_statistics": stats
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/ocr/extract-advanced")
+async def extract_text_advanced(
+    file: UploadFile = File(...),
+    min_confidence: float = 50.0,
+    languages: str = "srp,eng",
+    deskew: bool = False,
+    resize: bool = False
+):
+    """Napredna OCR ekstrakcija sa opcijama"""
+    try:
+        # Proveri da li je podržan format
+        if not ocr_service.is_supported_format(file.filename):
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Format {file.filename} nije podržan. Podržani formati: {ocr_service.get_supported_formats()}"
+            )
+        
+        # Učitaj fajl
+        file_content = await file.read()
+        
+        # Sačuvaj privremeno
+        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as temp_file:
+            temp_file.write(file_content)
+            temp_file_path = temp_file.name
+        
+        try:
+            # Postavi preprocessing opcije
+            preprocessing_options = {
+                'grayscale': True,
+                'denoise': True,
+                'adaptive_threshold': True,
+                'morphology': True,
+                'deskew': deskew,
+                'resize': resize
+            }
+            
+            # Parsiraj jezike
+            language_list = [lang.strip() for lang in languages.split(',')]
+            
+            # Ekstraktuj tekst sa naprednim opcijama
+            result = ocr_service.extract_text_with_preprocessing_options(
+                temp_file_path,
+                preprocessing_options,
+                language_list
+            )
+            
+            # Primeni confidence filter
+            if result['status'] == 'success' and result['confidence'] < min_confidence:
+                result['status'] = 'low_confidence'
+                result['message'] = f'Confidence score ({result["confidence"]:.1f}%) je ispod minimuma ({min_confidence}%)'
+            
+            return {
+                "status": "success",
+                "filename": file.filename,
+                "ocr_result": result,
+                "options_applied": {
+                    "min_confidence": min_confidence,
+                    "languages": language_list,
+                    "deskew": deskew,
+                    "resize": resize
+                }
+            }
+            
+        finally:
+            # Obriši privremeni fajl
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/ocr/batch-extract")
+async def batch_extract_text(files: List[UploadFile] = File(...), languages: str = "srp,eng"):
+    """Batch OCR ekstrakcija za više slika"""
+    try:
+        results = []
+        language_list = [lang.strip() for lang in languages.split(',')]
+        
+        for file in files:
+            try:
+                # Proveri format
+                if not ocr_service.is_supported_format(file.filename):
+                    results.append({
+                        "filename": file.filename,
+                        "status": "error",
+                        "message": f"Format nije podržan"
+                    })
+                    continue
+                
+                # Učitaj fajl
+                file_content = await file.read()
+                
+                # Ekstraktuj tekst
+                result = ocr_service.extract_text_from_bytes(
+                    file_content, 
+                    file.filename,
+                    language_list
+                )
+                
+                results.append({
+                    "filename": file.filename,
+                    "status": "success",
+                    "ocr_result": result
+                })
+                
+            except Exception as e:
+                results.append({
+                    "filename": file.filename,
+                    "status": "error",
+                    "message": str(e)
+                })
+        
+        return {
+            "status": "success",
+            "total_files": len(files),
+            "processed_files": len(results),
+            "results": results
+        }
+        
     except Exception as e:
         return {"status": "error", "message": str(e)}
