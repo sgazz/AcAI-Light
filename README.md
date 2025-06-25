@@ -5,9 +5,11 @@ AcAIA (Academy AI Assistant) je moderan AI asistent za učenje koji koristi RAG 
 ## 🚀 Funkcionalnosti
 
 - **Inteligentni Chat**: Interaktivni chat sa AI modelom (Ollama/Mistral)
+- **RAG Sistem**: Napredna tehnologija za precizne i kontekstualne odgovore iz dokumenata
+- **Upload Dokumenata**: Podrška za PDF, DOCX i TXT fajlove
+- **Semantička Pretraga**: Brza pretraga kroz sadržaj dokumenata
 - **Istorija Razgovora**: Automatsko čuvanje i upravljanje istorijom razgovora
 - **Moderno UI**: Elegantan i intuitivan interfejs inspirisan popularnim AI alatima
-- **RAG Tehnologija**: Napredna tehnologija za precizne i kontekstualne odgovore
 - **SQLite Baza**: Sigurno čuvanje podataka o razgovorima
 
 ## 🛠️ Tehnologije
@@ -24,6 +26,13 @@ AcAIA (Academy AI Assistant) je moderan AI asistent za učenje koji koristi RAG 
 - **Ollama** - Lokalni AI modeli
 - **Mistral** - Napredni AI model
 
+### RAG Sistem
+- **FAISS** - Brza vector pretraga
+- **Sentence Transformers** - Embedding modeli
+- **PyPDF2** - PDF procesiranje
+- **python-docx** - Word dokumenti
+- **Vector Store** - Čuvanje embeddings-a
+
 ## 📁 Struktura Projekta
 
 ```
@@ -34,8 +43,13 @@ AcAIA/
 │   │   └── components/ # React komponente
 ├── backend/           # FastAPI server
 │   ├── app/          # API aplikacija
+│   │   ├── document_processor.py  # Procesiranje dokumenata
+│   │   ├── vector_store.py        # FAISS vector store
+│   │   └── rag_service.py         # RAG servis
+│   ├── data/         # RAG indeksi i podaci
 │   └── requirements.txt
 ├── ACAI_Assistant.command  # Script za pokretanje
+├── TestRAG.command         # Script za testiranje RAG-a
 └── README.md
 ```
 
@@ -75,11 +89,9 @@ npm run dev
 ./ACAI_Assistant.command
 ```
 
-### Alternativno pokretanje
-Možete koristiti ugrađeni script za jednostavno pokretanje:
+### Testiranje RAG Sistema
 ```bash
-chmod +x ACAI_Assistant.command
-./ACAI_Assistant.command
+./TestRAG.command
 ```
 
 ## 🔧 Konfiguracija
@@ -99,25 +111,69 @@ ollama pull llama2
 ### Baza Podataka
 SQLite baza se automatski kreira u `backend/chat_history.db`. Za resetovanje baze, jednostavno obrišite fajl.
 
+#### Tabele
+- **chat_messages** - Istorija razgovora sa AI asistentom
+- **documents** - Informacije o upload-ovanim dokumentima za RAG sistem
+
+#### Migracija Baze
+```bash
+cd backend
+python migrate_db.py
+```
+
+### RAG Sistem
+RAG sistem automatski:
+- Kreira FAISS indeks u `backend/data/vector_index/`
+- Učitava sentence transformer model (all-MiniLM-L6-v2)
+- Procesira i čuva embeddings dokumenata
+- Čuva metapodatke o dokumentima u SQL bazi
+
 ## 📚 API Endpoints
 
+### Chat Endpoints
 - `GET /` - Health check
-- `POST /chat` - Slanje poruke AI modelu
+- `POST /chat` - Običan chat sa AI modelom
+- `POST /chat/rag` - RAG chat sa kontekstom iz dokumenata
 - `POST /chat/new-session` - Kreiranje nove sesije
 - `GET /chat/history/{session_id}` - Dohvatanje istorije sesije
+
+### Document Endpoints
+- `POST /documents/upload` - Upload dokumenata (PDF, DOCX, TXT)
+- `GET /documents` - Lista svih dokumenata
+- `GET /documents/{doc_id}` - Informacije o dokumentu
+- `DELETE /documents/{doc_id}` - Brisanje dokumenta
+
+### RAG Endpoints
+- `GET /rag/stats` - Statistike RAG sistema
+- `GET /rag/test` - Test RAG povezanosti
 
 ## 🎨 UI Komponente
 
 - **Sidebar**: Navigacija i upravljanje sesijama
 - **ChatBox**: Interaktivni chat interfejs
-- **DashboardCards**: Pregled aktivnosti i statistike
-- **ChatHistory**: Prikaz istorije razgovora
+- **Document Upload**: Upload i upravljanje dokumentima
+- **RAG Chat**: Chat sa kontekstom iz dokumenata
 
 ## 🔒 Sigurnost
 
 - Lokalno izvršavanje AI modela
 - Sigurno čuvanje podataka u SQLite bazi
 - Bez eksternih API poziva
+- Privatnost dokumenata
+
+## 🧪 Testiranje
+
+### RAG Test
+```bash
+./TestRAG.command
+```
+
+Test skripta proverava:
+- Povezanost sa Ollama
+- Upload dokumenata
+- Semantičku pretragu
+- RAG chat funkcionalnost
+- Statistike sistema
 
 ## 🤝 Doprinosi
 

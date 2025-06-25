@@ -1,7 +1,7 @@
 import os
 import sys
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from ollama import Client
 from sqlalchemy.orm import Session
@@ -28,6 +28,10 @@ app.add_middleware(
 # Import models i prompts nakon što je app kreiran
 from .models import get_db, ChatMessage
 from .prompts import SYSTEM_PROMPT, CONTEXT_PROMPT
+from .rag_service import RAGService
+
+# Inicijalizuj RAG servis
+rag_service = RAGService()
 
 def get_conversation_context(session_id: str, db: Session, max_messages: int = 5) -> str:
     """Dohvati prethodne poruke za kontekst"""
@@ -209,4 +213,148 @@ async def delete_session(session_id: str, db: Session = Depends(get_db)):
         }
     except Exception as e:
         db.rollback()
+        return {"status": "error", "message": str(e)}
+
+# RAG API Endpoints
+
+@app.post("/documents/upload")
+async def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """Upload dokumenta za RAG sistem"""
+    try:
+        # Proveri tip fajla
+        allowed_extensions = ['.pdf', '.docx', '.txt']
+        file_extension = os.path.splitext(file.filename)[1].lower()
+        
+        if file_extension not in allowed_extensions:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Format {file_extension} nije podržan. Podržani formati: {', '.join(allowed_extensions)}"
+            )
+        
+        # Pročitaj sadržaj fajla
+        file_content = await file.read()
+        
+        # Upload dokumenta
+        result = rag_service.upload_document(file_content, file.filename, db)
+        
+        if result['status'] == 'success':
+            return result
+        else:
+            raise HTTPException(status_code=500, detail=result['message'])
+            
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/chat/rag")
+async def rag_chat_endpoint(message: dict, db: Session = Depends(get_db)):
+    """RAG chat endpoint sa kontekstom iz dokumenata"""
+    try:
+        user_message = message.get("message", "")
+        session_id = message.get("session_id", "default")
+        
+        if not user_message.strip():
+            raise HTTPException(status_code=400, detail="Poruka ne može biti prazna")
+        
+        # Sačuvaj korisničku poruku u bazu
+        user_db_message = ChatMessage(
+            sender="user",
+            content=user_message,
+            session_id=session_id
+        )
+        db.add(user_db_message)
+        db.commit()
+        
+        # Dohvati kontekst prethodnih poruka
+        context = get_conversation_context(session_id, db)
+        
+        # Generiši RAG odgovor
+        rag_result = rag_service.generate_rag_response(user_message, context)
+        
+        if rag_result['status'] == 'success':
+            ai_response = rag_result['response']
+            
+            # Sačuvaj AI odgovor u bazu
+            ai_db_message = ChatMessage(
+                sender="ai",
+                content=ai_response,
+                session_id=session_id
+            )
+            db.add(ai_db_message)
+            db.commit()
+            
+            return {
+                "status": "success",
+                "response": ai_response,
+                "session_id": session_id,
+                "sources": rag_result.get('sources', []),
+                "used_rag": rag_result.get('used_rag', False)
+            }
+        else:
+            raise HTTPException(status_code=500, detail=rag_result['message'])
+        
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
+
+@app.get("/documents")
+async def list_documents(db: Session = Depends(get_db)):
+    """Lista svih dokumenata u RAG sistemu"""
+    try:
+        documents = rag_service.get_documents_from_db(db)
+        return {
+            "status": "success",
+            "documents": documents
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/documents/{doc_id}")
+async def get_document_info(doc_id: str, db: Session = Depends(get_db)):
+    """Informacije o specifičnom dokumentu"""
+    try:
+        doc_info = rag_service.get_document_info(doc_id)
+        if doc_info:
+            return {
+                "status": "success",
+                "document": doc_info
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Dokument nije pronađen")
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.delete("/documents/{doc_id}")
+async def delete_document(doc_id: str, db: Session = Depends(get_db)):
+    """Briše dokument iz RAG sistema"""
+    try:
+        success = rag_service.delete_document_from_db(doc_id, db)
+        if success:
+            return {
+                "status": "success",
+                "message": f"Dokument {doc_id} je obrisan"
+            }
+        else:
+            raise HTTPException(status_code=404, detail="Dokument nije pronađen")
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/rag/stats")
+async def get_rag_stats():
+    """Statistike RAG sistema"""
+    try:
+        stats = rag_service.get_stats()
+        return {
+            "status": "success",
+            "stats": stats
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/rag/test")
+async def test_rag_connection():
+    """Test RAG povezanosti"""
+    try:
+        result = rag_service.test_connection()
+        return result
+    except Exception as e:
         return {"status": "error", "message": str(e)}

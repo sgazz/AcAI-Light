@@ -22,6 +22,20 @@ class ChatMessage(Base):
     timestamp = Column(DateTime, default=datetime.utcnow)
     session_id = Column(String(50), nullable=False, default="default")
 
+class Document(Base):
+    __tablename__ = "documents"
+    
+    id = Column(String(36), primary_key=True, index=True)  # UUID
+    filename = Column(String(255), nullable=False)
+    file_type = Column(String(10), nullable=False)  # .pdf, .docx, .txt
+    total_pages = Column(Integer, nullable=False, default=0)
+    file_size = Column(Integer, nullable=False, default=0)  # u bajtovima
+    status = Column(String(20), nullable=False, default="uploaded")  # uploaded, processing, error
+    chunks_count = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    error_message = Column(Text, nullable=True)
+
 # Kreiraj tabele
 Base.metadata.create_all(bind=engine)
 

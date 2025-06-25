@@ -4,3 +4,12 @@ ollama
 python-dotenv
 sqlalchemy
 pydantic
+faiss-cpu
+sentence-transformers
+PyPDF2
+python-docx
+python-multipart
+numpy
+Pillow
+opencv-python
+pytesseract

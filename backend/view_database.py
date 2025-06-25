@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+Skripta za pregled sadržaja SQLite baze podataka
+"""
+
 import sqlite3
 import sys
 import os
@@ -64,6 +68,36 @@ def view_database():
                 print(f"Sesija: {session_id}")
                 print(f"Sadržaj: {content[:100]}{'...' if len(content) > 100 else ''}")
                 print("-" * 80)
+        
+        # Prikaži strukturu documents tabele
+        cursor.execute("PRAGMA table_info(documents);")
+        doc_columns = cursor.fetchall()
+        
+        print("\nStruktura documents tabele:")
+        for col in doc_columns:
+            print(f"  - {col[1]} ({col[2]})")
+        
+        # Dohvati sve dokumente
+        cursor.execute("SELECT * FROM documents ORDER BY created_at DESC;")
+        documents = cursor.fetchall()
+        
+        print(f"\nUkupno dokumenata: {len(documents)}")
+        
+        if documents:
+            print("\nDokumenti:")
+            for doc in documents:
+                print("--------------------------------------------------------------------------------")
+                print(f"ID: {doc[0]}")
+                print(f"Naziv: {doc[1]}")
+                print(f"Tip: {doc[2]}")
+                print(f"Stranice: {doc[3]}")
+                print(f"Veličina: {doc[4]} bajtova")
+                print(f"Status: {doc[5]}")
+                print(f"Chunk-ovi: {doc[6]}")
+                print(f"Kreiran: {doc[7]}")
+                print(f"Ažuriran: {doc[8]}")
+                if doc[9]:  # error_message
+                    print(f"Greška: {doc[9]}")
         
         # Prikaži statistiku po sesijama
         cursor.execute("""
