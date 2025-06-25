@@ -227,8 +227,8 @@ async def delete_session(session_id: str, db: Session = Depends(get_db)):
 async def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db)):
     """Upload dokumenta za RAG sistem"""
     try:
-        # Proveri tip fajla
-        allowed_extensions = ['.pdf', '.docx', '.txt']
+        # Proveri tip fajla - dodaj podršku za slike
+        allowed_extensions = ['.pdf', '.docx', '.txt', '.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif']
         file_extension = os.path.splitext(file.filename)[1].lower()
         
         if file_extension not in allowed_extensions:
@@ -240,13 +240,61 @@ async def upload_document(file: UploadFile = File(...), db: Session = Depends(ge
         # Pročitaj sadržaj fajla
         file_content = await file.read()
         
-        # Upload dokumenta
-        result = rag_service.upload_document(file_content, file.filename, db)
-        
-        if result['status'] == 'success':
-            return result
+        # Ako je slika, prvo izvrši OCR
+        if ocr_service.is_supported_format(file.filename):
+            try:
+                # Izvrši OCR na slici
+                ocr_result = ocr_service.extract_text_from_bytes(file_content, file.filename)
+                
+                if ocr_result['status'] == 'success':
+                    # Kreiraj tekstualni sadržaj iz OCR rezultata
+                    extracted_text = ocr_result['text']
+                    
+                    if not extracted_text.strip():
+                        return {
+                            "status": "warning",
+                            "message": "Nije pronađen tekst na slici",
+                            "filename": file.filename,
+                            "ocr_result": ocr_result
+                        }
+                    
+                    # Kreiraj privremeni tekstualni fajl sa OCR rezultatima
+                    temp_filename = f"ocr_{file.filename}.txt"
+                    
+                    # Upload OCR rezultata kao tekstualni dokument
+                    result = rag_service.upload_document(
+                        extracted_text.encode('utf-8'), 
+                        temp_filename, 
+                        db,
+                        original_filename=file.filename,
+                        ocr_metadata=ocr_result
+                    )
+                    
+                    if result['status'] == 'success':
+                        return {
+                            "status": "success",
+                            "message": f"Slika uspešno obrađena OCR-om i dodata u RAG sistem",
+                            "filename": file.filename,
+                            "extracted_text_length": len(extracted_text),
+                            "ocr_confidence": ocr_result.get('confidence', 0),
+                            "document_id": result.get('document_id'),
+                            "ocr_result": ocr_result
+                        }
+                    else:
+                        raise HTTPException(status_code=500, detail=result['message'])
+                else:
+                    raise HTTPException(status_code=500, detail=f"OCR greška: {ocr_result['message']}")
+                    
+            except Exception as ocr_error:
+                raise HTTPException(status_code=500, detail=f"Greška pri OCR obradi: {str(ocr_error)}")
         else:
-            raise HTTPException(status_code=500, detail=result['message'])
+            # Za ostale dokumente, koristi postojeću logiku
+            result = rag_service.upload_document(file_content, file.filename, db)
+            
+            if result['status'] == 'success':
+                return result
+            else:
+                raise HTTPException(status_code=500, detail=result['message'])
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

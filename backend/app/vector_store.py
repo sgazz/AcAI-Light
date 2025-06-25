@@ -135,6 +135,10 @@ class VectorStore:
                 'embedding_count': len(all_chunks)
             }
             
+            # Dodaj OCR informacije ako postoje
+            if 'ocr_info' in document_data:
+                self.document_metadata[doc_id]['ocr_info'] = document_data['ocr_info']
+            
             # Sačuvaj indeks
             self._save_index()
             

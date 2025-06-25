@@ -22,62 +22,104 @@ class RAGService:
         self.ollama_client = Client(host=ollama_host)
         self.model_name = model_name
     
-    def upload_document(self, file_content: bytes, filename: str, db: Session) -> Dict[str, Any]:
+    def upload_document(self, file_content: bytes, filename: str, db: Session, 
+                       original_filename: str = None, ocr_metadata: dict = None) -> Dict[str, Any]:
         """Upload i procesiranje dokumenta sa OCR podrškom za slike"""
         try:
+            # Koristi original_filename ako je prosleđen
+            display_filename = original_filename if original_filename else filename
+            
             # Sačuvaj fajl privremeno
             with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as temp_file:
                 temp_file.write(file_content)
                 temp_file_path = temp_file.name
             
-            # Proveri da li je slika i primeni OCR ako je potrebno
-            if self.ocr_service.is_supported_format(filename):
-                # Ekstraktuj tekst iz slike
-                ocr_result = self.ocr_service.extract_text(temp_file_path)
+            # Ako je OCR metadata prosleđena, koristi je
+            if ocr_metadata and ocr_metadata.get('status') == 'success':
+                # Koristi već ekstraktovani tekst iz OCR-a
+                ocr_text = ocr_metadata['text']
                 
-                if ocr_result['status'] == 'success':
-                    # Kreiraj tekstualni dokument iz OCR rezultata
-                    ocr_text = ocr_result['text']
-                    if ocr_text.strip():  # Ako je OCR uspešan i ima teksta
-                        # Kreiraj privremeni tekst fajl sa OCR rezultatima
-                        ocr_temp_path = temp_file_path + '_ocr.txt'
-                        with open(ocr_temp_path, 'w', encoding='utf-8') as f:
-                            f.write(f"OCR rezultat za {filename}\n")
-                            f.write(f"Confidence: {ocr_result['confidence']:.2f}%\n")
-                            f.write(f"Jezici: {', '.join(ocr_result['languages'])}\n")
-                            f.write("-" * 50 + "\n")
-                            f.write(ocr_text)
-                        
-                        # Procesiraj OCR tekst kao dokument
-                        document_data = self.document_processor.process_document(ocr_temp_path)
-                        
-                        # Dodaj OCR metapodatke
-                        document_data['ocr_info'] = {
-                            'confidence': ocr_result['confidence'],
-                            'languages': ocr_result['languages'],
-                            'image_size': ocr_result['image_size'],
-                            'original_filename': filename
-                        }
-                        
-                        # Obriši OCR temp fajl
-                        os.unlink(ocr_temp_path)
-                    else:
-                        # Ako OCR nije uspešan, koristi običan document processor
-                        document_data = self.document_processor.process_document(temp_file_path)
-                        document_data['ocr_info'] = {
-                            'status': 'no_text_found',
-                            'message': 'OCR nije pronašao tekst u slici'
-                        }
+                if ocr_text.strip():
+                    # Kreiraj privremeni tekst fajl sa OCR rezultatima
+                    ocr_temp_path = temp_file_path + '_ocr.txt'
+                    with open(ocr_temp_path, 'w', encoding='utf-8') as f:
+                        f.write(f"OCR rezultat za {display_filename}\n")
+                        f.write(f"Confidence: {ocr_metadata.get('confidence', 0):.2f}%\n")
+                        f.write(f"Jezici: {', '.join(ocr_metadata.get('languages', []))}\n")
+                        f.write("-" * 50 + "\n")
+                        f.write(ocr_text)
+                    
+                    # Procesiraj OCR tekst kao dokument
+                    document_data = self.document_processor.process_document(ocr_temp_path)
+                    
+                    # Dodaj OCR metapodatke
+                    document_data['ocr_info'] = {
+                        'confidence': ocr_metadata.get('confidence', 0),
+                        'languages': ocr_metadata.get('languages', []),
+                        'image_size': ocr_metadata.get('image_size'),
+                        'original_filename': display_filename,
+                        'text': ocr_text
+                    }
+                    
+                    # Obriši OCR temp fajl
+                    os.unlink(ocr_temp_path)
                 else:
-                    # Ako OCR ne uspe, koristi običan document processor
+                    # Ako OCR nije uspešan, koristi običan document processor
                     document_data = self.document_processor.process_document(temp_file_path)
                     document_data['ocr_info'] = {
-                        'status': 'error',
-                        'message': ocr_result['message']
+                        'status': 'no_text_found',
+                        'message': 'OCR nije pronašao tekst u slici'
                     }
             else:
-                # Običan dokument (nije slika)
-                document_data = self.document_processor.process_document(temp_file_path)
+                # Proveri da li je slika i primeni OCR ako je potrebno
+                if self.ocr_service.is_supported_format(filename):
+                    # Ekstraktuj tekst iz slike
+                    ocr_result = self.ocr_service.extract_text(temp_file_path)
+                    
+                    if ocr_result['status'] == 'success':
+                        # Kreiraj tekstualni dokument iz OCR rezultata
+                        ocr_text = ocr_result['text']
+                        if ocr_text.strip():  # Ako je OCR uspešan i ima teksta
+                            # Kreiraj privremeni tekst fajl sa OCR rezultatima
+                            ocr_temp_path = temp_file_path + '_ocr.txt'
+                            with open(ocr_temp_path, 'w', encoding='utf-8') as f:
+                                f.write(f"OCR rezultat za {display_filename}\n")
+                                f.write(f"Confidence: {ocr_result['confidence']:.2f}%\n")
+                                f.write(f"Jezici: {', '.join(ocr_result['languages'])}\n")
+                                f.write("-" * 50 + "\n")
+                                f.write(ocr_text)
+                            
+                            # Procesiraj OCR tekst kao dokument
+                            document_data = self.document_processor.process_document(ocr_temp_path)
+                            
+                            # Dodaj OCR metapodatke
+                            document_data['ocr_info'] = {
+                                'confidence': ocr_result['confidence'],
+                                'languages': ocr_result['languages'],
+                                'image_size': ocr_result['image_size'],
+                                'original_filename': display_filename,
+                                'text': ocr_text
+                            }
+                            
+                            # Obriši OCR temp fajl
+                            os.unlink(ocr_temp_path)
+                        else:
+                            # Ako OCR nije uspešan, koristi običan document processor
+                            document_data = self.document_processor.process_document(temp_file_path)
+                            document_data['ocr_info'] = {
+                                'status': 'no_text_found',
+                                'message': 'OCR nije pronašao tekst u slici'
+                            }
+                    else:
+                        # Ako OCR ne uspe, koristi običan document processor
+                        document_data = self.document_processor.process_document(temp_file_path)
+                        document_data['ocr_info'] = {
+                            'status': 'error',
+                            'message': ocr_result['message']
+                        }
+                else:
+                    # Običan dokument (nije slika)
+                    document_data = self.document_processor.process_document(temp_file_path)
             
             # Dodaj u vector store
             doc_id = self.vector_store.add_document(document_data)
@@ -85,7 +127,7 @@ class RAGService:
             # Sačuvaj u SQL bazu
             db_document = Document(
                 id=doc_id,
-                filename=filename,
+                filename=display_filename,  # Koristi display_filename
                 file_type=document_data['file_type'],
                 total_pages=document_data['total_pages'],
                 file_size=len(file_content),
@@ -102,8 +144,8 @@ class RAGService:
             # Pripremi response
             response = {
                 'status': 'success',
-                'doc_id': doc_id,
-                'filename': filename,
+                'document_id': doc_id,  # Dodaj document_id
+                'filename': display_filename,
                 'file_type': document_data['file_type'],
                 'total_pages': document_data['total_pages'],
                 'chunks_created': sum(len(page['chunks']) for page in document_data['pages'])
@@ -127,7 +169,7 @@ class RAGService:
             try:
                 error_doc = Document(
                     id=doc_id if 'doc_id' in locals() else 'error_' + str(hash(filename)),
-                    filename=filename,
+                    filename=display_filename if 'display_filename' in locals() else filename,
                     file_type=os.path.splitext(filename)[1],
                     total_pages=0,
                     file_size=len(file_content),
@@ -146,11 +188,13 @@ class RAGService:
             }
     
     def get_documents_from_db(self, db: Session) -> List[Dict[str, Any]]:
-        """Dohvata dokumente iz SQL baze"""
+        """Dohvata dokumente iz SQL baze sa OCR informacijama"""
         try:
             documents = db.query(Document).order_by(Document.created_at.desc()).all()
-            return [
-                {
+            result = []
+            
+            for doc in documents:
+                doc_info = {
                     'id': doc.id,
                     'filename': doc.filename,
                     'file_type': doc.file_type,
@@ -161,8 +205,18 @@ class RAGService:
                     'created_at': doc.created_at.isoformat(),
                     'error_message': doc.error_message
                 }
-                for doc in documents
-            ]
+                
+                # Dohvati OCR informacije iz vector store-a ako postoje
+                try:
+                    vector_info = self.vector_store.get_document_info(doc.id)
+                    if vector_info and 'ocr_info' in vector_info:
+                        doc_info['ocr_info'] = vector_info['ocr_info']
+                except Exception as e:
+                    print(f"Greška pri dohvatanju OCR info za {doc.id}: {e}")
+                
+                result.append(doc_info)
+            
+            return result
         except Exception as e:
             print(f"Greška pri dohvatanju dokumenata iz baze: {e}")
             return []
