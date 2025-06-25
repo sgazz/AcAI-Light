@@ -13,3 +13,4 @@ numpy
 Pillow
 opencv-python
 pytesseract
+logging

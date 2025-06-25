@@ -247,10 +247,10 @@ async def upload_document(file: UploadFile = File(...), db: Session = Depends(ge
 
 @app.post("/chat/rag")
 async def rag_chat_endpoint(message: dict, db: Session = Depends(get_db)):
-    """RAG chat endpoint sa kontekstom iz dokumenata"""
     try:
         user_message = message.get("message", "")
         session_id = message.get("session_id", "default")
+        use_rerank = message.get("use_rerank", True)  # Dodaj opciju za re-ranking
         
         if not user_message.strip():
             raise HTTPException(status_code=400, detail="Poruka ne može biti prazna")
@@ -267,11 +267,16 @@ async def rag_chat_endpoint(message: dict, db: Session = Depends(get_db)):
         # Dohvati kontekst prethodnih poruka
         context = get_conversation_context(session_id, db)
         
-        # Generiši RAG odgovor
-        rag_result = rag_service.generate_rag_response(user_message, context)
+        # Generiši RAG odgovor sa re-ranking opcijom
+        rag_response = rag_service.generate_rag_response(
+            user_message, 
+            context, 
+            max_results=3,
+            use_rerank=use_rerank
+        )
         
-        if rag_result['status'] == 'success':
-            ai_response = rag_result['response']
+        if rag_response['status'] == 'success':
+            ai_response = rag_response['response']
             
             # Sačuvaj AI odgovor u bazu
             ai_db_message = ChatMessage(
@@ -286,11 +291,13 @@ async def rag_chat_endpoint(message: dict, db: Session = Depends(get_db)):
                 "status": "success",
                 "response": ai_response,
                 "session_id": session_id,
-                "sources": rag_result.get('sources', []),
-                "used_rag": rag_result.get('used_rag', False)
+                "sources": rag_response.get('sources', []),
+                "used_rag": rag_response.get('used_rag', False),
+                "reranking_applied": rag_response.get('reranking_applied', False),
+                "reranker_info": rag_response.get('reranker_info')
             }
         else:
-            raise HTTPException(status_code=500, detail=rag_result['message'])
+            return {"status": "error", "message": rag_response.get('message', 'Greška pri RAG generisanju')}
         
     except Exception as e:
         db.rollback()
@@ -356,5 +363,170 @@ async def test_rag_connection():
     try:
         result = rag_service.test_connection()
         return result
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/search/rerank")
+async def test_rerank_search(message: dict):
+    """Test endpoint za re-ranking funkcionalnost"""
+    try:
+        query = message.get("query", "")
+        use_rerank = message.get("use_rerank", True)
+        use_metadata = message.get("use_metadata", True)
+        top_k = message.get("top_k", 5)
+        
+        if not query.strip():
+            raise HTTPException(status_code=400, detail="Upit ne može biti prazan")
+        
+        # Testiraj različite metode pretrage
+        results = {}
+        
+        # 1. Obična pretraga bez re-ranking-a
+        basic_results = rag_service.search_documents(query, top_k, use_rerank=False)
+        results['basic_search'] = {
+            'count': len(basic_results),
+            'results': basic_results
+        }
+        
+        # 2. Pretraga sa re-ranking-om
+        if use_rerank:
+            rerank_results = rag_service.search_documents_with_rerank(
+                query, top_k, use_metadata
+            )
+            results['rerank_search'] = {
+                'count': len(rerank_results),
+                'results': rerank_results
+            }
+        
+        # 3. Standardna pretraga sa re-ranking-om
+        standard_rerank_results = rag_service.search_documents(query, top_k, use_rerank=True)
+        results['standard_rerank'] = {
+            'count': len(standard_rerank_results),
+            'results': standard_rerank_results
+        }
+        
+        return {
+            "status": "success",
+            "query": query,
+            "reranker_info": rag_service.reranker.get_model_info(),
+            "results": results
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/rerank/info")
+async def get_reranker_info():
+    """Dohvata informacije o re-ranker modelu"""
+    try:
+        info = rag_service.reranker.get_model_info()
+        return {
+            "status": "success",
+            "reranker_info": info
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+
+@app.post("/chat/rag-multistep")
+async def multi_step_rag_chat_endpoint(message: dict, db: Session = Depends(get_db)):
+    """Multi-step RAG chat endpoint"""
+    try:
+        user_message = message.get("message", "")
+        session_id = message.get("session_id", "default")
+        use_rerank = message.get("use_rerank", True)
+        
+        if not user_message.strip():
+            raise HTTPException(status_code=400, detail="Poruka ne može biti prazna")
+        
+        # Sačuvaj korisničku poruku u bazu
+        user_db_message = ChatMessage(
+            sender="user",
+            content=user_message,
+            session_id=session_id
+        )
+        db.add(user_db_message)
+        db.commit()
+        
+        # Dohvati kontekst prethodnih poruka
+        context = get_conversation_context(session_id, db)
+        
+        # Generiši multi-step RAG odgovor
+        rag_response = rag_service.generate_multi_step_rag_response(
+            user_message, 
+            context, 
+            max_results=3,
+            use_rerank=use_rerank
+        )
+        
+        if rag_response["status"] == "success":
+            ai_response = rag_response["response"]
+            
+            # Sačuvaj AI odgovor u bazu
+            ai_db_message = ChatMessage(
+                sender="ai",
+                content=ai_response,
+                session_id=session_id
+            )
+            db.add(ai_db_message)
+            db.commit()
+            
+            return {
+                "status": "success",
+                "response": ai_response,
+                "session_id": session_id,
+                "sources": rag_response.get("sources", []),
+                "used_rag": rag_response.get("used_rag", False),
+                "reranking_applied": rag_response.get("reranking_applied", False),
+                "reranker_info": rag_response.get("reranker_info"),
+                "multi_step_info": rag_response.get("multi_step_info")
+            }
+        else:
+            return {"status": "error", "message": rag_response.get("message", "Greška pri multi-step RAG generisanju")}
+        
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
+
+@app.post("/search/multistep")
+async def test_multi_step_search(message: dict):
+    """Test endpoint za multi-step retrieval funkcionalnost"""
+    try:
+        query = message.get("query", "")
+        use_rerank = message.get("use_rerank", True)
+        top_k = message.get("top_k", 5)
+        
+        if not query.strip():
+            raise HTTPException(status_code=400, detail="Upit ne može biti prazan")
+        
+        # Multi-step retrieval
+        multi_step_result = rag_service.multi_step_retrieval.multi_step_search(
+            query, top_k, use_rerank
+        )
+        
+        # Query analytics
+        analytics = rag_service.get_query_analytics(query)
+        
+        return {
+            "status": "success",
+            "query": query,
+            "multi_step_result": multi_step_result,
+            "analytics": analytics
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/multistep/info")
+async def get_multi_step_info():
+    """Dohvata informacije o multi-step retrieval sistemu"""
+    try:
+        return {
+            "status": "success",
+            "multi_step_info": {
+                "complex_indicators": rag_service.multi_step_retrieval.complex_query_indicators,
+                "description": "Multi-step retrieval sistem za složene upite"
+            }
+        }
     except Exception as e:
         return {"status": "error", "message": str(e)}

@@ -8,6 +8,7 @@ AcAI Assistant je napredni AI asistent za učenje koji koristi RAG (Retrieval Au
 ### 1.2 Glavne Funkcionalnosti
 - 💬 **Chat Interfejs** - Interaktivna komunikacija sa AI asistentom
 - 📚 **RAG Sistem** - Pretraga i analiza dokumenata i slika
+- 🔄 **Re-ranking** - Napredno rangiranje rezultata pretrage koristeći cross-encoder modele
 - 📄 **Upload Dokumenata i Slika** - Podrška za PDF, DOCX, JPG, BMP, GIF i druge formate
 - 🔍 **Pretraga Dokumenata** - Semantička pretraga kroz sadržaj
 - 👁️ **OCR Slika** - Prepoznavanje teksta iz slika i prepoznavanje sadržaja
@@ -61,6 +62,7 @@ AcAI Assistant je napredni AI asistent za učenje koji koristi RAG (Retrieval Au
 ### 2.3 AI i RAG
 - **AI Models**: Ollama (Llama 2 + Mistral kombinacija)
 - **Embeddings**: Sentence Transformers (all-MiniLM-L6-v2)
+- **Re-ranking**: Cross-encoder (ms-marco-MiniLM-L-6-v2)
 - **Vector Search**: FAISS 1.7.4
 - **Document Processing**: PyPDF2, python-docx
 - **Image Processing**: Pillow, OpenCV
@@ -95,6 +97,7 @@ acai-assistant/
     │   ├── rag_client_simple.py    # RAG implementacija
     │   ├── rag/                    # RAG servisi
     │   │   ├── rag_service.py      # FAISS integracija
+    │   │   ├── reranker.py         # Re-ranking funkcionalnost
     │   │   └── document_processor.py
     │   ├── data/                   # RAG indeksi
     │   │   └── rag_index/
@@ -167,9 +170,39 @@ class RAGService:
 - **Text Chunking**: Razbijanje na stranice
 - **Metadata Extraction**: Informacije o dokumentu ili slici
 
-### 4.3 Database Schema
+### 4.3 Re-ranking Implementacija
 
-#### 4.3.1 Tabele
+#### 4.3.1 Re-ranking Service
+```python
+class Reranker:
+    def __init__(self, model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"):
+        self.model = CrossEncoder(model_name)
+        self.logger = logging.getLogger(__name__)
+```
+
+**Ključne funkcionalnosti:**
+- **Cross-encoder Model**: ms-marco-MiniLM-L-6-v2 za precizno rangiranje
+- **Query-Document Scoring**: Direktno rangiranje parova (upit, dokument)
+- **Metadata Integration**: Uključivanje metapodataka u re-ranking proces
+- **Score Combination**: Kombinovanje originalnog i re-rank score-a
+- **Batch Processing**: Podrška za batch re-ranking više upita
+- **Fallback Mechanism**: Automatski fallback na alternativni model
+
+#### 4.3.2 Re-ranking Algoritam
+1. **Initial Retrieval**: FAISS pretraga za dohvatanje kandidata
+2. **Cross-encoder Scoring**: Precizno rangiranje parova (upit, dokument)
+3. **Score Combination**: 30% originalni score + 70% re-rank score
+4. **Final Ranking**: Sortiranje po kombinovanom score-u
+5. **Top-k Selection**: Vraćanje najboljih k rezultata
+
+#### 4.3.3 Re-ranking API Endpoints
+- `POST /search/rerank` - Test re-ranking funkcionalnosti
+- `GET /rerank/info` - Informacije o re-ranker modelu
+- `POST /chat/rag` - RAG chat sa re-ranking opcijom (use_rerank parameter)
+
+### 4.4 Database Schema
+
+#### 4.4.1 Tabele
 ```sql
 -- Users table
 CREATE TABLE users (
@@ -214,7 +247,7 @@ CREATE TABLE document_pages (
 );
 ```
 
-#### 4.3.2 Indeksi
+#### 4.4.2 Indeksi
 - `idx_users_email` - Brza pretraga po email-u
 - `idx_messages_timestamp` - Sortiranje poruka
 - `idx_messages_user_id` - Poruke po korisniku

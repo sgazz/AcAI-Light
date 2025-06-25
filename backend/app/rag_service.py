@@ -3,6 +3,8 @@ import tempfile
 from typing import List, Dict, Any, Optional
 from .document_processor import DocumentProcessor
 from .vector_store import VectorStore
+from .multi_step_retrieval import MultiStepRetrieval
+from .reranker import Reranker
 from .models import Document
 from sqlalchemy.orm import Session
 from ollama import Client
@@ -13,6 +15,8 @@ class RAGService:
     def __init__(self, ollama_host: str = "http://localhost:11434", model_name: str = "mistral"):
         self.document_processor = DocumentProcessor()
         self.vector_store = VectorStore()
+        self.reranker = Reranker()
+        self.multi_step_retrieval = MultiStepRetrieval(self.vector_store, self.reranker)
         self.ollama_client = Client(host=ollama_host)
         self.model_name = model_name
     
@@ -126,20 +130,58 @@ class RAGService:
             db.rollback()
             return False
     
-    def search_documents(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
-        """Pretražuje dokumente"""
+    def search_documents(self, query: str, top_k: int = 5, use_rerank: bool = True) -> List[Dict[str, Any]]:
+        """Pretražuje dokumente sa opcionalnim re-ranking-om"""
         try:
-            results = self.vector_store.search(query, top_k)
-            return results
+            # Prvo dohvati više rezultata za re-ranking
+            initial_k = top_k * 3 if use_rerank else top_k
+            results = self.vector_store.search(query, initial_k)
+            
+            if not results:
+                return []
+            
+            # Ako je re-ranking omogućen, primeni ga
+            if use_rerank and self.reranker.model is not None:
+                reranked_results = self.reranker.rerank(query, results, top_k)
+                return reranked_results
+            else:
+                return results[:top_k]
+                
         except Exception as e:
             print(f"Greška pri pretraživanju: {e}")
             return []
     
-    def generate_rag_response(self, query: str, context: str = "", max_results: int = 3) -> Dict[str, Any]:
+    def search_documents_with_rerank(self, query: str, top_k: int = 5, 
+                                   use_metadata: bool = True) -> List[Dict[str, Any]]:
+        """Pretražuje dokumente sa naprednim re-ranking-om"""
+        try:
+            # Dohvati više rezultata za re-ranking
+            initial_k = top_k * 3
+            results = self.vector_store.search(query, initial_k)
+            
+            if not results:
+                return []
+            
+            # Primeni re-ranking sa metapodacima
+            reranked_results = self.reranker.rerank_with_metadata(
+                query, results, top_k, use_metadata
+            )
+            
+            return reranked_results
+            
+        except Exception as e:
+            print(f"Greška pri pretraživanju sa re-ranking-om: {e}")
+            return []
+    
+    def generate_rag_response(self, query: str, context: str = "", max_results: int = 3, 
+                            use_rerank: bool = True) -> Dict[str, Any]:
         """Generiše RAG odgovor sa kontekstom iz dokumenata"""
         try:
-            # Pretraži relevantne dokumente
-            search_results = self.search_documents(query, max_results)
+            # Pretraži relevantne dokumente sa re-ranking-om
+            if use_rerank:
+                search_results = self.search_documents_with_rerank(query, max_results)
+            else:
+                search_results = self.search_documents(query, max_results, use_rerank=False)
             
             if not search_results:
                 # Ako nema rezultata, koristi običan chat
@@ -166,19 +208,30 @@ class RAGService:
             
             ai_response = response['message']['content']
             
+            # Pripremi informacije o izvorima
+            sources = []
+            for result in search_results:
+                source_info = {
+                    'filename': result['filename'],
+                    'page': result['page'],
+                    'score': result.get('combined_score', result.get('score', 0)),
+                    'content': result['content'][:200] + "..." if len(result['content']) > 200 else result['content']
+                }
+                
+                # Dodaj re-ranking informacije ako su dostupne
+                if 'rerank_score' in result:
+                    source_info['rerank_score'] = result['rerank_score']
+                    source_info['original_score'] = result.get('score', 0)
+                
+                sources.append(source_info)
+            
             return {
                 'status': 'success',
                 'response': ai_response,
-                'sources': [
-                    {
-                        'filename': result['filename'],
-                        'page': result['page'],
-                        'score': result['score'],
-                        'content': result['content'][:200] + "..." if len(result['content']) > 200 else result['content']
-                    }
-                    for result in search_results
-                ],
-                'used_rag': True
+                'sources': sources,
+                'used_rag': True,
+                'reranking_applied': use_rerank and self.reranker.model is not None,
+                'reranker_info': self.reranker.get_model_info() if use_rerank else None
             }
             
         except Exception as e:
@@ -277,3 +330,91 @@ class RAGService:
                 'message': f'Ollama greška: {str(e)}',
                 'model': self.model_name
             } 
+    def generate_multi_step_rag_response(self, query: str, context: str = "", max_results: int = 3, 
+                                        use_rerank: bool = True) -> Dict[str, Any]:
+        """Generiše RAG odgovor koristeći multi-step retrieval"""
+        try:
+            # Koristi multi-step retrieval za pretragu
+            multi_step_result = self.multi_step_retrieval.multi_step_search(
+                query, max_results, use_rerank
+            )
+            
+            if multi_step_result["status"] != "success":
+                # Fallback na običan RAG
+                return self.generate_rag_response(query, context, max_results, use_rerank)
+            
+            search_results = multi_step_result["results"]
+            
+            if not search_results:
+                # Ako nema rezultata, koristi običan chat
+                return self._generate_simple_response(query)
+            
+            # Pripremi kontekst iz pretrage
+            context_parts = []
+            for result in search_results:
+                context_parts.append(f"Izvor: {result['filename']} (stranica {result['page']})\nSadržaj: {result['content']}")
+            
+            document_context = "\n\n".join(context_parts)
+            
+            # Kreiraj RAG prompt
+            rag_prompt = self._create_rag_prompt(query, document_context, context)
+            
+            # Generiši odgovor
+            response = self.ollama_client.chat(
+                model=self.model_name,
+                messages=[{
+                    "role": "user",
+                    "content": rag_prompt
+                }]
+            )
+            
+            ai_response = response["message"]["content"]
+            
+            # Pripremi informacije o izvorima
+            sources = []
+            for result in search_results:
+                source_info = {
+                    "filename": result["filename"],
+                    "page": result["page"],
+                    "score": result.get("combined_score", result.get("score", 0)),
+                    "content": result["content"][:200] + "..." if len(result["content"]) > 200 else result["content"]
+                }
+                
+                # Dodaj re-ranking informacije ako su dostupne
+                if "rerank_score" in result:
+                    source_info["rerank_score"] = result["rerank_score"]
+                    source_info["original_score"] = result.get("score", 0)
+                
+                # Dodaj multi-step informacije
+                if "sub_query" in result:
+                    source_info["sub_query"] = result["sub_query"]
+                if "step" in result:
+                    source_info["step"] = result["step"]
+                
+                sources.append(source_info)
+            
+            return {
+                "status": "success",
+                "response": ai_response,
+                "sources": sources,
+                "used_rag": True,
+                "reranking_applied": use_rerank and self.reranker.model is not None,
+                "reranker_info": self.reranker.get_model_info() if use_rerank else None,
+                "multi_step_info": {
+                    "query_type": multi_step_result["query_type"],
+                    "steps_used": multi_step_result["steps_used"],
+                    "sub_queries": multi_step_result.get("sub_queries", []),
+                    "concepts": multi_step_result.get("concepts", []),
+                    "total_candidates": multi_step_result.get("total_candidates", 0),
+                    "unique_candidates": multi_step_result.get("unique_candidates", 0)
+                }
+            }
+            
+        except Exception as e:
+            print(f"Greška pri multi-step RAG generisanju: {e}")
+            # Fallback na običan RAG
+            return self.generate_rag_response(query, context, max_results, use_rerank)
+    
+    def get_query_analytics(self, query: str) -> Dict[str, Any]:
+        """Vraća analitiku upita"""
+        return self.multi_step_retrieval.get_search_analytics(query)
