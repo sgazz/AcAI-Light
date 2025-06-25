@@ -8,6 +8,9 @@ from sqlalchemy.orm import Session
 from typing import List
 import uuid
 import tempfile
+from PIL import Image, ImageDraw, ImageFont
+import io
+from fastapi.responses import Response
 
 # Učitaj environment varijable
 load_dotenv()
@@ -27,7 +30,7 @@ app.add_middleware(
 )
 
 # Import models i prompts nakon što je app kreiran
-from .models import get_db, ChatMessage
+from .models import get_db, ChatMessage, Document
 from .prompts import SYSTEM_PROMPT, CONTEXT_PROMPT
 from .rag_service import RAGService
 from .ocr_service import OCRService
@@ -335,44 +338,71 @@ async def get_document_info(doc_id: str, db: Session = Depends(get_db)):
 
 @app.get("/documents/{doc_id}/content")
 async def get_document_content(doc_id: str, page: int = None):
-    """Dohvata sadržaj dokumenta za pregled"""
+    """Dohvata sadržaj dokumenta"""
     try:
-        doc_info = rag_service.get_document_info(doc_id)
-        if not doc_info:
+        # Prvo proveri da li dokument postoji u bazi
+        db = next(get_db())
+        document = db.query(Document).filter(Document.id == doc_id).first()
+        
+        if not document:
             raise HTTPException(status_code=404, detail="Dokument nije pronađen")
         
-        chunks = doc_info.get('chunks', [])
+        # Ako je slika, vrati je direktno
+        if ocr_service.is_supported_format(document.filename):
+            # Kreiraj test sliku za demo (u produkciji bi se čitala iz storage-a)
+            # Kreiraj demo sliku
+            img = Image.new('RGB', (400, 200), color='white')
+            draw = ImageDraw.Draw(img)
+            
+            try:
+                font = ImageFont.truetype("/System/Library/Fonts/Arial.ttf", 20)
+            except:
+                font = ImageFont.load_default()
+            
+            draw.text((20, 20), f"Demo slika za {document.filename}", fill='black', font=font)
+            draw.text((20, 50), "Ovo je test slika za OCR", fill='black', font=font)
+            draw.text((20, 80), "AcAIA RAG System", fill='black', font=font)
+            
+            # Konvertuj u bytes
+            img_byte_arr = io.BytesIO()
+            img.save(img_byte_arr, format='PNG')
+            img_byte_arr = img_byte_arr.getvalue()
+            
+            return Response(content=img_byte_arr, media_type="image/png")
         
-        # Ako je specificirana stranica, filtriraj chunke
+        # Za ostale dokumente, koristi postojeću logiku
+        document_data = rag_service.vector_store.get_document(doc_id)
+        
+        if not document_data:
+            raise HTTPException(status_code=404, detail="Sadržaj dokumenta nije pronađen")
+        
         if page is not None:
-            chunks = [chunk for chunk in chunks if chunk.get('page') == page]
-        
-        # Grupiši chunke po stranicama
-        pages_content = {}
-        for chunk in chunks:
-            page_num = chunk.get('page', 1)
-            if page_num not in pages_content:
-                pages_content[page_num] = []
-            pages_content[page_num].append(chunk['content'])
-        
-        # Spoji sadržaj za svaku stranicu
-        formatted_pages = {}
-        for page_num, contents in pages_content.items():
-            formatted_pages[page_num] = '\n\n'.join(contents)
-        
-        return {
-            "status": "success",
-            "document_id": doc_id,
-            "filename": doc_info.get('filename', ''),
-            "file_type": doc_info.get('file_type', ''),
-            "total_pages": doc_info.get('total_pages', 0),
-            "pages": formatted_pages,
-            "all_content": '\n\n--- Stranica ---\n\n'.join([
-                f"Stranica {page_num}:\n{content}" 
-                for page_num, content in formatted_pages.items()
-            ])
-        }
-        
+            if page < 0 or page >= len(document_data['pages']):
+                raise HTTPException(status_code=400, detail="Nevažeći broj stranice")
+            
+            page_content = document_data['pages'][page]
+            return {
+                "status": "success",
+                "page": page,
+                "content": page_content['content'],
+                "chunks": page_content['chunks']
+            }
+        else:
+            # Vrati sve stranice
+            all_content = []
+            for i, page_data in enumerate(document_data['pages']):
+                all_content.append({
+                    "page": i,
+                    "content": page_data['content'],
+                    "chunks": page_data['chunks']
+                })
+            
+            return {
+                "status": "success",
+                "total_pages": len(document_data['pages']),
+                "pages": all_content
+            }
+            
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
