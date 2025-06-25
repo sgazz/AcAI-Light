@@ -330,6 +330,49 @@ async def get_document_info(doc_id: str, db: Session = Depends(get_db)):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.get("/documents/{doc_id}/content")
+async def get_document_content(doc_id: str, page: int = None):
+    """Dohvata sadržaj dokumenta za pregled"""
+    try:
+        doc_info = rag_service.get_document_info(doc_id)
+        if not doc_info:
+            raise HTTPException(status_code=404, detail="Dokument nije pronađen")
+        
+        chunks = doc_info.get('chunks', [])
+        
+        # Ako je specificirana stranica, filtriraj chunke
+        if page is not None:
+            chunks = [chunk for chunk in chunks if chunk.get('page') == page]
+        
+        # Grupiši chunke po stranicama
+        pages_content = {}
+        for chunk in chunks:
+            page_num = chunk.get('page', 1)
+            if page_num not in pages_content:
+                pages_content[page_num] = []
+            pages_content[page_num].append(chunk['content'])
+        
+        # Spoji sadržaj za svaku stranicu
+        formatted_pages = {}
+        for page_num, contents in pages_content.items():
+            formatted_pages[page_num] = '\n\n'.join(contents)
+        
+        return {
+            "status": "success",
+            "document_id": doc_id,
+            "filename": doc_info.get('filename', ''),
+            "file_type": doc_info.get('file_type', ''),
+            "total_pages": doc_info.get('total_pages', 0),
+            "pages": formatted_pages,
+            "all_content": '\n\n--- Stranica ---\n\n'.join([
+                f"Stranica {page_num}:\n{content}" 
+                for page_num, content in formatted_pages.items()
+            ])
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 @app.delete("/documents/{doc_id}")
 async def delete_document(doc_id: str, db: Session = Depends(get_db)):
     """Briše dokument iz RAG sistema"""
