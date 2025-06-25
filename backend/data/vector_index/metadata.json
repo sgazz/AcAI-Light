@@ -2854,5 +2854,426 @@
       }
     ],
     "embedding_count": 32
+  },
+  "7c096d72-0474-445e-89a2-9249f12114f4": {
+    "filename": "tmpuee7m8hd.pdf",
+    "file_type": "pdf",
+    "total_pages": 61,
+    "chunks": [
+      {
+        "id": "page_1_chunk_1",
+        "content": "Osteologija -kosti i zglobovi ICEPS, 2018. godina Dr Vladimir Krstić",
+        "page": 1,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_2_chunk_1",
+        "content": "Kosti gornjeg ekstremiteta",
+        "page": 2,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_3_chunk_1",
+        "content": "Kljuĉna kost -Clavicula •leži u gornjem otvoru grudnog koša",
+        "page": 3,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_4_chunk_1",
+        "content": "Lopatica -Scapula •leži na zadnjoj strani grudnog koša",
+        "page": 4,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_5_chunk_1",
+        "content": "Ramena kost -Humerus •gornjim krajem se zglobljava sa lopaticom gradeći zglob ramena •donjim krajem se zglobljava sa žbicom i lakatnom kosti ĉineći zglob lakta",
+        "page": 5,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_6_chunk_1",
+        "content": "Kostur podlaktice •ĉine ga žbica (Radius) i lakatna kost (Ulna) •gornim krajevima grade zglob lakta •donjim krajevima ĉine zglob ruĉja",
+        "page": 6,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_7_chunk_1",
+        "content": "Kosti šake •osam kratkih kostiju ruĉja (Ossa carpi) •pet dugih kostiju doruĉja (Ossa metacarpi) •kosti prstiju (dva ĉlanka palac, ostale kosti tri ĉlanka) (Ossa digitorum manus)",
+        "page": 7,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_8_chunk_1",
+        "content": "Kosti donjeg ekstremiteta",
+        "page": 8,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_9_chunk_1",
+        "content": "Kosti karliĉnog pojasa •karliĉni pojas se sastoji iz tri kosti-bedrene, preponske i sedalne kosti •ove kosti su do 16. godine povezane hrskavicom, nakon toga okoštavaju",
+        "page": 9,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_10_chunk_1",
+        "content": "Kostur natkolenice •ĉine ga butna kost (Femur) i ĉašica(Patela)",
+        "page": 10,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_11_chunk_1",
+        "content": "Kostur potoklenice •ĉine ga dve kosti -lisnjaĉa (Fibula) i golenjaĉa (Tibia) •golenjaĉa ulazi u sastav zgloba kolena",
+        "page": 11,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_12_chunk_1",
+        "content": "Kosti stopala •oslonac pri stajanju -donja strana petne kosti (calcaneus), glava prve i pete metatarzalne kosti",
+        "page": 12,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_13_chunk_1",
+        "content": "Aksijalni/osovinski skelet •Ĉine ga: -kiĉmeni stub -kosti grudnog koša -kosti glave",
+        "page": 13,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_14_chunk_1",
+        "content": "Kiĉmeni stub •ĉine ga 7 vratnih, 12 grudnih, 5 slabinskih, pet krsnih i 5 trtiĉnih pršljenova •Na kiĉmenom stubu se mogu opisati ĉetiri krivine: -vratna i slabinska lordoza -grudna i krsno -trtiĉna kifoza",
+        "page": 14,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_15_chunk_1",
+        "content": "Kiĉmeni pršljenovi",
+        "page": 15,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_16_chunk_1",
+        "content": "Rebra -Costae •duge kosti -napred se zglobljavaju sa grudnom kosti (Sternum) a pozadi sa kiĉmenim pršljenovima •12 pari -7 pravih (Costae verae), 3 lažna (Costae spuriae) i dva plutajuća (Costae fluitantes )",
+        "page": 16,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_17_chunk_1",
+        "content": "Kosti glave •kosti lobanje (ossa cranii) -krov (calvaria) -baza (basis cranii) •Kosti lica (ossa faciei)",
+        "page": 17,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_18_chunk_1",
+        "content": "Kosti lobanje Neparne ĉeona kost -Os frontale sitasta kost -Os ethmoidale klinasta kost -Os sphenoidale potiljaĉna kost -Os occipitale Parne temena kost -Os parietale slepooĉna kost -Os temporale",
+        "page": 18,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_19_chunk_1",
+        "content": "Kosti lobanje",
+        "page": 19,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_20_chunk_1",
+        "content": "Os frontale (ĉeona kost) •uĉestvuje u izgradnji prednjeg dela krova i baze lobanje •nalazi se iznad kostiju lica, a ispred ostalih kostiju lobanje •sastoji se iz vertikalnog i horizontalnog dela",
+        "page": 20,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_21_chunk_1",
+        "content": "Os parietale (temena kost) •parna kost lobanje •u obliku ĉetvrtaste koštane ploĉe •gradi središnji deo krova lobanje",
+        "page": 21,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_22_chunk_1",
+        "content": "Os occipitale -potiĉjaĉna kost •izgradjuje zadnji deo krova i baze lobanje •u središtu kosti nalazi se veliki kružni otvor -foramen magnum -spoj lobanjske duplje i kiĉmenog kanala -Pons, Medula oblongata -A. Basilaris -svod ždrela •ispred foramena je bazilarni deo -pars basilaris , boĉno boĉni delovi -partes laterales , a iza ljuskasti deo –squama occipitalis",
+        "page": 22,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_23_chunk_1",
+        "content": "Os temporale -temporalna kost •parna kost lobanje •pars squamosa -gradi lateralni zid svoda lobanje zajedno sa fossom mandibularis •pars tympanica -gradi zid meatus acusticus ext. •pars petrosa -spoljašnji deo -processus mastoideus -unutrašnji deo -gradi srednji deo baze lobanje (srednje i unutrašnje uho)",
+        "page": 23,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_24_chunk_1",
+        "content": "Os ethmoidale -sitatsta kost •horizontalni, vertikalni i dva boĉna dela •horizontalni deo ĉini rešetkasta ploĉica -lamina cribrosa ,koja vertikalni deo deli na dva dela •-crista galli •-lamina perpendicularis . •boĉni delovi -labitint (labyrinthus ethmoidalis), desni i levi, nalaze se izmeĊu nosne i oĉne duplje (u njima se nalaze brojne šupljine koje ĉine etmoidni sinus -Sinus ethmoidales ).",
+        "page": 24,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_25_chunk_1",
+        "content": "Os sphenoidale -klinasta kost •neparna kost lobanje •gradi srednji i zadnji deo baze lobanje •sastoji se od: -Sinus sphenoidales (corpus) -Alae majores (velika krila) -Alae minores (mala krila) -Processus pterygoidei (krilasti nastavak) -Sella turcica (sedlo; Hipofiza)",
+        "page": 25,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_26_chunk_1",
+        "content": "Kosti lica Maxilla -gornja vilica -telo (corpus) -Sinus maxilaris -ĉetiri nastavka: Processus frontalis Processus alveolaris Processus zygomaticus Processus palatinus",
+        "page": 26,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_27_chunk_1",
+        "content": "Kosti lica Mandibula -donja vilica -jedina pokretna kost glave -telo (corpus madibularis) -grana (ramus mandibularis) nastavci: -processus coronoideus -processus condylaris -art. temporomandibularis",
+        "page": 27,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_28_chunk_1",
+        "content": "Kosti lica Os palatinum -nepčana kost -parna kost endokranijuma -prislonjena na zadnji deo gornje vilice -osnova tvrdog nepca",
+        "page": 28,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_29_chunk_1",
+        "content": "Kosti lica Os nasale -nosna kost -parna kost lobanje -dve strane, ĉetiri ivice -gore se spaja sa os frontale, lateralno sa gornjom vilicom, pozadi sa os ethmoidale,medijalno sa os nasale druge strane",
+        "page": 29,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_30_chunk_1",
+        "content": "Kosti lica •Concha nasalis inferior •Os zygomaticum •Vomer •Os lacrimale •Os hyloideum",
+        "page": 30,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_31_chunk_1",
+        "content": "ZGLOBOVI •Dele se na: -zglobove glave -zglobove gornjih ekstremiteta -zglobove trupa -zglobove donjih ekstremiteta",
+        "page": 31,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_32_chunk_1",
+        "content": "ZGLOBOVI GORNJEG EKSTREMITETA •Dele se na: -zglobove ramenog pojasa -zglobove ruke",
+        "page": 32,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_33_chunk_1",
+        "content": "ZGLOBOVI RAMENOG POJASA -Art. sternoclavicularis -Art. acromioclavicularis -Lig. coracoclaviculare",
+        "page": 33,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_34_chunk_1",
+        "content": "Articulatio sternoclavicularis •spaja unutrašnji okrajak kljuĉne kosti sa drškom grudne kosti •zbog razliĉite zakrivljenosti zglobnih površina izmeĊu njih je umetnut hrskaviĉavi kolut koji ima ulogu adaptera •zglobna ĉaura je spolja ojaĉana sa ĉetiri ligamenta: sa gornje, donje, prednje i zadnje strane •troosovinski zglob, ponaša se kao kuglasti zglob: kljuĉna kost se pomera napred, nazad, gore, dole, a moguća je i rotacija •funkcionalno dopunjuje zglob ramena",
+        "page": 34,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_35_chunk_1",
+        "content": "Art. acromioclavicularis •spaja spoljašnji okrajak kljuĉne kosti i lopaticu •izmeĊu zglobnih površina umetnut je hrskaviĉavi kolut •zglobna ĉaura je ojaĉana sa gornje i donje strane putem dva ligamenta •polupokretan zglob -u njemu se odvijaju mali pokreti klizanja napred -nazad",
+        "page": 35,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_36_chunk_1",
+        "content": "MIŠIĆI -pokreti ramenog pojasa •Povlaĉenje kljuĉne kosti put nazad vrše leĊni mišići koji se pripajaju na kiĉmenom stubu, kljuĉnici i lopatici: -m. rhomboideus -m. trapezius •Povlaĉenje kljuĉne kosti put napred vrše grudni mišići koji se pripajaju na rebrima i lopatici: -m. pectoralis minor -m. serratus anterior",
+        "page": 36,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_37_chunk_1",
+        "content": "•Povlaĉenje kljuĉnice put naviše vrše leĊni mišići koji se pripajaju na kiĉmenom stubu, kljuĉnoj kosti i lopatici: -m. trapezius (gornji snopovi) -m. levator scapulae •Rotiranje ramenog pojasa pu spolja vrše: -m. trapezius -m. serratus anterior •Rotiranje ramenog pojasa put unutra vrše: -m. rhomboideus -m. pectoralis minor -m. levator scapulae",
+        "page": 37,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_38_chunk_1",
+        "content": "Zglob ramena -Art. humeri •zglob izmeĊu glave humerusa i ĉašiĉne jame na spoljnom uglu lopatice •glava je poluloptastog oblika, a ĉašica je plitka, pa se zato na njenoj perifernoj ivici nalazi fibrozno –hrskaviĉava usna (labrum); •amortizuje nagle pokrete ramenice",
+        "page": 38,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_39_chunk_1",
+        "content": "•zglobna ĉaura je veoma labava, spreda je pojaĉavaju kljunasto –ramena veza i tri ĉašiĉno –ramene veze koje predstavljaju zadebljanje zglobne ĉaure •u zglobnoj šupljini se nalazi tetiva duge glave dvoglavog mišića nadlaktice (m. biceps brachii) •Ovaj zglob osiguravaju i okolni mišići: m. supraspinatus m. infraspinatus m. teres minor m. subscapularis",
+        "page": 39,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_40_chunk_1",
+        "content": "•najpokretljiviji loptasti zglob Fleksija m. pectoralis major -prednja vlakna m. deltoideus m. biceps brachii m. coracobrachialis Ekstenzija m. deltoideus -zadnja vlakna m.triceps brachii m.teres major m. latissimus dorsi",
+        "page": 40,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_41_chunk_1",
+        "content": "Abdukciju m. deltoideus -srednja vlakna m.supraspinatus Adukciju m. pectoralis major m. coracobrachialis m.teres major m. latissimus dorsi Unutrašnju rotaciju m. Subscapularis m.teres major m. latissimus dorsi m. pectoralis major m. deltoideus -prednja vlakna Spoljašnju rotaciju m. teres minor m. infraspinatus m. deltoideus -zadnja vlakna",
+        "page": 41,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_42_chunk_1",
+        "content": "ZGLOB LAKTA -ART. CUBITI •složen zglob, tipa šarke •IzgraĊuju ga donji okrajak humerusa i gornji okrajci radiusa i ulne •U sastav ovog zgloba ulaze: Art. humeroulnaris Art. humeroradialis Art. radioulnaris",
+        "page": 42,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_43_chunk_1",
+        "content": "•zglobna ĉahura je zajedniĉka za sva tri zgloba: na svom prednjem zidu ima kružni, slepo zatvoreni kesasti nastavak koji olakšava pokrete obrtanja gornjeg okrajka ramenice •izmeĊu fibrozne i sinovijalne zglobne ĉaure nalaze se masni jastuĉići koji ispunjavaju jame na donjem okrajku ramenice pri pregibanju i opružanju podlakta; spreĉavaju utiskivanje zglobne ĉahure",
+        "page": 43,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_45_chunk_1",
+        "content": "Gornji zglob šake -Art. radiocarpalis •elipsoidni, složeni zglob •gornji zglob šake izgraĊuju donji okrajci radiusa i ulne i prve tri kosti proksimalnog predela ruĉja (carpus) •donji okrajak radiusa se direktno zglobljava sa ĉunastom i polumeseĉastom kosti, a ulna se preko hrskaviĉavog diskusa zglobljava sa trorogom kosti ruĉja",
+        "page": 45,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_46_chunk_1",
+        "content": "Zglobnu ĉauru pojaĉavaju napred dva ligamenta, sa zadnje strane šake jedan ligament i dva boĉna ligamenta.",
+        "page": 46,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_47_chunk_1",
+        "content": "U ovom zglobu se vrše pokreti: -palmarne fleksije (pregibanje šake put napred) -dorzalne fleksije, odnosno ekstenzija (pregibanje šake put nazad) -abdukcija -addukcija -kružno kretanje",
+        "page": 47,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_48_chunk_1",
+        "content": "Palmarnu fleksiju šake vrše mišići podlakta: m. flexor carpi ulnaris m. flexor carpi radialis m. palmaris longus m. flexor digitorum superficialis m. flexor digitorum profundus m. flexor pollicis longus Dorzalnu fleksiju (ekstenziju) vrše: m. extensor carpi radialis longus m. extensor carpi radialis brevis m. extensor carpi ulnaris m. extensor digitorum m. extensor indicis m. extensor digiti minimi m. extensor pollicis longus m. extensor pollicis brevis",
+        "page": 48,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_49_chunk_1",
+        "content": "Radijalnu abdukcija m. flexor carpi radialis m. extensor carpi radialis longus m. extensor carpi radialis brevis m. extensor pollicis longus m. extensor pollicis brevis m. abductor pollicis longus Ulnarnu abdukciju m. flexor carpi ulnaris m. extensor carpi ulnaris",
+        "page": 49,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_51_chunk_1",
+        "content": "Zglobovi donjih ekstremiteta Zglob kuka (art. coxae) -kuglasti zglob sa širokim obimom pokreta (manji od zgloba ramena) -zglobna ĉašica (acetabulum), glava butne kosti (caput femoris) -snažniji ligamenti (posebno lig. Iliofemoralis -štiti zglob sa prednje strane i onemogućava retrofleksiju noge)",
+        "page": 51,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_52_chunk_1",
+        "content": "Zglobovi donjih ekstremiteta Pokreti u zglobu kuka 1.fleksija (m.iliopsoas, m.tensor fasciae latae, m.sartorisu, m. rectus femoris) 2.ekstenzija (m.gluteus maximus, m, biceps femoris, m.semimembranosus 3.abdukcija (m.gluteus medius) 4.addukcija (m.adducot brevis, longus, magnus; m. gracilis) 5.spolajšnja rotacija (m. gluteus maximus, pelvitrohanteriĉni mišići) 6.unutrašnja rotacija (m.gluteus minimus, m.tensor fasciae latae, m.gracilis) 7.cirkumdukcija",
+        "page": 52,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_53_chunk_1",
+        "content": "Zglobovi donjih ekstremiteta Zglob kolena (art. genus) -najveći zglob; ĉine ga tri kosti - kondili butne kosti, kondili golenjaĉe, patela -mensicus med./lat. -ligamentarni aparat kolena -tetiva m.quadriceps (u nju je uložena patela) -lig. patelae -fleksija, ekstenzija oko popreĉne osovine (do 150 stepeni ukupne amplitude)",
+        "page": 53,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_54_chunk_1",
+        "content": "Zglobovi donjih ekstremiteta Gornji skočni zlob (art. talocruralis) -ĉine ga zglobne površine talusa i kostiju potkolenice -bogat ligamentarni aparat: Tibiofibularne sindesmoze Lig. collaterale medialis Ligg. collteralia laterales -pokreti: plantarna fleksija i dorzalna ekstenzija",
+        "page": 54,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_55_chunk_1",
+        "content": "Zglobovi donjih esktremiteta Donji skočni zglob Art. subtalaris Art. talocalcaneonavicularis -biomehaniĉki ĉine jednu celinu -po tipu složenog zgloba -dorzalna, plantarna fleksija, everzija, inverzija",
+        "page": 55,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_56_chunk_1",
+        "content": "Zglobovi kiĉmenog stuba •Art. atlantooccipitalis (gornji zglob glave) •Artt. atlantoaxiales (donji zglobovi glave)",
+        "page": 56,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_57_chunk_1",
+        "content": "Zglobovi grudnog koša •spojevi izmedju kiĉmenih pršljenova (vertebrae) Tela -disci intervertebrales i dve uzdužne veze: -ligg. longitudinale ant. et post. Lukovi -žute veze (Ligg. flava) Zglobni nastavci pršljena -art. zygapophysiales Spojevi trnastih nastavaka -ligg. Interspinalia -lig. supraspinale",
+        "page": 57,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_58_chunk_1",
+        "content": "Kiĉmeni stub •Izgled dvostrukog slova S: -Vratna lordoza -Grudna kifoza -Lumbalna lordoza",
+        "page": 58,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_59_chunk_1",
+        "content": "Pokreti kiĉmenog stuba •Oko popreĉne ose (antefleksija, retrofleksija) - slabinski deo •Oko sagitalne ose (laterofleksija) -donji deo kiĉmenog stuba •Oko vertikalne ose (rotacija) - vratni deo, donji deo kiĉmenog stuba",
+        "page": 59,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_60_chunk_1",
+        "content": "Zglobovi grudnog koša •Rebarne hrskavice - cartilagines costae (spajaju rebra sa grudnom kosti -sternum) •Art. costochondralis •Art. costovertebrales -Art. capitis costae (glava rebra, telo pršljena) -Art. costotransversaria (kvržica rebra, popreĉni nastavak)",
+        "page": 60,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      },
+      {
+        "id": "page_61_chunk_1",
+        "content": "HVALA NA PAŽNJI!",
+        "page": 61,
+        "doc_id": "7c096d72-0474-445e-89a2-9249f12114f4",
+        "filename": "tmpuee7m8hd.pdf"
+      }
+    ],
+    "embedding_count": 59
   }
 }
