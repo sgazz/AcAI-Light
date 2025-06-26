@@ -3,12 +3,13 @@ import PyPDF2
 from docx import Document
 from typing import List, Dict, Any
 import re
+from .config import Config
 
 class DocumentProcessor:
     """Klasa za procesiranje dokumenata (PDF, DOCX)"""
     
     def __init__(self):
-        self.supported_formats = ['.pdf', '.docx', '.txt']
+        self.supported_formats = Config.get_allowed_extensions()
     
     def process_document(self, file_path: str) -> Dict[str, Any]:
         """Procesira dokument i vraća ekstraktovani tekst i metapodatke"""
@@ -124,8 +125,14 @@ class DocumentProcessor:
         except Exception as e:
             raise Exception(f"Greška pri procesiranju TXT-a: {str(e)}")
     
-    def _create_chunks(self, text: str, page_num: int, chunk_size: int = 500, overlap: int = 50) -> List[Dict[str, Any]]:
+    def _create_chunks(self, text: str, page_num: int, chunk_size: int = None, overlap: int = None) -> List[Dict[str, Any]]:
         """Kreira chunke teksta sa overlap-om"""
+        # Koristi konfiguraciju ako nije prosleđeno
+        if chunk_size is None:
+            chunk_size = Config.RAG_CHUNK_SIZE
+        if overlap is None:
+            overlap = Config.RAG_CHUNK_OVERLAP
+            
         chunks = []
         words = text.split()
         

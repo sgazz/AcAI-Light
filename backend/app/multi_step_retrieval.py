@@ -239,6 +239,13 @@ class MultiStepRetrieval:
             # Vrati najbolje rezultate
             final_results = unique_results[:top_k]
             
+            # Konvertuj skorove u float
+            for res in final_results:
+                if 'score' in res:
+                    res['score'] = float(res['score'])
+                if 'combined_score' in res:
+                    res['combined_score'] = float(res['combined_score'])
+            
             return {
                 "status": "success",
                 "results": final_results,
@@ -291,4 +298,4 @@ class MultiStepRetrieval:
         conj_count = sum(1 for conj in conjunctions if conj in query)
         score += min(conj_count / 3.0, 1.0) * 0.2
         
-        return min(score, 1.0)
+        return float(min(score, 1.0))

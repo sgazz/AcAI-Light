@@ -11,6 +11,7 @@ import tempfile
 from PIL import Image, ImageDraw, ImageFont
 import io
 from fastapi.responses import Response
+from datetime import datetime
 
 # Učitaj environment varijable
 load_dotenv()
@@ -34,9 +35,12 @@ from .models import get_db, ChatMessage, Document
 from .prompts import SYSTEM_PROMPT, CONTEXT_PROMPT
 from .rag_service import RAGService
 from .ocr_service import OCRService
+from .multi_step_retrieval import MultiStepRetrieval
+from .reranker import Reranker
+from .config import Config
 
-# Inicijalizuj RAG servis
-rag_service = RAGService()
+# Inicijalizuj RAG servis sa Supabase podrškom
+rag_service = RAGService(use_supabase=True)
 ocr_service = OCRService()  # Dodaj OCR service
 
 def get_conversation_context(session_id: str, db: Session, max_messages: int = 5) -> str:
@@ -199,24 +203,322 @@ async def get_sessions(db: Session = Depends(get_db)):
             for row in result
         ]
         
-        return {
-            "status": "success",
-            "sessions": sessions
-        }
+        return {"status": "success", "sessions": sessions}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
 @app.delete("/chat/session/{session_id}")
 async def delete_session(session_id: str, db: Session = Depends(get_db)):
     try:
-        # Obriši sve poruke za datu sesiju
+        # Obriši sve poruke za sesiju
         db.query(ChatMessage).filter(ChatMessage.session_id == session_id).delete()
+        db.commit()
+        return {"status": "success", "message": "Sesija obrisana"}
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
+
+# Supabase Chat History Endpoints
+@app.get("/supabase/chat/history/{session_id}")
+async def get_supabase_chat_history(session_id: str, limit: int = 50):
+    """Dohvata chat istoriju iz Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        history = rag_service.supabase_manager.get_chat_history(session_id, limit)
+        
+        return {
+            "status": "success",
+            "session_id": session_id,
+            "messages": history,
+            "count": len(history)
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/supabase/chat/sessions")
+async def get_supabase_sessions():
+    """Dohvata sve chat sesije iz Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        # Dohvati sve chat poruke i grupiši po sesijama
+        all_messages = rag_service.supabase_manager.client.table('chat_history').select('*').execute()
+        
+        # Grupiši po session_id
+        sessions = {}
+        for msg in all_messages.data:
+            session_id = msg['session_id']
+            if session_id not in sessions:
+                sessions[session_id] = {
+                    'session_id': session_id,
+                    'message_count': 0,
+                    'first_message': None,
+                    'last_message': None
+                }
+            
+            sessions[session_id]['message_count'] += 1
+            
+            if not sessions[session_id]['first_message'] or msg['created_at'] < sessions[session_id]['first_message']:
+                sessions[session_id]['first_message'] = msg['created_at']
+            
+            if not sessions[session_id]['last_message'] or msg['created_at'] > sessions[session_id]['last_message']:
+                sessions[session_id]['last_message'] = msg['created_at']
+        
+        sessions_list = list(sessions.values())
+        sessions_list.sort(key=lambda x: x['last_message'], reverse=True)
+        
+        return {
+            "status": "success",
+            "sessions": sessions_list,
+            "count": len(sessions_list)
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.delete("/supabase/chat/session/{session_id}")
+async def delete_supabase_session(session_id: str):
+    """Briše chat sesiju iz Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        # Obriši sve poruke za sesiju
+        rag_service.supabase_manager.client.table('chat_history').delete().eq('session_id', session_id).execute()
+        
+        return {"status": "success", "message": "Sesija obrisana iz Supabase"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Supabase Retrieval Sessions Endpoints
+@app.get("/supabase/retrieval/sessions")
+async def get_supabase_retrieval_sessions(session_id: str = None):
+    """Dohvata retrieval sesije iz Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        sessions = rag_service.supabase_manager.get_retrieval_sessions(session_id)
+        
+        return {
+            "status": "success",
+            "sessions": sessions,
+            "count": len(sessions)
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/supabase/retrieval/session/{session_id}")
+async def get_supabase_retrieval_session(session_id: str):
+    """Dohvata specifičnu retrieval sesiju iz Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        sessions = rag_service.supabase_manager.get_retrieval_sessions(session_id)
+        
+        if not sessions:
+            raise HTTPException(status_code=404, detail="Sesija nije pronađena")
+        
+        return {
+            "status": "success",
+            "session": sessions[0]
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Supabase OCR Endpoints
+@app.get("/supabase/ocr/images")
+async def get_supabase_ocr_images():
+    """Dohvata sve OCR obrađene slike iz Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        images = rag_service.supabase_manager.get_ocr_images()
+        
+        return {
+            "status": "success",
+            "images": images,
+            "count": len(images)
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/supabase/ocr/image/{image_id}")
+async def get_supabase_ocr_image(image_id: str):
+    """Dohvata specifičnu OCR sliku iz Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        # Dohvati sliku po ID-u
+        result = rag_service.supabase_manager.client.table('ocr_images').select('*').eq('id', image_id).execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=404, detail="OCR slika nije pronađena")
+        
+        return {
+            "status": "success",
+            "image": result.data[0]
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Supabase Statistics Endpoints
+@app.get("/supabase/stats")
+async def get_supabase_stats():
+    """Dohvata statistike iz Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        stats = rag_service.supabase_manager.get_database_stats()
+        
+        return {
+            "status": "success",
+            "stats": stats
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/supabase/health")
+async def check_supabase_health():
+    """Proverava zdravlje Supabase konekcije"""
+    try:
+        if not rag_service.use_supabase:
+            return {
+                "status": "disabled",
+                "message": "Supabase nije omogućen"
+            }
+        
+        # Test konekcije
+        is_connected = rag_service.supabase_manager.test_connection()
+        
+        if is_connected:
+            return {
+                "status": "healthy",
+                "message": "Supabase konekcija je u redu",
+                "supabase_enabled": True
+            }
+        else:
+            return {
+                "status": "unhealthy",
+                "message": "Supabase konekcija nije uspešna",
+                "supabase_enabled": True
+            }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "supabase_enabled": rag_service.use_supabase
+        }
+
+# Ažurirani RAG endpoint sa session_id podrškom
+@app.post("/chat/rag")
+async def rag_chat_endpoint(message: dict, db: Session = Depends(get_db)):
+    try:
+        user_message = message.get("message", "")
+        session_id = message.get("session_id", str(uuid.uuid4()))
+        use_rerank = message.get("use_rerank", True)
+        max_results = message.get("max_results", 3)
+        
+        if not user_message.strip():
+            raise HTTPException(status_code=400, detail="Poruka ne može biti prazna")
+        
+        # Dohvati kontekst prethodnih poruka
+        context = get_conversation_context(session_id, db)
+        
+        # Generiši RAG odgovor sa session_id podrškom
+        rag_response = rag_service.generate_rag_response(
+            query=user_message,
+            context=context,
+            max_results=max_results,
+            use_rerank=use_rerank,
+            session_id=session_id
+        )
+        
+        # Sačuvaj poruke u lokalnu bazu za kompatibilnost
+        user_db_message = ChatMessage(
+            sender="user",
+            content=user_message,
+            session_id=session_id
+        )
+        db.add(user_db_message)
+        
+        ai_db_message = ChatMessage(
+            sender="ai",
+            content=rag_response['response'],
+            session_id=session_id
+        )
+        db.add(ai_db_message)
         db.commit()
         
         return {
             "status": "success",
-            "message": f"Sesija {session_id} je obrisana"
+            "response": rag_response['response'],
+            "sources": rag_response.get('sources', []),
+            "session_id": session_id,
+            "model": rag_response.get('model', 'mistral'),
+            "context_length": rag_response.get('context_length', 0)
         }
+        
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
+
+# Ažurirani multi-step RAG endpoint sa session_id podrškom
+@app.post("/chat/rag-multistep")
+async def multi_step_rag_chat_endpoint(message: dict, db: Session = Depends(get_db)):
+    try:
+        user_message = message.get("message", "")
+        session_id = message.get("session_id", str(uuid.uuid4()))
+        use_rerank = message.get("use_rerank", True)
+        max_results = message.get("max_results", 3)
+        
+        if not user_message.strip():
+            raise HTTPException(status_code=400, detail="Poruka ne može biti prazna")
+        
+        # Dohvati kontekst prethodnih poruka
+        context = get_conversation_context(session_id, db)
+        
+        # Generiši multi-step RAG odgovor sa session_id podrškom
+        rag_response = rag_service.generate_multi_step_rag_response(
+            query=user_message,
+            context=context,
+            max_results=max_results,
+            use_rerank=use_rerank,
+            session_id=session_id
+        )
+        
+        # Sačuvaj poruke u lokalnu bazu za kompatibilnost
+        user_db_message = ChatMessage(
+            sender="user",
+            content=user_message,
+            session_id=session_id
+        )
+        db.add(user_db_message)
+        
+        ai_db_message = ChatMessage(
+            sender="ai",
+            content=rag_response['response'],
+            session_id=session_id
+        )
+        db.add(ai_db_message)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "response": rag_response['response'],
+            "sources": rag_response.get('sources', []),
+            "session_id": session_id,
+            "model": rag_response.get('model', 'mistral'),
+            "retrieval_steps": rag_response.get('retrieval_steps', []),
+            "context_length": rag_response.get('context_length', 0)
+        }
+        
     except Exception as e:
         db.rollback()
         return {"status": "error", "message": str(e)}
@@ -227,18 +529,22 @@ async def delete_session(session_id: str, db: Session = Depends(get_db)):
 async def upload_document(file: UploadFile = File(...), db: Session = Depends(get_db)):
     """Upload dokumenta za RAG sistem"""
     try:
-        # Proveri tip fajla - dodaj podršku za slike
-        allowed_extensions = ['.pdf', '.docx', '.txt', '.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif']
-        file_extension = os.path.splitext(file.filename)[1].lower()
-        
-        if file_extension not in allowed_extensions:
+        # Proveri tip fajla koristeći konfiguraciju
+        if not Config.is_file_type_allowed(file.filename):
             raise HTTPException(
                 status_code=400, 
-                detail=f"Format {file_extension} nije podržan. Podržani formati: {', '.join(allowed_extensions)}"
+                detail=f"Format {os.path.splitext(file.filename)[1]} nije podržan. Podržani formati: {', '.join(Config.get_allowed_extensions())}"
             )
         
         # Pročitaj sadržaj fajla
         file_content = await file.read()
+        
+        # Proveri veličinu fajla
+        if not Config.is_file_size_valid(len(file_content)):
+            raise HTTPException(
+                status_code=400,
+                detail=f"Fajl je prevelik. Maksimalna veličina: {Config.MAX_FILE_SIZE / (1024 * 1024)}MB"
+            )
         
         # Ako je slika, prvo izvrši OCR
         if ocr_service.is_supported_format(file.filename):
@@ -298,64 +604,6 @@ async def upload_document(file: UploadFile = File(...), db: Session = Depends(ge
             
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/chat/rag")
-async def rag_chat_endpoint(message: dict, db: Session = Depends(get_db)):
-    try:
-        user_message = message.get("message", "")
-        session_id = message.get("session_id", "default")
-        use_rerank = message.get("use_rerank", True)  # Dodaj opciju za re-ranking
-        
-        if not user_message.strip():
-            raise HTTPException(status_code=400, detail="Poruka ne može biti prazna")
-        
-        # Sačuvaj korisničku poruku u bazu
-        user_db_message = ChatMessage(
-            sender="user",
-            content=user_message,
-            session_id=session_id
-        )
-        db.add(user_db_message)
-        db.commit()
-        
-        # Dohvati kontekst prethodnih poruka
-        context = get_conversation_context(session_id, db)
-        
-        # Generiši RAG odgovor sa re-ranking opcijom
-        rag_response = rag_service.generate_rag_response(
-            user_message, 
-            context, 
-            max_results=3,
-            use_rerank=use_rerank
-        )
-        
-        if rag_response['status'] == 'success':
-            ai_response = rag_response['response']
-            
-            # Sačuvaj AI odgovor u bazu
-            ai_db_message = ChatMessage(
-                sender="ai",
-                content=ai_response,
-                session_id=session_id
-            )
-            db.add(ai_db_message)
-            db.commit()
-            
-            return {
-                "status": "success",
-                "response": ai_response,
-                "session_id": session_id,
-                "sources": rag_response.get('sources', []),
-                "used_rag": rag_response.get('used_rag', False),
-                "reranking_applied": rag_response.get('reranking_applied', False),
-                "reranker_info": rag_response.get('reranker_info')
-            }
-        else:
-            return {"status": "error", "message": rag_response.get('message', 'Greška pri RAG generisanju')}
-        
-    except Exception as e:
-        db.rollback()
-        return {"status": "error", "message": str(e)}
 
 @app.get("/documents")
 async def list_documents(db: Session = Depends(get_db)):
@@ -560,67 +808,6 @@ async def get_reranker_info():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-
-@app.post("/chat/rag-multistep")
-async def multi_step_rag_chat_endpoint(message: dict, db: Session = Depends(get_db)):
-    """Multi-step RAG chat endpoint"""
-    try:
-        user_message = message.get("message", "")
-        session_id = message.get("session_id", "default")
-        use_rerank = message.get("use_rerank", True)
-        
-        if not user_message.strip():
-            raise HTTPException(status_code=400, detail="Poruka ne može biti prazna")
-        
-        # Sačuvaj korisničku poruku u bazu
-        user_db_message = ChatMessage(
-            sender="user",
-            content=user_message,
-            session_id=session_id
-        )
-        db.add(user_db_message)
-        db.commit()
-        
-        # Dohvati kontekst prethodnih poruka
-        context = get_conversation_context(session_id, db)
-        
-        # Generiši multi-step RAG odgovor
-        rag_response = rag_service.generate_multi_step_rag_response(
-            user_message, 
-            context, 
-            max_results=3,
-            use_rerank=use_rerank
-        )
-        
-        if rag_response["status"] == "success":
-            ai_response = rag_response["response"]
-            
-            # Sačuvaj AI odgovor u bazu
-            ai_db_message = ChatMessage(
-                sender="ai",
-                content=ai_response,
-                session_id=session_id
-            )
-            db.add(ai_db_message)
-            db.commit()
-            
-            return {
-                "status": "success",
-                "response": ai_response,
-                "session_id": session_id,
-                "sources": rag_response.get("sources", []),
-                "used_rag": rag_response.get("used_rag", False),
-                "reranking_applied": rag_response.get("reranking_applied", False),
-                "reranker_info": rag_response.get("reranker_info"),
-                "multi_step_info": rag_response.get("multi_step_info")
-            }
-        else:
-            return {"status": "error", "message": rag_response.get("message", "Greška pri multi-step RAG generisanju")}
-        
-    except Exception as e:
-        db.rollback()
-        return {"status": "error", "message": str(e)}
-
 @app.post("/search/multistep")
 async def test_multi_step_search(message: dict):
     """Test endpoint za multi-step retrieval funkcionalnost"""
@@ -691,11 +878,11 @@ async def extract_text_from_image(file: UploadFile = File(...)):
         # Učitaj fajl
         file_content = await file.read()
         
-        # Ekstraktuj tekst
+        # Ekstraktuj tekst koristeći konfiguraciju
         result = ocr_service.extract_text_from_bytes(
             file_content, 
             file.filename,
-            languages=['srp', 'eng']  # Podržani jezici
+            languages=Config.OCR_DEFAULT_LANGUAGES
         )
         
         return {
@@ -734,13 +921,19 @@ async def get_ocr_statistics():
 @app.post("/ocr/extract-advanced")
 async def extract_text_advanced(
     file: UploadFile = File(...),
-    min_confidence: float = 50.0,
-    languages: str = "srp,eng",
+    min_confidence: float = None,
+    languages: str = None,
     deskew: bool = False,
     resize: bool = False
 ):
     """Napredna OCR ekstrakcija sa opcijama"""
     try:
+        # Koristi konfiguraciju ako nije prosleđeno
+        if min_confidence is None:
+            min_confidence = Config.OCR_MIN_CONFIDENCE
+        if languages is None:
+            languages = ",".join(Config.OCR_DEFAULT_LANGUAGES)
+        
         # Proveri da li je podržan format
         if not ocr_service.is_supported_format(file.filename):
             raise HTTPException(
@@ -803,9 +996,13 @@ async def extract_text_advanced(
         return {"status": "error", "message": str(e)}
 
 @app.post("/ocr/batch-extract")
-async def batch_extract_text(files: List[UploadFile] = File(...), languages: str = "srp,eng"):
+async def batch_extract_text(files: List[UploadFile] = File(...), languages: str = None):
     """Batch OCR ekstrakcija za više slika"""
     try:
+        # Koristi konfiguraciju ako nije prosleđeno
+        if languages is None:
+            languages = ",".join(Config.OCR_DEFAULT_LANGUAGES)
+        
         results = []
         language_list = [lang.strip() for lang in languages.split(',')]
         

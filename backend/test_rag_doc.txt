@@ -1,0 +1,1 @@
+RAG (Retrieval-Augmented Generation) je napredna AI tehnologija koja kombinuje pretragu dokumenata sa generisanjem odgovora. Ova tehnologija omogućava AI modelima da pristupe relevantnim informacijama iz baze znanja i generišu tačne, kontekstualno relevantne odgovore.

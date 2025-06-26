@@ -61,7 +61,7 @@ class Reranker:
             for doc, score in zip(documents, scores):
                 doc['rerank_score'] = float(score)
                 # Kombinuj originalni score sa re-rank score-om
-                doc['combined_score'] = (doc.get('score', 0) * 0.3) + (score * 0.7)
+                doc['combined_score'] = float(doc.get('score', 0)) * 0.3 + float(score) * 0.7
             
             # Sortiraj po kombinovanom score-u
             reranked_docs = sorted(documents, key=lambda x: x['combined_score'], reverse=True)
@@ -107,7 +107,7 @@ class Reranker:
             # Dodaj scores i sortiraj
             for doc, score in zip(documents, scores):
                 doc['rerank_score'] = float(score)
-                doc['combined_score'] = (doc.get('score', 0) * 0.3) + (score * 0.7)
+                doc['combined_score'] = float(doc.get('score', 0)) * 0.3 + float(score) * 0.7
             
             reranked_docs = sorted(documents, key=lambda x: x['combined_score'], reverse=True)
             return reranked_docs[:top_k]
