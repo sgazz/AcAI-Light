@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { FaGraduationCap, FaToggleOn, FaToggleOff, FaBook, FaKeyboard } from 'react-icons/fa';
 import SourcesDisplay from './SourcesDisplay';
-import { CHAT_NEW_SESSION_ENDPOINT, CHAT_RAG_ENDPOINT, CHAT_RAG_ENHANCED_CONTEXT_ENDPOINT, apiRequest } from '../utils/api';
+import { CHAT_NEW_SESSION_ENDPOINT, CHAT_RAG_ENDPOINT, CHAT_RAG_ENHANCED_CONTEXT_ENDPOINT, QUERY_ENHANCE_ENDPOINT, FACT_CHECK_VERIFY_ENDPOINT, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
 
 interface Message {
@@ -26,6 +26,23 @@ interface Message {
     model_loaded: boolean;
     model_type: string;
   };
+  // Query Rewriting fields
+  original_query?: string;
+  enhanced_query?: string;
+  query_rewriting_applied?: boolean;
+  query_rewriter_info?: {
+    model_name: string;
+    confidence: number;
+    improvements: string[];
+  };
+  // Fact Checking fields
+  fact_checking_applied?: boolean;
+  fact_checker_info?: {
+    verified: boolean;
+    confidence: number;
+    reasoning: string;
+    sources: string[];
+  };
 }
 
 export default function ChatBox() {
@@ -36,7 +53,10 @@ export default function ChatBox() {
   const [useRAG, setUseRAG] = useState(true);
   const [useRerank, setUseRerank] = useState(true);
   const [useEnhancedContext, setUseEnhancedContext] = useState(false);
+  const [useQueryRewriting, setUseQueryRewriting] = useState(false);
+  const [useFactChecking, setUseFactChecking] = useState(false);
   const [lastContextAnalysis, setLastContextAnalysis] = useState<any>(null);
+  const [queryHistory, setQueryHistory] = useState<Array<{original: string, enhanced: string, timestamp: string}>>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const { showError, showSuccess, showWarning } = useErrorToast();
 
@@ -101,17 +121,84 @@ export default function ChatBox() {
     }
   };
 
+  const enhanceQuery = async (originalQuery: string): Promise<string> => {
+    if (!useQueryRewriting) return originalQuery;
+    
+    try {
+      const data = await apiRequest(QUERY_ENHANCE_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          query: originalQuery,
+          context: lastContextAnalysis ? JSON.stringify(lastContextAnalysis) : ""
+        }),
+      });
+
+      if (data.status === 'success' && data.enhanced_query) {
+        // Dodaj u istoriju
+        setQueryHistory(prev => [...prev, {
+          original: originalQuery,
+          enhanced: data.enhanced_query,
+          timestamp: new Date().toISOString()
+        }]);
+        
+        showSuccess('Upit poboljšan', 'Query Rewriting');
+        return data.enhanced_query;
+      }
+    } catch (error: any) {
+      console.error('Greška pri poboljšanju upita:', error);
+      showWarning('Query rewriting nije uspeo, koristi se originalni upit', 'Query Rewriting');
+    }
+    
+    return originalQuery;
+  };
+
+  const verifyAnswer = async (answer: string, context: string): Promise<any> => {
+    if (!useFactChecking) return null;
+    
+    try {
+      const data = await apiRequest(FACT_CHECK_VERIFY_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          answer: answer,
+          context: context
+        }),
+      });
+
+      if (data.status === 'success') {
+        showSuccess('Odgovor verifikovan', 'Fact Checking');
+        return data.verification_result;
+      }
+    } catch (error: any) {
+      console.error('Greška pri verifikaciji odgovora:', error);
+      showWarning('Fact checking nije uspeo', 'Fact Checking');
+    }
+    
+    return null;
+  };
+
   const handleSendMessage = async () => {
     if (!input.trim() || isLoading) return;
 
-    const userMessage = input.trim();
+    const originalMessage = input.trim();
     setInput('');
     setIsLoading(true);
 
+    // Poboljšaj upit ako je query rewriting uključen
+    const enhancedMessage = await enhanceQuery(originalMessage);
+    
     // Dodaj korisničku poruku odmah
     const newUserMessage: Message = {
       sender: 'user',
-      content: userMessage,
+      content: originalMessage,
+      original_query: originalMessage,
+      enhanced_query: enhancedMessage !== originalMessage ? enhancedMessage : undefined,
+      query_rewriting_applied: enhancedMessage !== originalMessage,
     };
     setMessages(prev => [...prev, newUserMessage]);
 
@@ -119,7 +206,7 @@ export default function ChatBox() {
       // Odaberi endpoint na osnovu Enhanced Context i RAG mode-a
       let endpoint = CHAT_RAG_ENDPOINT;
       let body: any = {
-        message: userMessage,
+        message: enhancedMessage, // Koristi poboljšani upit
         session_id: sessionId,
         use_rerank: useRerank,
       };
@@ -137,6 +224,9 @@ export default function ChatBox() {
       });
 
       if (data.status === 'success') {
+        // Verifikuj odgovor ako je fact checking uključen
+        const factCheckResult = await verifyAnswer(data.response, JSON.stringify(data.sources || []));
+        
         // Dodaj AI odgovor sa izvorima ako postoje
         const aiMessage: Message = {
           sender: 'ai',
@@ -145,9 +235,12 @@ export default function ChatBox() {
           used_rag: data.used_rag || false,
           reranking_applied: data.reranking_applied || false,
           reranker_info: data.reranker_info || null,
+          fact_checking_applied: factCheckResult !== null,
+          fact_checker_info: factCheckResult,
         };
         setMessages(prev => [...prev, aiMessage]);
         setLastContextAnalysis(data.context_analysis || null);
+        
         // Prikaži success toast ako je RAG korišćen
         if ((data.used_rag || data.context_selector_used) && data.sources && data.sources.length > 0) {
           showSuccess(`Pronađeno ${data.sources.length} relevantnih izvora`, 'RAG uspešan');
@@ -200,6 +293,48 @@ export default function ChatBox() {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          {/* Query Rewriting Toggle */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">Query Rewriting</span>
+            <button
+              onClick={() => setUseQueryRewriting(!useQueryRewriting)}
+              className="flex items-center gap-1 text-sm"
+            >
+              {useQueryRewriting ? (
+                <>
+                  <FaToggleOn className="text-orange-400" size={16} />
+                  <span className="text-orange-300">Uključen</span>
+                </>
+              ) : (
+                <>
+                  <FaToggleOff className="text-gray-500" size={16} />
+                  <span className="text-gray-400">Isključen</span>
+                </>
+              )}
+            </button>
+          </div>
+          
+          {/* Fact Checking Toggle */}
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-400">Fact Checking</span>
+            <button
+              onClick={() => setUseFactChecking(!useFactChecking)}
+              className="flex items-center gap-1 text-sm"
+            >
+              {useFactChecking ? (
+                <>
+                  <FaToggleOn className="text-yellow-400" size={16} />
+                  <span className="text-yellow-300">Uključen</span>
+                </>
+              ) : (
+                <>
+                  <FaToggleOff className="text-gray-500" size={16} />
+                  <span className="text-gray-400">Isključen</span>
+                </>
+              )}
+            </button>
+          </div>
+          
           {/* Enhanced Context Toggle */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400">Enhanced Context</span>
@@ -275,6 +410,21 @@ export default function ChatBox() {
         </div>
       )}
 
+      {/* Query History */}
+      {useQueryRewriting && queryHistory.length > 0 && (
+        <div className="mb-2 p-2 rounded-lg bg-[#1a2236] text-xs text-orange-200 border border-orange-700">
+          <div className="mb-1 font-semibold text-orange-300">Istorija poboljšanih upita:</div>
+          <div className="max-h-20 overflow-y-auto">
+            {queryHistory.slice(-3).map((item, idx) => (
+              <div key={idx} className="mb-1 p-1 rounded bg-orange-900/30">
+                <div className="text-orange-300"><strong>Original:</strong> {item.original}</div>
+                <div className="text-orange-200"><strong>Poboljšan:</strong> {item.enhanced}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 overflow-y-auto pb-4">
         {messages.length === 0 && !isLoading && (
           <div className="text-center text-blue-300 text-sm mt-8">
@@ -326,6 +476,46 @@ export default function ChatBox() {
                             </span>
                           )}
                         </>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* Query Rewriting indicator */}
+                  {msg.sender === 'user' && msg.query_rewriting_applied && (
+                    <div className="mt-2 p-2 rounded-lg bg-orange-900/30 border border-orange-700">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                        <span className="text-xs text-orange-400 font-semibold">Query Rewriting</span>
+                      </div>
+                      <div className="text-xs text-orange-300">
+                        <div><strong>Original:</strong> {msg.original_query}</div>
+                        <div><strong>Poboljšan:</strong> {msg.enhanced_query}</div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Fact Checking indicator */}
+                  {msg.sender === 'ai' && msg.fact_checking_applied && msg.fact_checker_info && (
+                    <div className="mt-2 p-2 rounded-lg bg-yellow-900/30 border border-yellow-700">
+                      <div className="flex items-center gap-2 mb-1">
+                        <div className={`w-2 h-2 rounded-full ${msg.fact_checker_info.verified ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                        <span className="text-xs text-yellow-400 font-semibold">Fact Checking</span>
+                        <span className={`text-xs ${msg.fact_checker_info.verified ? 'text-green-400' : 'text-red-400'}`}>
+                          {msg.fact_checker_info.verified ? 'Verifikovan' : 'Nije verifikovan'}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          ({Math.round(msg.fact_checker_info.confidence * 100)}% pouzdanost)
+                        </span>
+                      </div>
+                      {msg.fact_checker_info.reasoning && (
+                        <div className="text-xs text-yellow-300 mt-1">
+                          <strong>Obrazloženje:</strong> {msg.fact_checker_info.reasoning}
+                        </div>
+                      )}
+                      {msg.fact_checker_info.sources && msg.fact_checker_info.sources.length > 0 && (
+                        <div className="text-xs text-yellow-300 mt-1">
+                          <strong>Izvori:</strong> {msg.fact_checker_info.sources.join(', ')}
+                        </div>
                       )}
                     </div>
                   )}

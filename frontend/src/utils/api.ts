@@ -39,6 +39,19 @@ export const SEARCH_MULTISTEP_ENDPOINT = `${API_BASE}/search/multistep`;
 export const HEALTH_CHECK_ENDPOINT = `${API_BASE}/`;
 
 /**
+ * Query Rewriting endpoints
+ */
+export const QUERY_ENHANCE_ENDPOINT = `${API_BASE}/query/enhance`;
+export const QUERY_EXPAND_ENDPOINT = `${API_BASE}/query/expand`;
+export const QUERY_ANALYZE_ENDPOINT = `${API_BASE}/query/analyze`;
+
+/**
+ * Fact Checking endpoints
+ */
+export const FACT_CHECK_VERIFY_ENDPOINT = `${API_BASE}/fact-check/verify`;
+export const FACT_CHECK_VERIFY_MULTIPLE_ENDPOINT = `${API_BASE}/fact-check/verify-multiple`;
+
+/**
  * Centralizovani API request helper sa error handling-om
  */
 export async function apiRequest<T = any>(
