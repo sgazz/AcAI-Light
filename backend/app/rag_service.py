@@ -9,6 +9,7 @@ from .multi_step_retrieval import MultiStepRetrieval
 from .reranker import Reranker
 from .ocr_service import OCRService
 from .models import Document
+from .cache_manager import cache_manager, get_cached_rag_result, set_cached_rag_result
 from sqlalchemy.orm import Session
 from ollama import Client
 import sys
@@ -342,14 +343,29 @@ class RAGService:
         else:
             return obj
     
-    def generate_rag_response(self, query: str, context: str = "", max_results: int = 3, 
+    async def generate_rag_response(self, query: str, context: str = "", max_results: int = 3, 
                             use_rerank: bool = True, session_id: str = None) -> Dict[str, Any]:
-        """Generiše RAG odgovor sa chat istorijom podrškom"""
+        """Generiše RAG odgovor sa chat istorijom podrškom i caching-om"""
         try:
+            # Proveri cache prvo
+            cache_key = f"{query}:{context}:{max_results}:{use_rerank}"
+            cached_result = await get_cached_rag_result(query, context)
+            
+            if cached_result:
+                print(f"Cache hit za upit: {query[:50]}...")
+                return cached_result
+            
+            # Ako nema u cache-u, generiši novi odgovor
+            print(f"Cache miss za upit: {query[:50]}...")
+            
             # Pretraži dokumente
             search_results = self.search_documents(query, max_results * 2, use_rerank)
             if not search_results:
-                return self._generate_simple_response(query)
+                result = self._generate_simple_response(query)
+                # Cache-uj i jednostavan odgovor
+                await set_cached_rag_result(query, result, context)
+                return result
+                
             # Pripremi kontekst iz dokumenata
             document_context = self._prepare_document_context(search_results[:max_results])
             # Kreiraj prompt
@@ -370,8 +386,13 @@ class RAGService:
                 'sources': search_results[:max_results],
                 'query': query,
                 'model': self.model_name,
-                'context_length': len(document_context)
+                'context_length': len(document_context),
+                'cached': False
             }
+            
+            # Cache-uj rezultat
+            await set_cached_rag_result(query, result, context)
+            
             return self._to_native_types(result)
         except Exception as e:
             print(f"Greška pri generisanju RAG odgovora: {e}")
@@ -514,14 +535,29 @@ Odgovor:"""
                 'error': str(e)
             }
     
-    def generate_multi_step_rag_response(self, query: str, context: str = "", max_results: int = 3, 
+    async def generate_multi_step_rag_response(self, query: str, context: str = "", max_results: int = 3, 
                                         use_rerank: bool = True, session_id: str = None) -> Dict[str, Any]:
-        """Generiše RAG odgovor koristeći multi-step retrieval"""
+        """Generiše RAG odgovor koristeći multi-step retrieval sa caching-om"""
         try:
+            # Proveri cache prvo
+            cache_key = f"multistep:{query}:{context}:{max_results}:{use_rerank}"
+            cached_result = await get_cached_rag_result(query, context)
+            
+            if cached_result:
+                print(f"Cache hit za multi-step upit: {query[:50]}...")
+                return cached_result
+            
+            # Ako nema u cache-u, generiši novi odgovor
+            print(f"Cache miss za multi-step upit: {query[:50]}...")
+            
             # Koristi multi-step retrieval
             retrieval_result = self.multi_step_retrieval.retrieve(query, max_results)
             if not retrieval_result['results']:
-                return self._generate_simple_response(query)
+                result = self._generate_simple_response(query)
+                # Cache-uj i jednostavan odgovor
+                await set_cached_rag_result(query, result, context)
+                return result
+                
             # Pripremi kontekst
             document_context = self._prepare_document_context(retrieval_result['results'])
             # Kreiraj prompt
@@ -544,8 +580,13 @@ Odgovor:"""
                 'query': query,
                 'model': self.model_name,
                 'retrieval_steps': retrieval_result['steps'],
-                'context_length': len(document_context)
+                'context_length': len(document_context),
+                'cached': False
             }
+            
+            # Cache-uj rezultat
+            await set_cached_rag_result(query, result, context)
+            
             return self._to_native_types(result)
         except Exception as e:
             print(f"Greška pri generisanju multi-step RAG odgovora: {e}")

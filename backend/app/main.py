@@ -38,6 +38,9 @@ from .ocr_service import OCRService
 from .multi_step_retrieval import MultiStepRetrieval
 from .reranker import Reranker
 from .config import Config
+from .cache_manager import cache_manager
+from .background_tasks import task_manager, add_background_task, get_task_status, cancel_task, get_all_tasks, get_task_stats, TaskPriority, TaskStatus
+from .connection_pool import connection_pool, check_connection_health, get_connection_stats, ConnectionType
 
 # Inicijalizuj RAG servis sa Supabase podrškom
 rag_service = RAGService(use_supabase=True)
@@ -431,8 +434,8 @@ async def rag_chat_endpoint(message: dict, db: Session = Depends(get_db)):
         # Dohvati kontekst prethodnih poruka
         context = get_conversation_context(session_id, db)
         
-        # Generiši RAG odgovor sa session_id podrškom
-        rag_response = rag_service.generate_rag_response(
+        # Generiši RAG odgovor sa session_id podrškom (sada async)
+        rag_response = await rag_service.generate_rag_response(
             query=user_message,
             context=context,
             max_results=max_results,
@@ -462,7 +465,8 @@ async def rag_chat_endpoint(message: dict, db: Session = Depends(get_db)):
             "sources": rag_response.get('sources', []),
             "session_id": session_id,
             "model": rag_response.get('model', 'mistral'),
-            "context_length": rag_response.get('context_length', 0)
+            "context_length": rag_response.get('context_length', 0),
+            "cached": rag_response.get('cached', False)
         }
         
     except Exception as e:
@@ -484,8 +488,8 @@ async def multi_step_rag_chat_endpoint(message: dict, db: Session = Depends(get_
         # Dohvati kontekst prethodnih poruka
         context = get_conversation_context(session_id, db)
         
-        # Generiši multi-step RAG odgovor sa session_id podrškom
-        rag_response = rag_service.generate_multi_step_rag_response(
+        # Generiši multi-step RAG odgovor sa session_id podrškom (sada async)
+        rag_response = await rag_service.generate_multi_step_rag_response(
             query=user_message,
             context=context,
             max_results=max_results,
@@ -516,7 +520,8 @@ async def multi_step_rag_chat_endpoint(message: dict, db: Session = Depends(get_
             "session_id": session_id,
             "model": rag_response.get('model', 'mistral'),
             "retrieval_steps": rag_response.get('retrieval_steps', []),
-            "context_length": rag_response.get('context_length', 0)
+            "context_length": rag_response.get('context_length', 0),
+            "cached": rag_response.get('cached', False)
         }
         
     except Exception as e:
@@ -1045,6 +1050,281 @@ async def batch_extract_text(files: List[UploadFile] = File(...), languages: str
             "total_files": len(files),
             "processed_files": len(results),
             "results": results
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/cache/health")
+async def cache_health_check():
+    """Provera zdravlja cache-a"""
+    try:
+        health_status = await cache_manager.health_check()
+        return health_status
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/cache/stats")
+async def cache_stats():
+    """Dohvati statistike cache-a"""
+    try:
+        stats = await cache_manager.get_stats()
+        return stats
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.delete("/cache/clear")
+async def clear_cache(pattern: str = "*"):
+    """Obriši cache"""
+    try:
+        deleted_count = await cache_manager.clear_cache(pattern)
+        return {
+            "status": "success",
+            "message": f"Obrisano {deleted_count} ključeva iz cache-a",
+            "deleted_count": deleted_count
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/cache/test")
+async def test_cache():
+    """Test cache funkcionalnosti"""
+    try:
+        # Test čitanja/pisanja
+        test_key = "test_cache_key"
+        test_value = {"message": "Test cache", "timestamp": datetime.now().isoformat()}
+        
+        # Test pisanja
+        write_success = await cache_manager.set(test_key, test_value, 60)
+        
+        # Test čitanja
+        read_value = await cache_manager.get(test_key)
+        
+        # Test brisanja
+        delete_success = await cache_manager.delete(test_key)
+        
+        return {
+            "status": "success",
+            "write_success": write_success,
+            "read_success": read_value is not None,
+            "delete_success": delete_success,
+            "test_value": test_value,
+            "read_value": read_value
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.on_event("startup")
+async def startup_event():
+    """Pokreni background task manager i connection pool na startup-u"""
+    await task_manager.start()
+    print("Background task manager pokrenut")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    """Zaustavi background task manager i connection pool na shutdown-u"""
+    await task_manager.stop()
+    await connection_pool.close_all()
+    print("Background task manager i connection pool zaustavljeni")
+
+# Background Tasks API Endpoints
+
+@app.post("/tasks/add")
+async def add_task_endpoint(task_data: dict):
+    """Dodaj novi background task"""
+    try:
+        func_name = task_data.get("function")
+        args = task_data.get("args", [])
+        kwargs = task_data.get("kwargs", {})
+        priority = TaskPriority(task_data.get("priority", TaskPriority.NORMAL.value))
+        description = task_data.get("description", f"Task: {func_name}")
+        
+        # Mapiranje funkcija
+        function_map = {
+            "test_task": lambda: {"message": "Test task završen", "timestamp": datetime.now().isoformat()},
+            "heavy_computation": lambda: {"result": "Heavy computation završen", "data": list(range(1000))},
+            "data_processing": lambda: {"processed": True, "items": 100}
+        }
+        
+        if func_name not in function_map:
+            raise HTTPException(status_code=400, detail=f"Funkcija {func_name} nije podržana")
+        
+        task_id = await add_background_task(
+            function_map[func_name],
+            priority=priority,
+            description=description
+        )
+        
+        return {
+            "status": "success",
+            "task_id": task_id,
+            "message": "Task dodat u queue"
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/tasks")
+async def get_all_tasks_endpoint(status: str = None):
+    """Dohvati sve taskove sa opcionim filterom"""
+    try:
+        status_filter = None
+        if status:
+            try:
+                status_filter = TaskStatus(status)
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Nevažeći status: {status}")
+        
+        tasks = await get_all_tasks(status_filter)
+        
+        return {
+            "status": "success",
+            "tasks": tasks,
+            "total_count": len(tasks)
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/tasks/stats")
+async def get_task_stats_endpoint():
+    """Dohvati statistike taskova"""
+    try:
+        stats = await get_task_stats()
+        return {
+            "status": "success",
+            "stats": stats
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/tasks/{task_id}")
+async def get_task_status_endpoint(task_id: str):
+    """Dohvati status taska"""
+    try:
+        status = await get_task_status(task_id)
+        if not status:
+            raise HTTPException(status_code=404, detail="Task nije pronađen")
+        
+        return {
+            "status": "success",
+            "task": status
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.delete("/tasks/{task_id}")
+async def cancel_task_endpoint(task_id: str):
+    """Otkaži task"""
+    try:
+        cancelled = await cancel_task(task_id)
+        if not cancelled:
+            raise HTTPException(status_code=404, detail="Task nije pronađen ili se ne može otkazati")
+        
+        return {
+            "status": "success",
+            "message": "Task otkazan"
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Connection Pool API Endpoints
+
+@app.get("/connections/health")
+async def check_connections_health():
+    """Proveri zdravlje svih konekcija"""
+    try:
+        results = {}
+        
+        for conn_type in ConnectionType:
+            health = await check_connection_health(conn_type)
+            results[conn_type.value] = health
+        
+        return {
+            "status": "success",
+            "connections": results
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/connections/health/{connection_type}")
+async def check_specific_connection_health(connection_type: str):
+    """Proveri zdravlje specifične konekcije"""
+    try:
+        try:
+            conn_type = ConnectionType(connection_type)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Nevažeći tip konekcije: {connection_type}")
+        
+        health = await check_connection_health(conn_type)
+        
+        return {
+            "status": "success",
+            "connection_type": connection_type,
+            "health": health
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/connections/stats")
+async def get_connections_stats():
+    """Dohvati statistike svih konekcija"""
+    try:
+        stats = await get_connection_stats()
+        return {
+            "status": "success",
+            "stats": stats
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/connections/stats/{connection_type}")
+async def get_specific_connection_stats(connection_type: str):
+    """Dohvati statistike specifične konekcije"""
+    try:
+        try:
+            conn_type = ConnectionType(connection_type)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Nevažeći tip konekcije: {connection_type}")
+        
+        stats = await get_connection_stats(conn_type)
+        
+        return {
+            "status": "success",
+            "stats": stats
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Performance Monitoring Endpoints
+
+@app.get("/performance/overview")
+async def get_performance_overview():
+    """Dohvati pregled performansi sistema"""
+    try:
+        # Dohvati statistike iz različitih komponenti
+        cache_stats = await cache_manager.get_stats()
+        task_stats = await get_task_stats()
+        connection_stats = await get_connection_stats()
+        
+        # Dohvati RAG statistike
+        rag_stats = rag_service.get_stats()
+        
+        return {
+            "status": "success",
+            "performance": {
+                "cache": cache_stats,
+                "background_tasks": task_stats,
+                "connections": connection_stats,
+                "rag": rag_stats
+            }
         }
         
     except Exception as e:
