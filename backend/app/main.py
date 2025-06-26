@@ -51,6 +51,7 @@ from .error_handler import (
     AcAIAException, ValidationError, ExternalServiceError, RAGError, OCRError,
     ErrorHandlingMiddleware
 )
+from .query_rewriter import query_rewriter, QueryEnhancement
 
 # Inicijalizuj RAG servis sa Supabase podrškom
 rag_service = RAGService(use_supabase=True)
@@ -1668,6 +1669,207 @@ async def test_error_handling():
         return {
             "status": "success",
             "message": "Error handling test završen",
+            "results": results
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Query Rewriter Endpoints
+
+@app.post("/query/enhance")
+async def enhance_query_endpoint(request: dict):
+    """
+    Poboljšaj upit za pretragu
+    
+    Request body:
+    {
+        "query": "originalni upit",
+        "context": "dodatni kontekst (opciono)",
+        "domain": "domena (opciono, default: general)",
+        "max_enhancements": 3
+    }
+    """
+    try:
+        query = request.get("query", "").strip()
+        if not query:
+            raise HTTPException(status_code=400, detail="Query ne može biti prazan")
+        
+        context = request.get("context", "")
+        domain = request.get("domain", "general")
+        max_enhancements = request.get("max_enhancements", 3)
+        
+        # Poboljšaj upit
+        enhancement = await query_rewriter.enhance_query(
+            query=query,
+            context=context,
+            domain=domain,
+            max_enhancements=max_enhancements
+        )
+        
+        return {
+            "status": "success",
+            "enhancement": {
+                "original_query": enhancement.original_query,
+                "enhanced_query": enhancement.enhanced_query,
+                "confidence": enhancement.confidence,
+                "reasoning": enhancement.reasoning,
+                "synonyms": enhancement.synonyms,
+                "context_hints": enhancement.context_hints,
+                "timestamp": enhancement.timestamp.isoformat()
+            }
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/query/expand")
+async def expand_query_endpoint(request: dict):
+    """
+    Proširi upit sa različitim varijantama
+    
+    Request body:
+    {
+        "query": "originalni upit",
+        "domain": "domena (opciono, default: general)"
+    }
+    """
+    try:
+        query = request.get("query", "").strip()
+        if not query:
+            raise HTTPException(status_code=400, detail="Query ne može biti prazan")
+        
+        domain = request.get("domain", "general")
+        
+        # Proširi upit
+        expanded_queries = await query_rewriter.expand_query(query, domain)
+        
+        return {
+            "status": "success",
+            "original_query": query,
+            "expanded_queries": expanded_queries,
+            "count": len(expanded_queries)
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/query/analyze")
+async def analyze_query_endpoint(request: dict):
+    """
+    Analiziraj upit za intent, entitete i kompleksnost
+    
+    Request body:
+    {
+        "query": "upit za analizu",
+        "domain": "domena (opciono, default: general)"
+    }
+    """
+    try:
+        query = request.get("query", "").strip()
+        if not query:
+            raise HTTPException(status_code=400, detail="Query ne može biti prazan")
+        
+        domain = request.get("domain", "general")
+        
+        # Analiziraj upit
+        analysis = await query_rewriter._analyze_query(query, domain)
+        
+        return {
+            "status": "success",
+            "analysis": {
+                "intent": analysis.intent,
+                "entities": analysis.entities,
+                "complexity": analysis.complexity,
+                "domain": analysis.domain,
+                "language": analysis.language
+            }
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/query/stats")
+async def get_query_rewriter_stats():
+    """Dohvati statistike Query Rewriter servisa"""
+    try:
+        stats = await query_rewriter.get_enhancement_stats()
+        return {
+            "status": "success",
+            "stats": stats
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.delete("/query/cache/clear")
+async def clear_query_rewriter_cache():
+    """Očisti Query Rewriter cache"""
+    try:
+        query_rewriter.clear_cache()
+        return {
+            "status": "success",
+            "message": "Query rewriter cache je očišćen"
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/query/test")
+async def test_query_rewriter():
+    """Test Query Rewriter funkcionalnosti"""
+    try:
+        test_queries = [
+            {
+                "query": "kako da naučim programiranje",
+                "domain": "education",
+                "description": "Edukativni upit"
+            },
+            {
+                "query": "Python async await primer",
+                "domain": "technical",
+                "description": "Tehnički upit"
+            },
+            {
+                "query": "šta je AI",
+                "domain": "general",
+                "description": "Opšti upit"
+            }
+        ]
+        
+        results = []
+        for test in test_queries:
+            try:
+                # Test enhancement
+                enhancement = await query_rewriter.enhance_query(
+                    query=test["query"],
+                    domain=test["domain"]
+                )
+                
+                # Test expansion
+                expanded = await query_rewriter.expand_query(
+                    query=test["query"],
+                    domain=test["domain"]
+                )
+                
+                results.append({
+                    "description": test["description"],
+                    "original_query": test["query"],
+                    "enhanced_query": enhancement.enhanced_query,
+                    "confidence": enhancement.confidence,
+                    "expanded_count": len(expanded),
+                    "status": "success"
+                })
+                
+            except Exception as e:
+                results.append({
+                    "description": test["description"],
+                    "original_query": test["query"],
+                    "error": str(e),
+                    "status": "error"
+                })
+        
+        return {
+            "status": "success",
+            "message": "Query rewriter test završen",
             "results": results
         }
         
