@@ -12,6 +12,9 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 from fastapi.responses import Response
 from datetime import datetime
+import json
+from fastapi import WebSocket
+from fastapi import WebSocketDisconnect
 
 # Učitaj environment varijable
 load_dotenv()
@@ -41,6 +44,7 @@ from .config import Config
 from .cache_manager import cache_manager
 from .background_tasks import task_manager, add_background_task, get_task_status, cancel_task, get_all_tasks, get_task_stats, TaskPriority, TaskStatus
 from .connection_pool import connection_pool, check_connection_health, get_connection_stats, ConnectionType
+from .websocket import websocket_manager, WebSocketMessage, MessageType, get_websocket_manager
 
 # Inicijalizuj RAG servis sa Supabase podrškom
 rag_service = RAGService(use_supabase=True)
@@ -1327,5 +1331,197 @@ async def get_performance_overview():
             }
         }
         
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# WebSocket Chat Endpoints
+
+@app.websocket("/ws/chat")
+async def websocket_chat_endpoint(websocket: WebSocket, user_id: str = None, session_id: str = None):
+    """WebSocket endpoint za real-time chat"""
+    try:
+        # Prihvati konekciju
+        connection = await websocket_manager.connect(websocket, user_id, session_id)
+        
+        try:
+            while True:
+                # Čekaj poruku od klijenta
+                data = await websocket.receive_text()
+                
+                try:
+                    # Parsiraj JSON poruku
+                    message_data = json.loads(data)
+                    message = WebSocketMessage.from_dict(message_data)
+                    
+                    # Ažuriraj statistike
+                    websocket_manager.stats["total_messages"] += 1
+                    websocket_manager.stats["messages_received"] += 1
+                    
+                    # Obradi poruku na osnovu tipa
+                    if message.message_type == MessageType.CHAT:
+                        await handle_chat_message(connection, message)
+                    elif message.message_type == MessageType.TYPING:
+                        await handle_typing_message(connection, message)
+                    elif message.message_type == MessageType.STATUS:
+                        await handle_status_message(connection, message)
+                    else:
+                        # Broadcast poruku u sesiju
+                        await websocket_manager.broadcast_to_session(message, connection.session_id)
+                        
+                except json.JSONDecodeError:
+                    # Ako nije validan JSON, pošalji error poruku
+                    error_message = WebSocketMessage(
+                        message_type=MessageType.SYSTEM,
+                        content={"error": "Nevažeći JSON format"},
+                        sender="system"
+                    )
+                    await connection.send_message(error_message)
+                    
+        except WebSocketDisconnect:
+            # Klijent se odjavio
+            websocket_manager.disconnect(connection)
+            
+            # Objavi da se korisnik odjavio
+            leave_message = WebSocketMessage(
+                message_type=MessageType.LEAVE,
+                content={
+                    "user_id": connection.user_id,
+                    "session_id": connection.session_id
+                },
+                sender=connection.user_id
+            )
+            
+            await websocket_manager.broadcast_to_session(leave_message, connection.session_id)
+            
+    except Exception as e:
+        logger.error(f"WebSocket greška: {e}")
+        try:
+            await websocket.close()
+        except:
+            pass
+
+async def handle_chat_message(connection, message: WebSocketMessage):
+    """Obradi chat poruku"""
+    try:
+        # Broadcast poruku u sesiju
+        await websocket_manager.broadcast_to_session(message, connection.session_id)
+        
+        # Ako je poruka ka AI-u, generiši odgovor
+        if message.content.get("to_ai", False):
+            await generate_ai_response(connection, message)
+            
+    except Exception as e:
+        logger.error(f"Greška pri obradi chat poruke: {e}")
+
+async def handle_typing_message(connection, message: WebSocketMessage):
+    """Obradi typing indicator poruku"""
+    try:
+        is_typing = message.content.get("is_typing", False)
+        connection.is_typing = is_typing
+        
+        # Broadcast typing indicator u sesiju
+        await websocket_manager.broadcast_to_session(message, connection.session_id)
+        
+    except Exception as e:
+        logger.error(f"Greška pri obradi typing poruke: {e}")
+
+async def handle_status_message(connection, message: WebSocketMessage):
+    """Obradi status poruku"""
+    try:
+        # Broadcast status update u sesiju
+        await websocket_manager.broadcast_to_session(message, connection.session_id)
+        
+    except Exception as e:
+        logger.error(f"Greška pri obradi status poruke: {e}")
+
+async def generate_ai_response(connection, user_message: WebSocketMessage):
+    """Generiši AI odgovor na chat poruku"""
+    try:
+        # Pošalji typing indicator da AI kuca
+        await websocket_manager.send_typing_indicator(connection.session_id, "ai", True)
+        
+        # Generiši odgovor koristeći postojeći RAG servis
+        user_text = user_message.content.get("text", "")
+        
+        # Koristi postojeći RAG endpoint logiku
+        rag_response = await rag_service.generate_rag_response(
+            query=user_text,
+            context="",
+            max_results=3,
+            use_rerank=True,
+            session_id=connection.session_id
+        )
+        
+        # Kreiraj AI odgovor
+        ai_message = WebSocketMessage(
+            message_type=MessageType.CHAT,
+            content={
+                "text": rag_response['response'],
+                "sources": rag_response.get('sources', []),
+                "from_ai": True,
+                "model": rag_response.get('model', 'mistral')
+            },
+            sender="ai",
+            session_id=connection.session_id
+        )
+        
+        # Pošalji AI odgovor u sesiju
+        await websocket_manager.broadcast_to_session(ai_message, connection.session_id)
+        
+        # Zaustavi typing indicator
+        await websocket_manager.send_typing_indicator(connection.session_id, "ai", False)
+        
+    except Exception as e:
+        logger.error(f"Greška pri generisanju AI odgovora: {e}")
+        
+        # Pošalji error poruku
+        error_message = WebSocketMessage(
+            message_type=MessageType.SYSTEM,
+            content={"error": "Greška pri generisanju AI odgovora"},
+            sender="system"
+        )
+        await connection.send_message(error_message)
+        
+        # Zaustavi typing indicator
+        await websocket_manager.send_typing_indicator(connection.session_id, "ai", False)
+
+# WebSocket Management Endpoints
+
+@app.get("/websocket/stats")
+async def get_websocket_stats():
+    """Dohvati statistike WebSocket konekcija"""
+    try:
+        stats = websocket_manager.get_connection_stats()
+        return {
+            "status": "success",
+            "stats": stats
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/websocket/sessions")
+async def get_websocket_sessions():
+    """Dohvati listu aktivnih WebSocket sesija"""
+    try:
+        sessions = {}
+        for session_id in websocket_manager.session_connections:
+            sessions[session_id] = websocket_manager.get_session_info(session_id)
+        
+        return {
+            "status": "success",
+            "sessions": sessions
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/websocket/session/{session_id}")
+async def get_websocket_session_info(session_id: str):
+    """Dohvati informacije o specifičnoj WebSocket sesiji"""
+    try:
+        session_info = websocket_manager.get_session_info(session_id)
+        return {
+            "status": "success",
+            "session": session_info
+        }
     except Exception as e:
         return {"status": "error", "message": str(e)}
