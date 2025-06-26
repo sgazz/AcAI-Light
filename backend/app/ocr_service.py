@@ -5,6 +5,7 @@ import cv2
 import numpy as np
 from typing import List, Dict, Any, Optional
 import logging
+from .error_handler import OCRError, ValidationError, ErrorCategory, ErrorSeverity
 
 class OCRService:
     """Modularan OCR servis za ekstrakciju teksta iz slika"""
@@ -48,6 +49,8 @@ class OCRService:
     
     def is_supported_format(self, filename: str) -> bool:
         """Proverava da li je format slike podržan"""
+        if not filename:
+            return False
         extension = os.path.splitext(filename.lower())[1]
         return extension in self.supported_formats
     
@@ -63,19 +66,21 @@ class OCRService:
             Dict sa rezultatima OCR-a
         """
         try:
+            # Validacija input-a
+            if not image_path:
+                raise ValidationError("Putanja do slike ne može biti prazna", "OCR_EMPTY_PATH")
+            
             if not os.path.exists(image_path):
-                return {
-                    'status': 'error',
-                    'message': f'Slike ne postoji: {image_path}'
-                }
+                raise ValidationError(f"Slike ne postoji: {image_path}", "OCR_FILE_NOT_FOUND")
+            
+            # Proveri da li je format podržan
+            if not self.is_supported_format(image_path):
+                raise ValidationError(f"Format slike nije podržan: {image_path}", "OCR_UNSUPPORTED_FORMAT")
             
             # Učitaj sliku
             image = cv2.imread(image_path)
             if image is None:
-                return {
-                    'status': 'error',
-                    'message': f'Nije moguće učitati sliku: {image_path}'
-                }
+                raise OCRError(f"Nije moguće učitati sliku: {image_path}", "OCR_LOAD_FAILED")
             
             # Preprocessing za bolji OCR
             processed_image = self._preprocess_image(image)
@@ -84,17 +89,29 @@ class OCRService:
             if languages is None:
                 languages = ['srp', 'eng']
             
+            # Validacija jezika
+            for lang in languages:
+                if lang not in self.supported_languages:
+                    raise ValidationError(f"Jezik nije podržan: {lang}", "OCR_UNSUPPORTED_LANGUAGE")
+            
             # Kombinuj jezike za Tesseract
             lang_string = '+'.join(languages)
             
             # OCR ekstrakcija
-            text = pytesseract.image_to_string(processed_image, lang=lang_string)
+            try:
+                text = pytesseract.image_to_string(processed_image, lang=lang_string)
+            except Exception as e:
+                raise OCRError(f"Greška pri OCR ekstrakciji: {str(e)}", "OCR_EXTRACTION_FAILED")
             
             # Dobavi confidence score
             confidence = self._get_confidence(processed_image, lang_string)
             
             # Dobavi bounding boxes za debugging
-            boxes = pytesseract.image_to_boxes(processed_image, lang=lang_string)
+            try:
+                boxes = pytesseract.image_to_boxes(processed_image, lang=lang_string)
+            except Exception as e:
+                self.logger.warning(f"Greška pri dobavljanju bounding boxes: {e}")
+                boxes = ""
             
             return {
                 'status': 'success',
@@ -106,12 +123,15 @@ class OCRService:
                 'processed_image_path': self._save_processed_image(processed_image, image_path)
             }
             
+        except ValidationError:
+            # Re-raise validation greške
+            raise
+        except OCRError:
+            # Re-raise OCR greške
+            raise
         except Exception as e:
-            self.logger.error(f"OCR greška za {image_path}: {str(e)}")
-            return {
-                'status': 'error',
-                'message': f'OCR greška: {str(e)}'
-            }
+            # Podigni OCR grešku
+            raise OCRError(f"Neočekivana OCR greška: {str(e)}", "OCR_UNEXPECTED_ERROR")
     
     def extract_text_from_bytes(self, image_bytes: bytes, filename: str, languages: List[str] = None) -> Dict[str, Any]:
         """
@@ -126,15 +146,26 @@ class OCRService:
             Dict sa rezultatima OCR-a
         """
         try:
+            # Validacija input-a
+            if not image_bytes:
+                raise ValidationError("Image bytes ne može biti prazan", "OCR_EMPTY_BYTES")
+            
+            if not filename:
+                raise ValidationError("Naziv fajla ne može biti prazan", "OCR_EMPTY_FILENAME")
+            
+            # Proveri da li je format podržan
+            if not self.is_supported_format(filename):
+                raise ValidationError(f"Format slike nije podržan: {filename}", "OCR_UNSUPPORTED_FORMAT")
+            
             # Konvertuj bytes u numpy array
-            nparr = np.frombuffer(image_bytes, np.uint8)
-            image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            try:
+                nparr = np.frombuffer(image_bytes, np.uint8)
+                image = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            except Exception as e:
+                raise OCRError(f"Greška pri dekodiranju slike: {str(e)}", "OCR_DECODE_FAILED")
             
             if image is None:
-                return {
-                    'status': 'error',
-                    'message': 'Nije moguće dekodirati sliku'
-                }
+                raise OCRError("Nije moguće dekodirati sliku", "OCR_DECODE_FAILED")
             
             # Preprocessing
             processed_image = self._preprocess_image(image)
@@ -143,11 +174,19 @@ class OCRService:
             if languages is None:
                 languages = ['srp', 'eng']
             
+            # Validacija jezika
+            for lang in languages:
+                if lang not in self.supported_languages:
+                    raise ValidationError(f"Jezik nije podržan: {lang}", "OCR_UNSUPPORTED_LANGUAGE")
+            
             lang_string = '+'.join(languages)
             
             # OCR ekstrakcija
-            text = pytesseract.image_to_string(processed_image, lang=lang_string)
-            confidence = self._get_confidence(processed_image, lang_string)
+            try:
+                text = pytesseract.image_to_string(processed_image, lang=lang_string)
+                confidence = self._get_confidence(processed_image, lang_string)
+            except Exception as e:
+                raise OCRError(f"Greška pri OCR ekstrakciji: {str(e)}", "OCR_EXTRACTION_FAILED")
             
             return {
                 'status': 'success',
@@ -158,12 +197,15 @@ class OCRService:
                 'filename': filename
             }
             
+        except ValidationError:
+            # Re-raise validation greške
+            raise
+        except OCRError:
+            # Re-raise OCR greške
+            raise
         except Exception as e:
-            self.logger.error(f"OCR greška za bytes: {str(e)}")
-            return {
-                'status': 'error',
-                'message': f'OCR greška: {str(e)}'
-            }
+            # Podigni OCR grešku
+            raise OCRError(f"Neočekivana OCR greška: {str(e)}", "OCR_UNEXPECTED_ERROR")
     
     def _preprocess_image(self, image: np.ndarray) -> np.ndarray:
         """

@@ -10,6 +10,7 @@ from .reranker import Reranker
 from .ocr_service import OCRService
 from .models import Document
 from .cache_manager import cache_manager, get_cached_rag_result, set_cached_rag_result
+from .error_handler import RAGError, ExternalServiceError, ValidationError, ErrorCategory, ErrorSeverity
 from sqlalchemy.orm import Session
 from ollama import Client
 import sys
@@ -52,6 +53,13 @@ class RAGService:
                        original_filename: str = None, ocr_metadata: dict = None) -> Dict[str, Any]:
         """Upload i procesiranje dokumenta sa OCR podrškom za slike i Supabase integracijom"""
         try:
+            # Validacija input-a
+            if not file_content:
+                raise ValidationError("Fajl sadržaj ne može biti prazan", "RAG_UPLOAD_EMPTY_FILE")
+            
+            if not filename:
+                raise ValidationError("Ime fajla ne može biti prazno", "RAG_UPLOAD_NO_FILENAME")
+            
             # Koristi original_filename ako je prosleđen
             display_filename = original_filename if original_filename else filename
             
@@ -191,6 +199,9 @@ class RAGService:
             
             return response
             
+        except ValidationError:
+            # Re-raise validation greške
+            raise
         except Exception as e:
             # Ako je dokument već kreiran u vector store-u, obriši ga
             if 'doc_id' in locals():
@@ -199,27 +210,21 @@ class RAGService:
                 except:
                     pass
             
-            # Sačuvaj grešku u bazu
+            # Obriši privremeni fajl ako postoji
+            if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+                try:
+                    os.unlink(temp_file_path)
+                except:
+                    pass
+            
+            # Rollback database transakcije
             try:
-                error_doc = Document(
-                    id=doc_id if 'doc_id' in locals() else 'error_' + str(hash(filename)),
-                    filename=display_filename if 'display_filename' in locals() else filename,
-                    file_type=os.path.splitext(filename)[1],
-                    total_pages=0,
-                    file_size=len(file_content),
-                    status='error',
-                    chunks_count=0,
-                    error_message=str(e)
-                )
-                db.add(error_doc)
-                db.commit()
+                db.rollback()
             except:
                 pass
             
-            return {
-                'status': 'error',
-                'message': str(e)
-            }
+            # Podigni RAG grešku
+            raise RAGError(f"Greška pri upload-u dokumenta: {str(e)}", "RAG_UPLOAD_FAILED")
     
     def _save_ocr_to_supabase(self, filename: str, file_path: str, ocr_text: str, ocr_metadata: dict):
         """Čuva OCR sliku u Supabase"""
@@ -347,6 +352,13 @@ class RAGService:
                             use_rerank: bool = True, session_id: str = None) -> Dict[str, Any]:
         """Generiše RAG odgovor sa chat istorijom podrškom i caching-om"""
         try:
+            # Validacija input-a
+            if not query or not query.strip():
+                raise ValidationError("Upit ne može biti prazan", "RAG_EMPTY_QUERY")
+            
+            if max_results <= 0:
+                raise ValidationError("max_results mora biti veći od 0", "RAG_INVALID_MAX_RESULTS")
+            
             # Proveri cache prvo
             cache_key = f"{query}:{context}:{max_results}:{use_rerank}"
             cached_result = await get_cached_rag_result(query, context)
@@ -368,18 +380,29 @@ class RAGService:
                 
             # Pripremi kontekst iz dokumenata
             document_context = self._prepare_document_context(search_results[:max_results])
+            
             # Kreiraj prompt
             prompt = self._create_rag_prompt(query, document_context, context)
+            
             # Generiši odgovor
-            response = self.ollama_client.generate(
-                model=self.model_name,
-                prompt=prompt,
-                stream=False
-            )
-            assistant_message = response['response']
+            try:
+                response = self.ollama_client.generate(
+                    model=self.model_name,
+                    prompt=prompt,
+                    stream=False
+                )
+                assistant_message = response['response']
+            except Exception as e:
+                raise ExternalServiceError(f"Greška pri komunikaciji sa Ollama: {str(e)}", "RAG_OLLAMA_ERROR")
+            
             # Sačuvaj chat istoriju u Supabase ako je omogućen
             if self.use_supabase and session_id:
-                self._save_chat_history(session_id, query, assistant_message, search_results[:max_results])
+                try:
+                    self._save_chat_history(session_id, query, assistant_message, search_results[:max_results])
+                except Exception as e:
+                    # Loguj grešku ali ne prekini izvršavanje
+                    print(f"Greška pri čuvanju chat istorije: {e}")
+            
             result = {
                 'status': 'success',
                 'response': assistant_message,
@@ -391,16 +414,23 @@ class RAGService:
             }
             
             # Cache-uj rezultat
-            await set_cached_rag_result(query, result, context)
+            try:
+                await set_cached_rag_result(query, result, context)
+            except Exception as e:
+                # Loguj grešku ali ne prekini izvršavanje
+                print(f"Greška pri cache-ovanju rezultata: {e}")
             
             return self._to_native_types(result)
+            
+        except ValidationError:
+            # Re-raise validation greške
+            raise
+        except ExternalServiceError:
+            # Re-raise external service greške
+            raise
         except Exception as e:
-            print(f"Greška pri generisanju RAG odgovora: {e}")
-            return {
-                'status': 'error',
-                'message': str(e),
-                'response': 'Izvinjavam se, došlo je do greške pri generisanju odgovora.'
-            }
+            # Podigni RAG grešku
+            raise RAGError(f"Greška pri generisanju RAG odgovora: {str(e)}", "RAG_GENERATION_FAILED")
     
     def _save_chat_history(self, session_id: str, user_message: str, assistant_message: str, sources: List[Dict]):
         """Čuva chat istoriju u Supabase"""

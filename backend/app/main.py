@@ -1,8 +1,9 @@
 import os
 import sys
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from ollama import Client
 from sqlalchemy.orm import Session
 from typing import List
@@ -45,10 +46,34 @@ from .cache_manager import cache_manager
 from .background_tasks import task_manager, add_background_task, get_task_status, cancel_task, get_all_tasks, get_task_stats, TaskPriority, TaskStatus
 from .connection_pool import connection_pool, check_connection_health, get_connection_stats, ConnectionType
 from .websocket import websocket_manager, WebSocketMessage, MessageType, get_websocket_manager
+from .error_handler import (
+    error_handler, handle_api_error, ErrorCategory, ErrorSeverity,
+    AcAIAException, ValidationError, ExternalServiceError, RAGError, OCRError,
+    ErrorHandlingMiddleware
+)
 
 # Inicijalizuj RAG servis sa Supabase podrškom
 rag_service = RAGService(use_supabase=True)
 ocr_service = OCRService()  # Dodaj OCR service
+
+# Dodaj error handling middleware
+app.add_middleware(ErrorHandlingMiddleware)
+
+# Globalni exception handler
+@app.exception_handler(AcAIAException)
+async def acaia_exception_handler(request: Request, exc: AcAIAException):
+    """Handler za AcAIA custom greške"""
+    return await handle_api_error(exc, request, exc.category, exc.severity, exc.error_code)
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Handler za HTTP greške"""
+    return await handle_api_error(exc, request, ErrorCategory.GENERAL, ErrorSeverity.MEDIUM)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Globalni exception handler za sve neuhvaćene greške"""
+    return await handle_api_error(exc, request)
 
 def get_conversation_context(session_id: str, db: Session, max_messages: int = 5) -> str:
     """Dohvati prethodne poruke za kontekst"""
@@ -1523,5 +1548,128 @@ async def get_websocket_session_info(session_id: str):
             "status": "success",
             "session": session_info
         }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Error Monitoring Endpoints
+
+@app.get("/errors/stats")
+async def get_error_stats():
+    """Dohvati statistike grešaka"""
+    try:
+        stats = error_handler.get_error_stats()
+        return {
+            "status": "success",
+            "stats": stats
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/errors/recent")
+async def get_recent_errors(limit: int = 10):
+    """Dohvati poslednje greške"""
+    try:
+        recent_errors = error_handler.error_log[-limit:] if error_handler.error_log else []
+        
+        formatted_errors = []
+        for error in recent_errors:
+            formatted_errors.append({
+                "code": error.error_code,
+                "message": error.message,
+                "category": error.category.value,
+                "severity": error.severity.value,
+                "timestamp": error.context.timestamp.isoformat() if error.context.timestamp else None,
+                "endpoint": error.context.endpoint,
+                "method": error.context.method,
+                "ip_address": error.context.ip_address,
+                "retry_count": error.retry_count
+            })
+        
+        return {
+            "status": "success",
+            "errors": formatted_errors
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/errors/category/{category}")
+async def get_errors_by_category(category: str, limit: int = 20):
+    """Dohvati greške po kategoriji"""
+    try:
+        category_errors = [
+            error for error in error_handler.error_log 
+            if error.category.value == category
+        ][-limit:]
+        
+        formatted_errors = []
+        for error in category_errors:
+            formatted_errors.append({
+                "code": error.error_code,
+                "message": error.message,
+                "severity": error.severity.value,
+                "timestamp": error.context.timestamp.isoformat() if error.context.timestamp else None,
+                "endpoint": error.context.endpoint,
+                "retry_count": error.retry_count
+            })
+        
+        return {
+            "status": "success",
+            "category": category,
+            "count": len(formatted_errors),
+            "errors": formatted_errors
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.delete("/errors/clear")
+async def clear_error_log():
+    """Obriši error log"""
+    try:
+        error_handler.error_log.clear()
+        return {
+            "status": "success",
+            "message": "Error log je očišćen"
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/errors/test")
+async def test_error_handling():
+    """Test error handling funkcionalnosti"""
+    try:
+        # Test različitih tipova grešaka
+        test_errors = [
+            ValidationError("Test validation greška", "TEST_VALIDATION_001"),
+            ExternalServiceError("Test external service greška", "TEST_EXTERNAL_001"),
+            RAGError("Test RAG greška", "TEST_RAG_001"),
+            OCRError("Test OCR greška", "TEST_OCR_001")
+        ]
+        
+        results = []
+        for error in test_errors:
+            # Simuliraj request context
+            class MockRequest:
+                def __init__(self):
+                    self.url = type('obj', (object,), {'path': '/test/endpoint'})()
+                    self.method = "POST"
+                    self.client = type('obj', (object,), {'host': '127.0.0.1'})()
+                    self.headers = {"user-agent": "Test-Agent"}
+            
+            mock_request = MockRequest()
+            
+            # Handle grešku
+            response = await handle_api_error(error, mock_request)
+            results.append({
+                "error_type": type(error).__name__,
+                "error_code": error.error_code,
+                "status_code": response.status_code
+            })
+        
+        return {
+            "status": "success",
+            "message": "Error handling test završen",
+            "results": results
+        }
+        
     except Exception as e:
         return {"status": "error", "message": str(e)}
