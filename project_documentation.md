@@ -3,17 +3,19 @@
 ## 1. Pregled Projekta
 
 ### 1.1 Opis
-AcAI Assistant je napredni AI asistent za učenje koji koristi RAG (Retrieval Augmented Generation) tehnologiju za pružanje personalizovanog iskustva učenja kroz analizu dokumenata i slika. Aplikacija je razvijena kao full-stack web aplikacija sa modernim arhitekturom.
+AcAI Assistant je napredni AI asistent za učenje koji koristi RAG (Retrieval Augmented Generation) tehnologiju za pružanje personalizovanog iskustva učenja kroz analizu dokumenata i slika. Aplikacija je razvijena kao full-stack web aplikacija sa modernom arhitekturom.
 
 ### 1.2 Glavne Funkcionalnosti
 - 💬 **Chat Interfejs** - Interaktivna komunikacija sa AI asistentom
-- 📚 **RAG Sistem** - Pretraga i analiza dokumenata i slika
-- 🔄 **Re-ranking** - Napredno rangiranje rezultata pretrage koristeći cross-encoder modele
+- 🔍 **Multi-Step RAG Sistem** - Napredna pretraga za složene upite sa razbijanjem na sub-queries
+- 🔄 **Napredni Re-ranking** - Cross-encoder modeli za precizno rangiranje rezultata
 - 📄 **Upload Dokumenata i Slika** - Podrška za PDF, DOCX, JPG, BMP, GIF i druge formate
-- 🔍 **Pretraga Dokumenata** - Semantička pretraga kroz sadržaj
-- 👁️ **OCR Slika** - Prepoznavanje teksta iz slika i prepoznavanje sadržaja
+- 👁️ **OCR Integracija** - Prepoznavanje teksta iz slika i skeniranih dokumenata
+- 🖼️ **Image Processing** - AI analiza slika i vizuelnog sadržaja
+- 🔍 **Semantička Pretraga** - Brza pretraga kroz sadržaj dokumenata i slika
 - 💾 **Čuvanje Istorije** - Perzistencija razgovora i dokumenata
 - 🤖 **AI Integracija** - Integracija sa Llama 2 i Mistral modelima preko Ollama
+- 📊 **Napredna Analitika** - Query analytics i performance metrics
 
 ### 1.3 Arhitektura
 ```
@@ -33,6 +35,12 @@ AcAI Assistant je napredni AI asistent za učenje koji koristi RAG (Retrieval Au
          │              ┌─────────────────┐
          └──────────────►│   Ollama        │
                         │   (AI Models)   │
+                        └─────────────────┘
+                                │
+                                ▼
+                        ┌─────────────────┐
+                        │   Tesseract     │
+                        │   (OCR Engine)  │
                         └─────────────────┘
 ```
 
@@ -75,6 +83,13 @@ AcAI Assistant je napredni AI asistent za učenje koji koristi RAG (Retrieval Au
 - **Vector Extension**: pgvector
 - **Client**: Supabase Python Client 2.16.0
 
+### 2.5 OCR i Image Processing
+- **OCR Engine**: Tesseract OCR
+- **Image Processing**: OpenCV, Pillow
+- **Language Support**: Serbian (srp), English (eng)
+- **Image Formats**: PNG, JPG, JPEG, BMP, TIFF, TIF
+- **Preprocessing**: Grayscale, Noise reduction, Adaptive thresholding
+
 ## 3. Struktura Projekta
 
 ### 3.1 Direktorijumska Struktura
@@ -88,29 +103,35 @@ acai-assistant/
 │   ├── images/                     # Screenshot-ovi
 │   ├── project_documentation.md    # Ova dokumentacija
 │   ├── technologies.md             # Tehnološki detalji
+│   ├── OCR_FEATURES.md             # OCR funkcionalnosti
 │   └── workflow-timeline-business.md
 └── src/
     ├── backend/                    # FastAPI backend
-    │   ├── main.py                 # Glavni API endpoint
-    │   ├── ollama_client.py        # Ollama integracija
-    │   ├── supabase_client.py      # Supabase klijent
-    │   ├── rag_client_simple.py    # RAG implementacija
-    │   ├── rag/                    # RAG servisi
-    │   │   ├── rag_service.py      # FAISS integracija
-    │   │   ├── reranker.py         # Re-ranking funkcionalnost
-    │   │   └── document_processor.py
+    │   ├── app/
+    │   │   ├── main.py                 # Glavni API endpoint
+    │   │   ├── rag_service.py          # RAG servis
+    │   │   ├── multi_step_retrieval.py # Multi-step retrieval
+    │   │   ├── reranker.py             # Re-ranking funkcionalnost
+    │   │   ├── ocr_service.py          # OCR servis
+    │   │   ├── vector_store.py         # FAISS integracija
+    │   │   ├── document_processor.py   # Obrada dokumenata
+    │   │   ├── models.py               # SQLAlchemy modeli
+    │   │   └── prompts.py              # AI promptovi
     │   ├── data/                   # RAG indeksi
-    │   │   └── rag_index/
-    │   ├── supabase/               # Database schema
-    │   │   └── schema.sql
+    │   │   └── vector_index/
+    │   ├── debug/                   # Debug fajlovi
     │   ├── requirements.txt        # Python dependencies
     │   └── venv/                   # Virtual environment
     └── frontend/                   # Next.js frontend
         ├── src/
         │   ├── app/                # Next.js app router
         │   ├── components/         # React komponente
-        │   ├── context/            # React Context
-        │   ├── lib/                # Utility funkcije
+        │   │   ├── ChatBox.tsx         # Chat interfejs
+        │   │   ├── DocumentUpload.tsx  # Upload komponenta
+        │   │   ├── ImagePreview.tsx    # OCR preview
+        │   │   ├── SourcesDisplay.tsx  # Prikaz izvora
+        │   │   └── Sidebar.tsx         # Navigacija
+        │   ├── hooks/              # React hooks
         │   └── types/              # TypeScript tipovi
         ├── public/                 # Static assets
         ├── package.json            # Node.js dependencies
@@ -130,6 +151,8 @@ acai-assistant/
 - `GET /messages` - Dohvatanje poruka
 - `POST /messages` - Čuvanje poruke
 - `POST /chat` - AI chat odgovor
+- `POST /chat/rag` - RAG chat sa kontekstom
+- `POST /chat/rag-multistep` - Multi-step RAG chat
 
 #### 4.1.3 Document Endpoints
 - `GET /documents` - Lista dokumenata
@@ -139,40 +162,90 @@ acai-assistant/
 - `DELETE /documents/{id}` - Brisanje dokumenta
 - `GET /documents/check-duplicate` - Provera duplikata
 
-#### 4.1.4 User Endpoints
-- `GET /users` - Lista korisnika
+#### 4.1.4 RAG Endpoints
+- `POST /search/rerank` - Test re-ranking funkcionalnosti
+- `GET /rerank/info` - Informacije o re-ranker modelu
+- `POST /search/multistep` - Multi-step retrieval test
+- `GET /multistep/info` - Multi-step retrieval informacije
 
-### 4.2 RAG Implementacija
+#### 4.1.5 OCR Endpoints
+- `GET /ocr/info` - OCR servis informacije
+- `GET /ocr/supported-formats` - Podržani formati
+- `GET /ocr/statistics` - OCR statistike
+- `POST /ocr/extract` - Osnovna OCR ekstrakcija
+- `POST /ocr/extract-advanced` - Napredna OCR sa opcijama
+- `POST /ocr/batch-extract` - Batch OCR ekstrakcija
 
-#### 4.2.1 RAG Service
+### 4.2 Multi-Step Retrieval Implementacija
+
+#### 4.2.1 Multi-Step Retrieval Service
 ```python
-class RAGService:
-    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
-        self.model = SentenceTransformer(model_name)
-        self.index = None
-        self.documents = []
-        self.ocr_processor = TesseractOCR()
+class MultiStepRetrieval:
+    def __init__(self, vector_store: VectorStore, reranker: Reranker):
+        self.vector_store = vector_store
+        self.reranker = reranker
+        self.complex_query_indicators = [
+            "uporedi", "razlika", "sličnost", "kako", "zašto", "kada", "gde"
+        ]
 ```
 
 **Ključne funkcionalnosti:**
-- **Embedding Model**: all-MiniLM-L6-v2 za generisanje vektora
-- **Vector Index**: FAISS za brzu pretragu
-- **Document Storage**: JSON format za metapodatke
-- **Search Algorithm**: L2 distance za najbliže susede
-- **OCR Processing**: Tesseract za prepoznavanje teksta iz slika
-- **Image Analysis**: OpenCV za analizu vizuelnog sadržaja
+- **Complex Query Detection** - Automatska detekcija složenih upita
+- **Query Decomposition** - Razbijanje na sub-queries
+- **Concept Extraction** - Ekstrakcija ključnih koncepata
+- **Iterative Search** - Iterativna pretraga sa proširenjem
+- **Query Expansion** - Proširenje upita na osnovu rezultata
+- **Duplicate Removal** - Uklanjanje duplikata iz rezultata
 
-#### 4.2.2 Document Processing
-- **PDF Support**: PyPDF2 za ekstrakciju teksta
-- **DOCX Support**: python-docx za Word dokumente
-- **Image Support**: Pillow za procesiranje slika
-- **OCR Support**: Tesseract za prepoznavanje teksta
-- **Text Chunking**: Razbijanje na stranice
-- **Metadata Extraction**: Informacije o dokumentu ili slici
+#### 4.2.2 Multi-Step Algoritam
+1. **Complexity Analysis** - Analiza složenosti upita
+2. **Query Decomposition** - Razbijanje na jednostavnije delove
+3. **Concept Extraction** - Ekstrakcija ključnih koncepata
+4. **Expanded Search** - Pretraga sa proširenim upitom
+5. **Iterative Refinement** - Iterativno proširenje konteksta
+6. **Result Aggregation** - Kombinovanje rezultata iz svih koraka
+7. **Re-ranking** - Finalno rangiranje rezultata
 
-### 4.3 Re-ranking Implementacija
+#### 4.2.3 Multi-Step API Endpoints
+- `POST /chat/rag-multistep` - Multi-step RAG chat
+- `POST /search/multistep` - Test multi-step retrieval
+- `GET /multistep/info` - Informacije o multi-step sistemu
 
-#### 4.3.1 Re-ranking Service
+### 4.3 OCR Implementacija
+
+#### 4.3.1 OCR Service
+```python
+class OCRService:
+    def __init__(self, tesseract_path: Optional[str] = None):
+        self.supported_formats = ['.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif']
+        self.supported_languages = ['srp', 'eng', 'srp+eng']
+```
+
+**Ključne funkcionalnosti:**
+- **Multi-language Support** - Podrška za srpski i engleski jezik
+- **Image Preprocessing** - Napredna obrada slika za bolji OCR
+- **Confidence Scoring** - Scoring pouzdanosti prepoznavanja
+- **Batch Processing** - Obrada više slika odjednom
+- **Custom Preprocessing** - Opcije za custom preprocessing
+- **Bounding Box Detection** - Detekcija pozicija teksta
+
+#### 4.3.2 OCR Preprocessing Pipeline
+1. **Grayscale Conversion** - Konverzija u grayscale
+2. **Noise Reduction** - Uklanjanje šuma
+3. **Adaptive Thresholding** - Adaptivno pražnjenje
+4. **Morphological Operations** - Morfološke operacije
+5. **Deskew** - Ispravljanje nagnutosti (opciono)
+6. **Image Resize** - Promena veličine (opciono)
+
+#### 4.3.3 OCR API Endpoints
+- `GET /ocr/info` - Informacije o OCR servisu
+- `POST /ocr/extract` - Osnovna OCR ekstrakcija
+- `POST /ocr/extract-advanced` - Napredna OCR sa opcijama
+- `POST /ocr/batch-extract` - Batch OCR ekstrakcija
+
+### 4.4 Re-ranking Implementacija
+
+#### 4.4.1 Re-ranking Service
 ```python
 class Reranker:
     def __init__(self, model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"):
@@ -181,28 +254,28 @@ class Reranker:
 ```
 
 **Ključne funkcionalnosti:**
-- **Cross-encoder Model**: ms-marco-MiniLM-L-6-v2 za precizno rangiranje
-- **Query-Document Scoring**: Direktno rangiranje parova (upit, dokument)
-- **Metadata Integration**: Uključivanje metapodataka u re-ranking proces
-- **Score Combination**: Kombinovanje originalnog i re-rank score-a
-- **Batch Processing**: Podrška za batch re-ranking više upita
-- **Fallback Mechanism**: Automatski fallback na alternativni model
+- **Cross-encoder Model** - ms-marco-MiniLM-L-6-v2 za precizno rangiranje
+- **Query-Document Scoring** - Direktno rangiranje parova (upit, dokument)
+- **Metadata Integration** - Uključivanje metapodataka u re-ranking proces
+- **Score Combination** - Kombinovanje originalnog i re-rank score-a
+- **Batch Processing** - Podrška za batch re-ranking više upita
+- **Fallback Mechanism** - Automatski fallback na alternativni model
 
-#### 4.3.2 Re-ranking Algoritam
-1. **Initial Retrieval**: FAISS pretraga za dohvatanje kandidata
-2. **Cross-encoder Scoring**: Precizno rangiranje parova (upit, dokument)
-3. **Score Combination**: 30% originalni score + 70% re-rank score
-4. **Final Ranking**: Sortiranje po kombinovanom score-u
-5. **Top-k Selection**: Vraćanje najboljih k rezultata
+#### 4.4.2 Re-ranking Algoritam
+1. **Initial Retrieval** - FAISS pretraga za dohvatanje kandidata
+2. **Cross-encoder Scoring** - Precizno rangiranje parova (upit, dokument)
+3. **Score Combination** - 30% originalni score + 70% re-rank score
+4. **Final Ranking** - Sortiranje po kombinovanom score-u
+5. **Top-k Selection** - Vraćanje najboljih k rezultata
 
-#### 4.3.3 Re-ranking API Endpoints
+#### 4.4.3 Re-ranking API Endpoints
 - `POST /search/rerank` - Test re-ranking funkcionalnosti
 - `GET /rerank/info` - Informacije o re-ranker modelu
 - `POST /chat/rag` - RAG chat sa re-ranking opcijom (use_rerank parameter)
 
-### 4.4 Database Schema
+### 4.5 Database Schema
 
-#### 4.4.1 Tabele
+#### 4.5.1 Tabele
 ```sql
 -- Users table
 CREATE TABLE users (
@@ -247,7 +320,7 @@ CREATE TABLE document_pages (
 );
 ```
 
-#### 4.4.2 Indeksi
+#### 4.5.2 Indeksi
 - `idx_users_email` - Brza pretraga po email-u
 - `idx_messages_timestamp` - Sortiranje poruka
 - `idx_messages_user_id` - Poruke po korisniku
@@ -260,17 +333,23 @@ CREATE TABLE document_pages (
 ### 5.1 Komponente
 
 #### 5.1.1 Core Components
-- **ChatWindow.tsx** - Glavni chat interfejs
+- **ChatBox.tsx** - Glavni chat interfejs
 - **ChatInput.tsx** - Input za poruke
 - **Sidebar.tsx** - Navigacija i dokumenti
 - **DocumentUpload.tsx** - Upload interfejs za dokumente i slike
-- **ImageUpload.tsx** - Specijalizovani upload za slike sa OCR preview
+- **ImagePreview.tsx** - Prikaz slika sa OCR rezultatima
 - **DocumentList.tsx** - Lista dokumenata i slika
 - **DocumentSearch.tsx** - Pretraga dokumenata i slika
 - **SearchResults.tsx** - Rezultati pretrage
-- **ImagePreview.tsx** - Prikaz slika sa OCR rezultatima
+- **SourcesDisplay.tsx** - Prikaz izvora za RAG odgovore
 
-#### 5.1.2 Context Management
+#### 5.1.2 OCR Components
+- **ImagePreview.tsx** - Napredni prikaz slika sa bounding boxovima
+- **OCRResults.tsx** - Prikaz OCR rezultata
+- **BoundingBoxOverlay.tsx** - Overlay za bounding boxove
+- **OCRExport.tsx** - Eksport OCR rezultata
+
+#### 5.1.3 Context Management
 ```typescript
 // ChatContext.tsx
 interface ChatContextType {
@@ -294,6 +373,7 @@ interface ChatContextType {
 - **Error Handling** - Toast notifikacije
 - **File Upload** - Drag & drop interfejs za dokumente i slike
 - **Image Preview** - Prikaz slika sa OCR rezultatima
+- **Bounding Box Visualization** - Vizuelizacija OCR rezultata
 - **Syntax Highlighting** - Kod blokovi
 - **Markdown Rendering** - Formatiranje teksta
 - **ChatGPT-like Interface** - Prepoznatljiv chat interfejs
@@ -340,18 +420,25 @@ VAŽNO - DOKUMENT I SLIKA MODE:
 - **Image Analysis** - OCR i vizuelna analiza slika
 - **Multi-modal Search** - Pretraga kroz tekst i vizuelni sadržaj
 
+### 6.4 Multi-Step RAG
+- **Complex Query Handling** - Automatska detekcija složenih upita
+- **Query Decomposition** - Razbijanje na sub-queries
+- **Iterative Search** - Iterativna pretraga sa proširenjem
+- **Result Aggregation** - Kombinovanje rezultata iz više koraka
+- **Enhanced Context** - Bogatiji kontekst za AI odgovore
+
 ## 7. Deployment i DevOps
 
 ### 7.1 Development Setup
 ```bash
 # Backend setup
-cd src/backend
+cd backend
 python -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 
 # Frontend setup
-cd src/frontend
+cd frontend
 npm install
 npm run dev
 ```
@@ -401,6 +488,18 @@ NEXT_PUBLIC_API_URL=http://localhost:8001
 - **Embedding Caching** - Pre-computed embeddings
 - **Batch Processing** - Bulk document processing
 
+### 8.4 Multi-Step Optimizacije
+- **Query Complexity Analysis** - Brza detekcija složenosti
+- **Parallel Processing** - Paralelna obrada sub-queries
+- **Result Deduplication** - Efikasno uklanjanje duplikata
+- **Early Termination** - Rano zaustavljanje za jednostavne upite
+
+### 8.5 OCR Optimizacije
+- **Image Preprocessing** - Optimizovana obrada slika
+- **Batch Processing** - Paralelna obrada više slika
+- **Confidence Filtering** - Filtriranje po pouzdanosti
+- **Caching** - Cache-ovanje OCR rezultata
+
 ## 9. Security
 
 ### 9.1 Authentication
@@ -433,29 +532,49 @@ NEXT_PUBLIC_API_URL=http://localhost:8001
 - **Log Rotation** - File size management
 - **Centralized Logging** - Supabase logging
 
+### 10.3 Performance Monitoring
+- **Query Analytics** - Analiza složenosti upita
+- **Multi-step Metrics** - Statistike multi-step retrieval
+- **OCR Performance** - OCR accuracy i speed metrics
+- **Re-ranking Metrics** - Re-ranking effectiveness
+
 ## 11. Future Roadmap
 
-### 11.1 Planned Features
+### 11.1 Implementirane Funkcionalnosti ✅
+- [x] **OCR Integration** - Prepoznavanje teksta iz slika i skeniranih dokumenata
+- [x] **Image Recognition** - AI analiza slika i vizuelnog sadržaja
+- [x] **Multi-Step Retrieval** - Napredna pretraga za složene upite
+- [x] **Advanced Re-ranking** - Cross-encoder modeli za precizno rangiranje
+- [x] **Supabase Integration** - PostgreSQL baza sa pgvector
+- [x] **Image Processing** - Napredna obrada slika
+- [x] **Bounding Box Visualization** - Vizuelizacija OCR rezultata
+- [x] **Batch OCR Processing** - Paralelna obrada više slika
+- [x] **Query Analytics** - Analiza složenosti upita
+
+### 11.2 Planned Features
 - [ ] **User Authentication** - Login/register sistem
 - [ ] **Multi-language Support** - Više jezika
 - [ ] **Conversation History** - Perzistentni razgovori
 - [ ] **Document Sharing** - Deljenje dokumenata
 - [ ] **Response Rating** - Feedback sistem
-- [ ] **Advanced RAG** - Hybrid search algorithms
 - [ ] **Real-time Collaboration** - Multi-user support
 - [ ] **Mobile App** - React Native aplikacija
-- [x] **OCR Integration** - Prepoznavanje teksta iz slika i skeniranih dokumenata
-- [x] **Image Recognition** - AI analiza slika i vizuelnog sadržaja
 - [ ] **Voice Input** - Govorno prepoznavanje za unos poruka
 - [ ] **Document Annotation** - Interaktivno označavanje i komentarisanje dokumenata
+- [ ] **Advanced Image Analysis** - Detekcija objekata i scena
+- [ ] **Video Processing** - OCR i analiza video sadržaja
+- [ ] **Audio Transcription** - Prepoznavanje govora iz audio fajlova
 
-### 11.2 Technical Improvements
+### 11.3 Technical Improvements
 - [ ] **Microservices Architecture** - Service decomposition
 - [ ] **Containerization** - Docker deployment
 - [ ] **CI/CD Pipeline** - Automated deployment
 - [ ] **Load Balancing** - Horizontal scaling
 - [ ] **Caching Layer** - Redis integration
 - [ ] **API Versioning** - Backward compatibility
+- [ ] **GraphQL API** - Flexible data querying
+- [ ] **WebSocket Support** - Real-time communication
+- [ ] **Progressive Web App** - Offline functionality
 
 ## 12. Troubleshooting
 
@@ -487,6 +606,27 @@ curl -X GET "https://your-project.supabase.co/rest/v1/" \
   -H "apikey: your-anon-key"
 ```
 
+#### 12.1.4 OCR Issues
+```bash
+# Provera Tesseract instalacije
+tesseract --version
+
+# Provera jezika
+tesseract --list-langs
+
+# Instalacija srpskog jezika
+sudo apt-get install tesseract-ocr-srp  # Ubuntu/Debian
+brew install tesseract-lang  # macOS
+```
+
+#### 12.1.5 Multi-Step Retrieval Issues
+```bash
+# Test multi-step retrieval
+curl -X POST "http://localhost:8001/search/multistep" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Uporedi mašinsko učenje i deep learning"}'
+```
+
 ### 12.2 Debug Mode
 ```bash
 # Backend debug
@@ -494,6 +634,18 @@ uvicorn main:app --reload --log-level debug
 
 # Frontend debug
 npm run dev -- --debug
+```
+
+### 12.3 Performance Debugging
+```bash
+# Test RAG performance
+python test_rag.py
+
+# Test OCR performance
+python test_ocr.py
+
+# Test multi-step retrieval
+python test_multistep.py
 ```
 
 ## 13. Contributing Guidelines
@@ -518,6 +670,8 @@ npm run dev -- --debug
 - **Integration Tests** - API endpoint testing
 - **E2E Tests** - Playwright za UI testing
 - **Performance Tests** - Load testing
+- **OCR Tests** - OCR accuracy testing
+- **Multi-step Tests** - Multi-step retrieval testing
 
 ## 14. Licenca i Pravna Informacija
 
@@ -532,10 +686,12 @@ npm run dev -- --debug
 - **Supabase** - Apache 2.0
 - **Next.js** - MIT License
 - **FastAPI** - MIT License
+- **Tesseract OCR** - Apache 2.0
+- **OpenCV** - Apache 2.0
 
 ---
 
 **Dokumentacija kreirana:** 2025-01-27  
-**Verzija:** 1.0.0  
+**Verzija:** 2.0.0  
 **Autor:** AcAI Assistant Development Team  
-**Status:** Aktuelna 
+**Status:** Aktuelna sa svim implementiranim funkcionalnostima 

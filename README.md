@@ -1,200 +1,304 @@
 # AcAIA - AI Learning Assistant
 
-AcAIA (Academy AI Assistant) je moderan AI asistent za učenje koji koristi RAG (Retrieval-Augmented Generation) tehnologiju za pružanje personalizovanog iskustva učenja.
+AcAIA (Academy AI Assistant) is a modern AI learning assistant that uses advanced RAG (Retrieval-Augmented Generation) technology to provide personalized learning experiences through document and image analysis.
 
-## 🚀 Funkcionalnosti
+## 🚀 Features
 
-- **Inteligentni Chat**: Interaktivni chat sa AI modelom (Ollama/Mistral)
-- **RAG Sistem**: Napredna tehnologija za precizne i kontekstualne odgovore iz dokumenata
-- **Upload Dokumenata**: Podrška za PDF, DOCX i TXT fajlove
-- **Semantička Pretraga**: Brza pretraga kroz sadržaj dokumenata
-- **Istorija Razgovora**: Automatsko čuvanje i upravljanje istorijom razgovora
-- **Moderno UI**: Elegantan i intuitivan interfejs inspirisan popularnim AI alatima
-- **SQLite Baza**: Sigurno čuvanje podataka o razgovorima
+- **Intelligent Chat**: Interactive chat with AI models (Ollama/Mistral)
+- **Multi-Step RAG System**: Advanced search for complex queries with sub-query decomposition
+- **OCR Integration**: Text recognition from images and scanned documents
+- **Image Processing**: AI analysis of images and visual content
+- **Advanced Re-ranking**: Cross-encoder models for precise result ranking
+- **Document & Image Upload**: Support for PDF, DOCX, JPG, BMP, GIF and other formats
+- **Semantic Search**: Fast search through document and image content
+- **Conversation History**: Automatic saving and management of conversation history
+- **Modern UI**: Elegant and intuitive interface inspired by popular AI tools
+- **Supabase Database**: Secure data storage with PostgreSQL and pgvector
 
-## 🛠️ Tehnologije
+## 🛠️ Technologies
 
 ### Frontend
-- **Next.js 14** - React framework sa App Router
-- **TypeScript** - Tipizovan JavaScript
+- **Next.js 15** - React framework with App Router
+- **TypeScript** - Typed JavaScript
 - **Tailwind CSS** - Utility-first CSS framework
-- **Lucide React** - Moderna ikonografija
+- **Material-UI** - Modern UI components
+- **React Dropzone** - File upload functionality
 
 ### Backend
-- **FastAPI** - Brzi Python web framework
-- **SQLite** - Lagana baza podataka
-- **Ollama** - Lokalni AI modeli
-- **Mistral** - Napredni AI model
+- **FastAPI** - Fast Python web framework
+- **Supabase** - PostgreSQL database with pgvector
+- **Ollama** - Local AI models
+- **Mistral** - Advanced AI model
 
-### RAG Sistem
-- **FAISS** - Brza vector pretraga
-- **Sentence Transformers** - Embedding modeli
-- **PyPDF2** - PDF procesiranje
-- **python-docx** - Word dokumenti
-- **Vector Store** - Čuvanje embeddings-a
+### RAG System
+- **FAISS** - Fast vector search
+- **Sentence Transformers** - Embedding models
+- **Cross-encoder** - Advanced re-ranking models
+- **Multi-Step Retrieval** - Complex search for complex queries
+- **PyPDF2** - PDF processing
+- **python-docx** - Word documents
+- **Vector Store** - Embedding storage
 
-## 📁 Struktura Projekta
+### OCR & Image Processing
+- **Tesseract OCR** - Text recognition from images
+- **OpenCV** - Advanced image processing
+- **Pillow** - Image processing
+- **Multi-language Support** - Serbian and English
+
+## 📁 Project Structure
 
 ```
 AcAIA/
-├── frontend/          # Next.js aplikacija
+├── frontend/          # Next.js application
 │   ├── src/
-│   │   ├── app/      # App Router stranice
-│   │   └── components/ # React komponente
+│   │   ├── app/      # App Router pages
+│   │   ├── components/ # React components
+│   │   │   ├── ChatBox.tsx         # Chat interface
+│   │   │   ├── DocumentUpload.tsx  # Upload component
+│   │   │   ├── ImagePreview.tsx    # OCR preview
+│   │   │   └── SourcesDisplay.tsx  # Sources display
+│   │   └── hooks/    # React hooks
 ├── backend/           # FastAPI server
-│   ├── app/          # API aplikacija
-│   │   ├── document_processor.py  # Procesiranje dokumenata
-│   │   ├── vector_store.py        # FAISS vector store
-│   │   └── rag_service.py         # RAG servis
-│   ├── data/         # RAG indeksi i podaci
+│   ├── app/          # API application
+│   │   ├── main.py                 # Main API endpoint
+│   │   ├── rag_service.py          # RAG service
+│   │   ├── multi_step_retrieval.py # Multi-step retrieval
+│   │   ├── reranker.py             # Re-ranking functionality
+│   │   ├── ocr_service.py          # OCR service
+│   │   ├── vector_store.py         # FAISS vector store
+│   │   └── document_processor.py   # Document processing
+│   ├── data/         # RAG indices and data
 │   └── requirements.txt
-├── ACAI_Assistant.command  # Script za pokretanje
-├── TestRAG.command         # Script za testiranje RAG-a
+├── ACAI_Assistant.command  # Startup script
+├── TestRAG.command         # RAG testing script
+├── TestOCR.command         # OCR testing script
+├── TestMultiStep.command   # Multi-step testing script
 └── README.md
 ```
 
-## 🚀 Pokretanje
+## 🚀 Getting Started
 
-### Preduslovi
+### Prerequisites
 - Node.js 18+
 - Python 3.8+
-- Ollama (za AI modele)
+- Ollama (for AI models)
+- Tesseract OCR (for OCR functionality)
 
-### Instalacija
+### Installation
 
-1. **Klonirajte repozitorijum**
+1. **Clone the repository**
 ```bash
 git clone https://github.com/sgazz/AcAI-Light.git
 cd AcAI-Light
 ```
 
-2. **Pokrenite backend**
+2. **Start the backend**
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # Na Windows: venv\Scripts\activate
+source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8001
 ```
 
-3. **Pokrenite frontend**
+3. **Start the frontend**
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-4. **Ili koristite komandni script**
+4. **Or use the command script**
 ```bash
 ./ACAI_Assistant.command
 ```
 
-### Testiranje RAG Sistema
+### Testing Functionality
 ```bash
+# Test RAG system
 ./TestRAG.command
+
+# Test OCR functionality
+./TestOCR.command
+
+# Test multi-step retrieval
+./TestMultiStep.command
 ```
 
-## 🔧 Konfiguracija
+## 🔧 Configuration
 
-### AI Modeli
-Projekat koristi Ollama za lokalno izvršavanje AI modela. Instalirajte i pokrenite željeni model:
+### AI Models
+The project uses Ollama for local AI model execution. Install and start the desired model:
 
 ```bash
-# Instalacija Ollama
+# Install Ollama
 curl -fsSL https://ollama.ai/install.sh | sh
 
-# Preuzimanje modela
+# Download models
 ollama pull mistral
 ollama pull llama2
 ```
 
-### Baza Podataka
-SQLite baza se automatski kreira u `backend/chat_history.db`. Za resetovanje baze, jednostavno obrišite fajl.
+### OCR Setup
+For OCR functionality, install Tesseract:
 
-#### Tabele
-- **chat_messages** - Istorija razgovora sa AI asistentom
-- **documents** - Informacije o upload-ovanim dokumentima za RAG sistem
-
-#### Migracija Baze
 ```bash
-cd backend
-python migrate_db.py
+# Ubuntu/Debian
+sudo apt-get update
+sudo apt-get install tesseract-ocr
+sudo apt-get install tesseract-ocr-srp  # Serbian language
+sudo apt-get install tesseract-ocr-eng  # English language
+
+# macOS
+brew install tesseract
+brew install tesseract-lang
+
+# Windows
+# Download from: https://github.com/UB-Mannheim/tesseract/wiki
 ```
 
-### RAG Sistem
-RAG sistem automatski:
-- Kreira FAISS indeks u `backend/data/vector_index/`
-- Učitava sentence transformer model (all-MiniLM-L6-v2)
-- Procesira i čuva embeddings dokumenata
-- Čuva metapodatke o dokumentima u SQL bazi
+### Database
+Supabase database is automatically configured. Set up environment variables:
+
+```bash
+# Backend (.env)
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_KEY=your_service_key
+OLLAMA_BASE_URL=http://localhost:11434
+
+# Frontend (.env.local)
+NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_anon_key
+NEXT_PUBLIC_API_URL=http://localhost:8001
+```
+
+### RAG System
+The RAG system automatically:
+- Creates FAISS index in `backend/data/vector_index/`
+- Loads sentence transformer model (all-MiniLM-L6-v2)
+- Loads cross-encoder model for re-ranking
+- Processes and stores document embeddings
+- Saves document metadata in Supabase database
 
 ## 📚 API Endpoints
 
 ### Chat Endpoints
 - `GET /` - Health check
-- `POST /chat` - Običan chat sa AI modelom
-- `POST /chat/rag` - RAG chat sa kontekstom iz dokumenata
-- `POST /chat/new-session` - Kreiranje nove sesije
-- `GET /chat/history/{session_id}` - Dohvatanje istorije sesije
+- `POST /chat` - Regular chat with AI model
+- `POST /chat/rag` - RAG chat with document context
+- `POST /chat/rag-multistep` - Multi-step RAG chat
+- `POST /chat/new-session` - Create new session
+- `GET /chat/history/{session_id}` - Get session history
 
 ### Document Endpoints
-- `POST /documents/upload` - Upload dokumenata (PDF, DOCX, TXT)
-- `GET /documents` - Lista svih dokumenata
-- `GET /documents/{doc_id}` - Informacije o dokumentu
-- `DELETE /documents/{doc_id}` - Brisanje dokumenta
+- `POST /documents/upload` - Upload documents and images (PDF, DOCX, TXT, JPG, PNG, etc.)
+- `GET /documents` - List all documents
+- `GET /documents/{doc_id}` - Get document information
+- `DELETE /documents/{doc_id}` - Delete document
 
 ### RAG Endpoints
-- `GET /rag/stats` - Statistike RAG sistema
-- `GET /rag/test` - Test RAG povezanosti
+- `GET /rag/stats` - RAG system statistics
+- `GET /rag/test` - Test RAG connectivity
+- `POST /search/rerank` - Test re-ranking functionality
+- `GET /rerank/info` - Re-ranker model information
 
-## 🎨 UI Komponente
+### Multi-Step Endpoints
+- `POST /search/multistep` - Test multi-step retrieval
+- `GET /multistep/info` - Multi-step system information
 
-- **Sidebar**: Navigacija i upravljanje sesijama
-- **ChatBox**: Interaktivni chat interfejs
-- **Document Upload**: Upload i upravljanje dokumentima
-- **RAG Chat**: Chat sa kontekstom iz dokumenata
+### OCR Endpoints
+- `GET /ocr/info` - OCR service information
+- `GET /ocr/supported-formats` - Supported formats
+- `GET /ocr/statistics` - OCR statistics
+- `POST /ocr/extract` - Basic OCR extraction
+- `POST /ocr/extract-advanced` - Advanced OCR with options
+- `POST /ocr/batch-extract` - Batch OCR extraction
 
-## 🔒 Sigurnost
+## 🎨 UI Components
 
-- Lokalno izvršavanje AI modela
-- Sigurno čuvanje podataka u SQLite bazi
-- Bez eksternih API poziva
-- Privatnost dokumenata
+- **Sidebar**: Navigation and session management
+- **ChatBox**: Interactive chat interface
+- **DocumentUpload**: Upload and manage documents and images
+- **ImagePreview**: Display images with OCR results and bounding boxes
+- **SourcesDisplay**: Display sources for RAG responses
+- **RAG Chat**: Chat with document context
 
-## 🧪 Testiranje
+## 🔒 Security
+
+- Local AI model execution
+- Secure data storage in Supabase database
+- No external API calls
+- Document privacy
+- Input validation and sanitization
+
+## 🧪 Testing
 
 ### RAG Test
 ```bash
 ./TestRAG.command
 ```
 
-Test skripta proverava:
-- Povezanost sa Ollama
-- Upload dokumenata
-- Semantičku pretragu
-- RAG chat funkcionalnost
-- Statistike sistema
+### OCR Test
+```bash
+./TestOCR.command
+```
 
-## 🤝 Doprinosi
+### Multi-Step Test
+```bash
+./TestMultiStep.command
+```
 
-Doprinosi su dobrodošli! Molimo vas da:
+Test scripts verify:
+- Ollama connectivity
+- Document and image upload
+- OCR functionality
+- Semantic search
+- Multi-step retrieval
+- Re-ranking functionality
+- RAG chat functionality
+- System statistics
 
-1. Fork-ujte repozitorijum
-2. Kreirajte feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit-ujte promene (`git commit -m 'Add some AmazingFeature'`)
-4. Push-ujte na branch (`git push origin feature/AmazingFeature`)
-5. Otvorite Pull Request
+## 🆕 New Features
 
-## 📄 Licenca
+### Multi-Step Retrieval
+- Automatic detection of complex queries
+- Decomposition into sub-queries
+- Iterative search with expansion
+- Combination of results from multiple steps
 
-Ovaj projekat je licenciran pod MIT licencom - pogledajte [LICENSE](LICENSE) fajl za detalje.
+### OCR Integration
+- Text recognition from images
+- Support for Serbian and English languages
+- Advanced image processing
+- Bounding box visualization
+- Batch processing
 
-## 📞 Kontakt
+### Advanced Re-ranking
+- Cross-encoder models
+- Precise result ranking
+- Score combination
+- Metadata integration
+
+## 🤝 Contributing
+
+Contributions are welcome! Please:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 📞 Contact
 
 Stefan Gazzara - [@sgazz](https://github.com/sgazz)
 
-Link projekta: [https://github.com/sgazz/AcAI-Light](https://github.com/sgazz/AcAI-Light)
+Project Link: [https://github.com/sgazz/AcAI-Light](https://github.com/sgazz/AcAI-Light)
 
 ---
 
-⭐ Ako vam se sviđa ovaj projekat, ostavite zvezdicu! 
+⭐ If you like this project, leave a star! 
