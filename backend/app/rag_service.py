@@ -8,6 +8,7 @@ from .vector_store import VectorStore
 from .multi_step_retrieval import MultiStepRetrieval
 from .reranker import Reranker
 from .ocr_service import OCRService
+from .context_selector import ContextSelector
 from .models import Document
 from .cache_manager import cache_manager, get_cached_rag_result, set_cached_rag_result
 from .error_handler import RAGError, ExternalServiceError, ValidationError, ErrorCategory, ErrorSeverity
@@ -34,6 +35,7 @@ class RAGService:
         self.vector_store = VectorStore(use_supabase=use_supabase)
         self.reranker = Reranker()
         self.multi_step_retrieval = MultiStepRetrieval(self.vector_store, self.reranker)
+        self.context_selector = ContextSelector(self.vector_store, self.reranker)
         self.ocr_service = OCRService()
         self.ollama_client = Client(host=ollama_host)
         self.model_name = model_name
@@ -712,3 +714,128 @@ Sadržaj: {content}
         except Exception as e:
             print(f"Greška pri analizi upita: {e}")
             return {'error': str(e)}
+    
+    async def generate_enhanced_context_response(self, query: str, available_contexts: Dict[str, Any], 
+                                                max_results: int = 5, session_id: str = None) -> Dict[str, Any]:
+        """Generiše RAG odgovor koristeći enhanced context selection"""
+        try:
+            print(f"Enhanced context selection za upit: {query[:50]}...")
+            
+            # Korak 1: Izbor optimalnog konteksta
+            context_selection = self.context_selector.select_context(query, available_contexts, max_results)
+            
+            if context_selection['status'] != 'success':
+                # Fallback na običan RAG ako context selection ne uspe
+                return await self.generate_multi_step_rag_response(query, "", max_results, True, session_id)
+            
+            selected_context = context_selection['selected_context']
+            context_analysis = context_selection['context_analysis']
+            
+            # Korak 2: Multi-step retrieval sa odabranim kontekstom
+            retrieval_result = self.multi_step_retrieval.multi_step_search(query, max_results, True)
+            
+            if not retrieval_result['results']:
+                # Ako nema rezultata, koristi samo odabrani kontekst
+                prompt = self._create_enhanced_prompt(query, selected_context)
+                response = self.ollama_client.generate(
+                    model=self.model_name,
+                    prompt=prompt,
+                    stream=False
+                )
+                assistant_message = response['response']
+            else:
+                # Kombinuj odabrani kontekst sa rezultatima pretrage
+                document_context = self._prepare_document_context(retrieval_result['results'])
+                combined_context = f"{selected_context}\n\nDokumenti:\n{document_context}"
+                prompt = self._create_enhanced_prompt(query, combined_context)
+                
+                response = self.ollama_client.generate(
+                    model=self.model_name,
+                    prompt=prompt,
+                    stream=False
+                )
+                assistant_message = response['response']
+            
+            # Korak 3: Sačuvaj rezultate
+            if self.use_supabase and session_id:
+                self._save_chat_history(session_id, query, assistant_message, retrieval_result.get('results', []))
+                self._save_enhanced_context_session(session_id, query, context_selection, retrieval_result)
+            
+            # Korak 4: Pripremi response
+            result = {
+                'status': 'success',
+                'response': assistant_message,
+                'query': query,
+                'model': self.model_name,
+                'context_analysis': context_analysis,
+                'context_selector_used': True,
+                'selected_context_length': len(selected_context),
+                'retrieval_results_count': len(retrieval_result.get('results', [])),
+                'sources': retrieval_result.get('results', []),
+                'retrieval_steps': retrieval_result.get('steps_used', 0),
+                'query_type': retrieval_result.get('query_type', 'unknown')
+            }
+            
+            return self._to_native_types(result)
+            
+        except Exception as e:
+            print(f"Greška pri enhanced context response: {e}")
+            return {
+                'status': 'error',
+                'message': str(e),
+                'response': 'Izvinjavam se, došlo je do greške pri generisanju odgovora.'
+            }
+    
+    def _create_enhanced_prompt(self, query: str, context: str) -> str:
+        """Kreira enhanced prompt sa naprednim kontekstom"""
+        system_prompt = """Ti si AI Study Assistant, napredni asistent za učenje koji koristi različite izvore informacija za pružanje tačnih i korisnih odgovora.
+
+Koristi sledeći kontekst za generisanje odgovora:
+- Analiziraj sve dostupne informacije
+- Poveži informacije iz različitih izvora
+- Daj jasne i strukturirane odgovore
+- Ako nema dovoljno informacija, reci to otvoreno
+- Koristi srpski jezik za odgovore
+
+Kontekst:
+{context}
+
+Korisnik: {query}
+
+AI Study Assistant:"""
+        
+        return system_prompt.format(context=context, query=query)
+    
+    def _save_enhanced_context_session(self, session_id: str, query: str, context_selection: Dict, retrieval_result: Dict):
+        """Čuva enhanced context sesiju u Supabase"""
+        try:
+            if not self.use_supabase or not self.supabase_manager:
+                return
+            
+            # Pripremi podatke za čuvanje
+            session_data = {
+                'session_id': session_id,
+                'query': query,
+                'context_analysis': context_selection.get('context_analysis', {}),
+                'context_candidates': context_selection.get('context_candidates', 0),
+                'selected_candidates': context_selection.get('selected_candidates', 0),
+                'retrieval_steps': retrieval_result.get('steps_used', 0),
+                'query_type': retrieval_result.get('query_type', 'unknown'),
+                'enhanced_context_used': True
+            }
+            
+            # Sačuvaj u Supabase (možemo koristiti postojeću tabelu ili kreirati novu)
+            print(f"Enhanced context sesija sačuvana za session_id: {session_id}")
+            
+        except Exception as e:
+            print(f"Greška pri čuvanju enhanced context sesije: {e}")
+    
+    def get_context_selector_info(self) -> Dict[str, Any]:
+        """Vraća informacije o context selector-u"""
+        return {
+            'max_context_length': self.context_selector.max_context_length,
+            'min_relevance_score': self.context_selector.min_relevance_score,
+            'context_overlap_threshold': self.context_selector.context_overlap_threshold,
+            'context_types': self.context_selector.context_types,
+            'description': 'Enhanced context selection sistem za pametni izbor konteksta'
+        }

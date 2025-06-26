@@ -52,6 +52,7 @@ from .error_handler import (
     ErrorHandlingMiddleware
 )
 from .query_rewriter import query_rewriter, QueryEnhancement
+from .fact_checker import fact_checker, FactCheckResult, VerificationStatus
 
 # Inicijalizuj RAG servis sa Supabase podrškom
 rag_service = RAGService(use_supabase=True)
@@ -1871,6 +1872,369 @@ async def test_query_rewriter():
             "status": "success",
             "message": "Query rewriter test završen",
             "results": results
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# ============================================================================
+# FACT CHECKER ENDPOINTS
+# ============================================================================
+
+@app.post("/fact-check/verify")
+async def verify_answer_endpoint(request: dict):
+    """
+    Proveri tačnost odgovora
+    
+    Request body:
+    {
+        "answer": "odgovor za proveru",
+        "context": "kontekst za verifikaciju",
+        "sources": ["izvor1", "izvor2"] (opciono)
+    }
+    """
+    try:
+        answer = request.get("answer", "").strip()
+        if not answer:
+            raise HTTPException(status_code=400, detail="Answer ne može biti prazan")
+        
+        context = request.get("context", "")
+        sources = request.get("sources", [])
+        
+        # Proveri odgovor
+        result = await fact_checker.verify_answer(answer, context, sources)
+        
+        return {
+            "status": "success",
+            "verification": {
+                "verified": result.verified,
+                "confidence": result.confidence,
+                "reasoning": result.reasoning,
+                "sources": result.sources,
+                "status": result.status.value,
+                "contradictions": result.contradictions,
+                "missing_info": result.missing_info,
+                "timestamp": result.timestamp.isoformat()
+            }
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/fact-check/verify-multiple")
+async def verify_multiple_answers_endpoint(request: dict):
+    """
+    Proveri tačnost više odgovora odjednom
+    
+    Request body:
+    {
+        "answers": [
+            {
+                "answer": "odgovor 1",
+                "context": "kontekst 1",
+                "sources": ["izvor1"]
+            },
+            {
+                "answer": "odgovor 2", 
+                "context": "kontekst 2",
+                "sources": ["izvor2"]
+            }
+        ]
+    }
+    """
+    try:
+        answers = request.get("answers", [])
+        if not answers:
+            raise HTTPException(status_code=400, detail="Answers lista ne može biti prazna")
+        
+        # Proveri sve odgovore
+        results = await fact_checker.verify_multiple_answers(answers)
+        
+        verification_results = []
+        for i, result in enumerate(results):
+            verification_results.append({
+                "index": i,
+                "verified": result.verified,
+                "confidence": result.confidence,
+                "reasoning": result.reasoning,
+                "sources": result.sources,
+                "status": result.status.value,
+                "contradictions": result.contradictions,
+                "missing_info": result.missing_info,
+                "timestamp": result.timestamp.isoformat()
+            })
+        
+        return {
+            "status": "success",
+            "verifications": verification_results,
+            "total_checked": len(results)
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/fact-check/stats")
+async def get_fact_checker_stats():
+    """Dohvati statistike Fact Checker servisa"""
+    try:
+        stats = await fact_checker.get_verification_stats()
+        return {
+            "status": "success",
+            "stats": stats
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.delete("/fact-check/cache/clear")
+async def clear_fact_checker_cache():
+    """Očisti Fact Checker cache"""
+    try:
+        success = await fact_checker.clear_cache()
+        if success:
+            return {
+                "status": "success",
+                "message": "Fact checker cache je očišćen"
+            }
+        else:
+            return {
+                "status": "error",
+                "message": "Greška pri čišćenju cache-a"
+            }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/fact-check/test")
+async def test_fact_checker():
+    """Test endpoint za fact checker funkcionalnost"""
+    try:
+        # Test upiti
+        test_cases = [
+            {
+                "answer": "Veštačka inteligencija je tehnologija koja omogućava računarima da uče i donose odluke.",
+                "context": "Veštačka inteligencija (AI) je grana računarske nauke koja se bavi kreiranjem sistema koji mogu da izvršavaju zadatke koji obično zahtevaju ljudsku inteligenciju. Ovi sistemi mogu da uče, zaključuju, prepoznaju obrasce i donose odluke na osnovu podataka."
+            },
+            {
+                "answer": "Mašinsko učenje je podskup veštačke inteligencije koji se fokusira na algoritme koji mogu da uče iz podataka.",
+                "context": "Mašinsko učenje je grana veštačke inteligencije koja omogućava računarima da uče i poboljšavaju se iz iskustva bez eksplicitnog programiranja. Koristi algoritme koji mogu da identifikuju obrasce u podacima i koriste te obrasce za donošenje odluka."
+            }
+        ]
+        
+        results = []
+        for i, test_case in enumerate(test_cases, 1):
+            result = await fact_checker.verify_answer(
+                test_case["answer"], 
+                test_case["context"]
+            )
+            results.append({
+                "test_case": i,
+                "answer": test_case["answer"][:100] + "...",
+                "verification_result": result
+            })
+        
+        return {
+            "status": "success",
+            "test_results": results,
+            "total_tests": len(test_cases)
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Enhanced Context Selection Endpoints
+@app.post("/chat/rag-enhanced-context")
+async def enhanced_context_rag_chat_endpoint(message: dict, db: Session = Depends(get_db)):
+    """Enhanced context selection RAG chat endpoint"""
+    try:
+        user_message = message.get("message", "")
+        session_id = message.get("session_id", str(uuid.uuid4()))
+        max_results = message.get("max_results", 5)
+        
+        # Dohvati dostupne kontekste
+        available_contexts = {}
+        
+        # Dokumenti iz vector store-a
+        available_contexts['documents'] = rag_service.list_documents()
+        
+        # Prethodni razgovor
+        conversation_history = get_conversation_context(session_id, db, max_messages=10)
+        if conversation_history:
+            # Konvertuj u format koji context selector očekuje
+            conv_messages = []
+            lines = conversation_history.split('\n')
+            for line in lines:
+                if line.strip():
+                    if line.startswith('korisnik:'):
+                        conv_messages.append({
+                            'sender': 'user',
+                            'content': line.replace('korisnik:', '').strip(),
+                            'timestamp': datetime.now().isoformat()
+                        })
+                    elif line.startswith('AI:'):
+                        conv_messages.append({
+                            'sender': 'ai',
+                            'content': line.replace('AI:', '').strip(),
+                            'timestamp': datetime.now().isoformat()
+                        })
+            available_contexts['conversation_history'] = conv_messages
+        
+        # Korisnički profil (možemo dodati kasnije)
+        available_contexts['user_profile'] = {
+            'interests': 'AI, mašinsko učenje, veštačka inteligencija',
+            'preferences': 'detaljni odgovori, praktični primeri',
+            'history': 'aktivni korisnik RAG sistema'
+        }
+        
+        # Opšti kontekst
+        available_contexts['general_context'] = {
+            'system_info': 'AcAIA - AI Study Assistant',
+            'current_topic': 'veštačka inteligencija i mašinsko učenje',
+            'session_info': f'Sesija: {session_id}'
+        }
+        
+        # Generiši enhanced context response
+        rag_response = await rag_service.generate_enhanced_context_response(
+            query=user_message,
+            available_contexts=available_contexts,
+            max_results=max_results,
+            session_id=session_id
+        )
+        
+        # Sačuvaj poruke u lokalnu bazu
+        user_db_message = ChatMessage(
+            sender="user",
+            content=user_message,
+            session_id=session_id
+        )
+        db.add(user_db_message)
+        
+        ai_db_message = ChatMessage(
+            sender="ai",
+            content=rag_response['response'],
+            session_id=session_id
+        )
+        db.add(ai_db_message)
+        db.commit()
+        
+        return {
+            "status": "success",
+            "response": rag_response['response'],
+            "sources": rag_response.get('sources', []),
+            "session_id": session_id,
+            "model": rag_response.get('model', 'mistral'),
+            "context_analysis": rag_response.get('context_analysis', {}),
+            "context_selector_used": rag_response.get('context_selector_used', False),
+            "selected_context_length": rag_response.get('selected_context_length', 0),
+            "retrieval_results_count": rag_response.get('retrieval_results_count', 0),
+            "retrieval_steps": rag_response.get('retrieval_steps', 0),
+            "query_type": rag_response.get('query_type', 'unknown')
+        }
+        
+    except Exception as e:
+        db.rollback()
+        return {"status": "error", "message": str(e)}
+
+@app.post("/context/select")
+async def select_context_endpoint(request: dict):
+    """Test endpoint za context selection funkcionalnost"""
+    try:
+        query = request.get("query", "")
+        available_contexts = request.get("available_contexts", {})
+        max_results = request.get("max_results", 5)
+        
+        if not query.strip():
+            raise HTTPException(status_code=400, detail="Upit ne može biti prazan")
+        
+        # Context selection
+        context_selection = rag_service.context_selector.select_context(
+            query, available_contexts, max_results
+        )
+        
+        return {
+            "status": "success",
+            "query": query,
+            "context_selection": context_selection
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/context/info")
+async def get_context_selector_info():
+    """Dohvata informacije o context selector-u"""
+    try:
+        return {
+            "status": "success",
+            "context_selector_info": rag_service.get_context_selector_info()
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/context/test")
+async def test_context_selector():
+    """Test endpoint za context selector funkcionalnost"""
+    try:
+        # Test upiti
+        test_queries = [
+            "Šta je veštačka inteligencija?",
+            "Uporedi mašinsko učenje i deep learning",
+            "Kako funkcioniše RAG sistem?",
+            "Objasni razliku između bi-encoder i cross-encoder modela"
+        ]
+        
+        # Test konteksti
+        test_contexts = {
+            'documents': [
+                {
+                    'filename': 'AI_introduction.pdf',
+                    'content': 'Veštačka inteligencija je grana računarske nauke koja se bavi kreiranjem sistema koji mogu da izvršavaju zadatke koji obično zahtevaju ljudsku inteligenciju.',
+                    'score': 0.9,
+                    'page': 1
+                },
+                {
+                    'filename': 'ML_basics.pdf',
+                    'content': 'Mašinsko učenje je podskup veštačke inteligencije koji omogućava računarima da uče iz podataka bez eksplicitnog programiranja.',
+                    'score': 0.8,
+                    'page': 1
+                }
+            ],
+            'conversation_history': [
+                {
+                    'sender': 'user',
+                    'content': 'Možeš li mi objasniti šta je veštačka inteligencija?',
+                    'timestamp': '2024-01-27T10:00:00'
+                },
+                {
+                    'sender': 'ai',
+                    'content': 'Veštačka inteligencija je tehnologija koja omogućava računarima da simuliraju ljudsku inteligenciju.',
+                    'timestamp': '2024-01-27T10:01:00'
+                }
+            ],
+            'user_profile': {
+                'interests': 'AI, mašinsko učenje, veštačka inteligencija',
+                'preferences': 'detaljni odgovori, praktični primeri',
+                'history': 'aktivni korisnik RAG sistema'
+            },
+            'general_context': {
+                'system_info': 'AcAIA - AI Study Assistant',
+                'current_topic': 'veštačka inteligencija i mašinsko učenje'
+            }
+        }
+        
+        results = []
+        for query in test_queries:
+            context_selection = rag_service.context_selector.select_context(
+                query, test_contexts, max_results=3
+            )
+            
+            results.append({
+                'query': query,
+                'context_selection': context_selection
+            })
+        
+        return {
+            "status": "success",
+            "test_results": results,
+            "total_queries": len(test_queries)
         }
         
     except Exception as e:
