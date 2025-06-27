@@ -275,16 +275,16 @@ export default function ExportModal({ isOpen, onClose, session, messages }: Expo
       />
       
       {/* Premium Modal */}
-      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/10 z-[101] w-full max-w-2xl relative overflow-hidden">
+      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/10 z-[9999] w-full max-w-2xl h-[85vh] flex flex-col">
         {/* Animated Background Pattern */}
         <div className="absolute inset-0 opacity-5">
           <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse"></div>
           <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-blue-400/10 rounded-full blur-xl animate-bounce"></div>
         </div>
 
-        <div className="relative">
+        <div className="relative flex flex-col h-full">
           {/* Premium Header */}
-          <div className="flex items-center justify-between p-6 border-b border-white/10 bg-gradient-to-r from-slate-800/50 via-slate-700/30 to-slate-800/50 backdrop-blur-sm">
+          <div className="flex items-center justify-between p-6 border-b border-white/10 bg-gradient-to-r from-slate-800/50 via-slate-700/30 to-slate-800/50 backdrop-blur-sm flex-shrink-0">
             <div className="flex items-center gap-4">
               <div className="relative">
                 <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg">
@@ -308,8 +308,8 @@ export default function ExportModal({ isOpen, onClose, session, messages }: Expo
             </button>
           </div>
 
-          {/* Premium Content */}
-          <div className="p-6 space-y-6">
+          {/* Premium Content - Scrollable */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0">
             {/* Premium Session Info */}
             {session && (
               <div className="p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 backdrop-blur-sm">
@@ -454,8 +454,8 @@ export default function ExportModal({ isOpen, onClose, session, messages }: Expo
             </div>
           </div>
 
-          {/* Premium Footer */}
-          <div className="flex items-center justify-end gap-4 p-6 border-t border-white/10 bg-gradient-to-r from-slate-800/30 to-slate-700/30">
+          {/* Premium Footer - Fixed */}
+          <div className="flex items-center justify-end gap-4 p-6 border-t border-white/10 bg-gradient-to-r from-slate-800/30 to-slate-700/30 flex-shrink-0">
             <button
               onClick={onClose}
               className="px-6 py-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 font-semibold"
