@@ -99,13 +99,13 @@ export default function DocumentList() {
   const getStatusColor = (status: string): string => {
     switch (status) {
       case 'uploaded':
-        return 'text-green-400';
+        return 'text-[var(--accent-green)]';
       case 'error':
-        return 'text-red-400';
+        return 'text-[var(--accent-red)]';
       case 'processing':
-        return 'text-yellow-400';
+        return 'text-[var(--accent-yellow)]';
       default:
-        return 'text-gray-400';
+        return 'text-[var(--text-muted)]';
     }
   };
 
@@ -125,139 +125,133 @@ export default function DocumentList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <FaSpinner className="animate-spin text-blue-400 text-2xl" />
-        <span className="ml-2 text-gray-300">Učitavanje dokumenata...</span>
+        <FaSpinner className="animate-spin text-[var(--accent-blue)] text-2xl" />
+        <span className="ml-2 text-[var(--text-secondary)]">Učitavanje dokumenata...</span>
       </div>
     );
   }
 
   return (
-    <>
-      <div className="bg-[#1a2332] rounded-xl p-6 h-full overflow-hidden flex flex-col">
+    <div className="bg-[var(--bg-primary)] min-h-full w-full flex flex-col">
+      <div className="bg-[var(--bg-tertiary)] rounded-xl p-6 h-full overflow-hidden flex flex-col">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-xl font-bold text-white">Uploadovani dokumenti</h2>
+          <h2 className="text-xl font-bold text-[var(--text-primary)]">Uploadovani dokumenti</h2>
           <button 
             onClick={fetchDocuments}
-            className="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+            className="px-3 py-1 bg-[var(--accent-blue)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-blue)]/80 text-sm"
           >
             Osveži
           </button>
         </div>
 
         {documents.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">
+          <div className="text-center text-[var(--text-muted)] py-8">
             <FaFile className="text-4xl mx-auto mb-4 opacity-50" />
             <p>Nema uploadovanih dokumenata</p>
             <p className="text-sm mt-2">Uploadujte dokumente da biste ih videli ovde</p>
           </div>
         ) : (
-          <div className="flex-1 overflow-y-auto">
-            <div className="space-y-3">
-              {documents.map((doc) => (
-                <div 
-                  key={doc.id}
-                  className={`bg-[#151c2c] rounded-lg p-4 border-l-4 transition-all cursor-pointer hover:bg-[#1e2a3a] ${
-                    selectedDocument?.id === doc.id ? 'border-blue-400 bg-[#1e2a3a]' : 'border-gray-600'
-                  }`}
-                  onClick={() => setSelectedDocument(doc)}
-                >
-                  <div className="flex items-start justify-between">
+          <div className="flex-1 overflow-y-auto space-y-3">
+            {documents.map((doc) => (
+              <div
+                key={doc.id}
+                className={`p-4 rounded-lg border cursor-pointer transition-colors ${
+                  selectedDocument?.id === doc.id
+                    ? 'border-[var(--accent-blue)] bg-[var(--accent-blue)]/10'
+                    : 'border-[var(--border-color)] hover:border-[var(--accent-blue)] hover:bg-[var(--bg-secondary)]'
+                }`}
+                onClick={() => setSelectedDocument(doc)}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="flex-shrink-0 mt-1">
+                      {getFileIcon(doc.file_type, 24)}
+                    </div>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        {getFileIcon(doc.file_type)}
-                        <h3 className="font-semibold text-white truncate">{doc.filename}</h3>
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(doc.status)} bg-opacity-20`}>
+                      <h3 className="font-medium text-[var(--text-primary)] truncate">
+                        {doc.filename}
+                      </h3>
+                      <div className="flex items-center gap-4 mt-1 text-sm text-[var(--text-secondary)]">
+                        <span>{formatFileSize(doc.file_size)}</span>
+                        <span>{doc.total_pages} stranica</span>
+                        <span>{doc.chunks_count} delova</span>
+                        <span className={getStatusColor(doc.status)}>
                           {getStatusText(doc.status)}
                         </span>
                       </div>
-                      
-                      {/* OCR preview */}
-                      {doc.ocr_info && doc.ocr_info.text && (
-                        <div className="mt-1 text-xs text-green-300 bg-green-900/20 rounded p-2 flex items-center gap-2">
-                          <span className="truncate max-w-[200px]">{doc.ocr_info.text.slice(0, 100)}{doc.ocr_info.text.length > 100 ? '...' : ''}</span>
-                          <button
-                            className="ml-2 px-2 py-1 text-xs bg-blue-700 text-white rounded hover:bg-blue-800"
-                            onClick={e => { e.stopPropagation(); setOcrModal({ocr: doc.ocr_info, doc}); }}
-                            title="Prikaži ceo OCR tekst"
-                          >
-                            OCR detalji
-                          </button>
-                        </div>
-                      )}
-                      
-                      <div className="grid grid-cols-2 gap-4 text-sm text-gray-400">
-                        <div>
-                          <span className="font-medium">Tip:</span> {doc.file_type}
-                        </div>
-                        <div>
-                          <span className="font-medium">Veličina:</span> {formatFileSize(doc.file_size)}
-                        </div>
-                        <div>
-                          <span className="font-medium">Stranice:</span> {doc.total_pages}
-                        </div>
-                        <div>
-                          <span className="font-medium">Chunkovi:</span> {doc.chunks_count}
-                        </div>
-                      </div>
-                      
-                      <div className="text-xs text-gray-500 mt-2">
+                      <div className="text-xs text-[var(--text-muted)] mt-1">
                         Uploadovano: {formatDate(doc.created_at)}
                       </div>
-
-                      {doc.error_message && (
-                        <div className="text-red-400 text-sm mt-2">
-                          Greška: {doc.error_message}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex gap-2 ml-4">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openDocumentPreview(doc);
-                        }}
-                        className="p-2 text-blue-400 hover:bg-blue-900/30 rounded-lg transition-colors"
-                        title="Pregledaj dokument"
-                      >
-                        <FaEye size={16} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteDocument(doc.id);
-                        }}
-                        className="p-2 text-red-400 hover:bg-red-900/30 rounded-lg transition-colors"
-                        title="Obriši dokument"
-                      >
-                        <FaTrash size={16} />
-                      </button>
                     </div>
                   </div>
+                  <div className="flex items-center gap-2 ml-4">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPreviewDocument(doc);
+                      }}
+                      className="p-2 text-[var(--accent-blue)] hover:text-[var(--accent-blue)]/80 hover:bg-[var(--accent-blue)]/10 rounded-lg transition-colors"
+                      title="Pregledaj dokument"
+                    >
+                      <FaEye size={16} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteDocument(doc.id);
+                      }}
+                      className="p-2 text-[var(--accent-red)] hover:text-[var(--accent-red)]/80 hover:bg-[var(--accent-red)]/10 rounded-lg transition-colors"
+                      title="Obriši dokument"
+                    >
+                      <FaTrash size={16} />
+                    </button>
+                  </div>
                 </div>
-              ))}
-            </div>
+
+                {/* OCR Info */}
+                {doc.ocr_info && (
+                  <div className="mt-3 p-3 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-medium text-[var(--text-primary)]">OCR Informacije</h4>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOcrModal({ doc, ocr: doc.ocr_info });
+                        }}
+                        className="text-xs text-[var(--accent-blue)] hover:text-[var(--accent-blue)]/80"
+                      >
+                        Pregledaj rezultat
+                      </button>
+                    </div>
+                    <div className="text-xs text-[var(--text-secondary)] space-y-1">
+                      <div>Pouzdanost: {doc.ocr_info.confidence?.toFixed(1)}%</div>
+                      <div>Jezici: {doc.ocr_info.languages?.join(', ') || 'N/A'}</div>
+                      <div>Status: {doc.ocr_info.status || 'N/A'}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Detalji dokumenta */}
         {selectedDocument && (
-          <div className="mt-4 p-4 bg-[#151c2c] rounded-lg border border-gray-600">
+          <div className="mt-4 p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
             <div className="flex items-center justify-between mb-3">
-              <h3 className="font-semibold text-white">Detalji dokumenta</h3>
+              <h3 className="font-semibold text-[var(--text-primary)]">Detalji dokumenta</h3>
               <button 
                 onClick={() => setSelectedDocument(null)}
-                className="text-gray-400 hover:text-white"
+                className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
               >
                 ×
               </button>
             </div>
-            <div className="text-sm text-gray-300 space-y-1">
+            <div className="text-sm text-[var(--text-secondary)] space-y-1">
               <p><strong>ID:</strong> {selectedDocument.id}</p>
               <p><strong>Status:</strong> <span className={getStatusColor(selectedDocument.status)}>{getStatusText(selectedDocument.status)}</span></p>
               <p><strong>Uploadovano:</strong> {formatDate(selectedDocument.created_at)}</p>
               {selectedDocument.error_message && (
-                <p><strong>Greška:</strong> <span className="text-red-400">{selectedDocument.error_message}</span></p>
+                <p><strong>Greška:</strong> <span className="text-[var(--accent-red)]">{selectedDocument.error_message}</span></p>
               )}
             </div>
           </div>
@@ -281,6 +275,6 @@ export default function DocumentList() {
           ocrInfo={ocrModal.ocr}
         />
       )}
-    </>
+    </div>
   );
 } 

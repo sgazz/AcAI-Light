@@ -121,19 +121,19 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
       )}
       
       {/* Sidebar */}
-      <div className={`fixed top-0 right-0 h-full w-1/2 bg-[#151c2c] shadow-2xl border-l border-gray-700 transform transition-transform duration-300 ease-in-out z-50 ${
+      <div className={`fixed top-0 right-0 h-full w-1/2 bg-[var(--bg-secondary)] shadow-2xl border-l border-[var(--border-color)] transform transition-transform duration-300 ease-in-out z-50 ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-700">
+          <div className="flex items-center justify-between p-4 border-b border-[var(--border-color)]">
             <div className="flex items-center gap-2">
-              <div className="text-blue-400"><FaHistory size={20} /></div>
-              <h3 className="text-lg font-semibold text-white">Istorija razgovora</h3>
+              <div className="text-[var(--accent-blue)]"><FaHistory size={20} /></div>
+              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Istorija razgovora</h3>
             </div>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-white transition-colors"
+              className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
               title="Zatvori"
             >
               <FaTimes size={20} />
@@ -143,30 +143,30 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
           {/* Dvokolonski prikaz */}
           <div className="flex-1 flex flex-row min-h-0">
             {/* Leva kolona: Sesije */}
-            <div className="flex-1 min-w-0 border-r border-gray-700 p-4 flex flex-col">
-              <h4 className="text-sm font-medium text-blue-300 mb-3">
+            <div className="flex-1 min-w-0 border-r border-[var(--border-color)] p-4 flex flex-col">
+              <h4 className="text-sm font-medium text-[var(--accent-blue)] mb-3">
                 Sesije ({sessions.length})
               </h4>
-              <div className="flex-1 overflow-y-auto space-y-2">
+              <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
                 {sessions.map((session) => (
                   <div
                     key={session.session_id}
                     className={`p-3 rounded-lg border cursor-pointer transition-colors ${
                       selectedSession === session.session_id
-                        ? 'border-blue-500 bg-blue-900/20'
-                        : 'border-gray-600 hover:border-blue-400'
+                        ? 'border-[var(--accent-blue)] bg-[var(--accent-blue)]/20'
+                        : 'border-[var(--border-color)] hover:border-[var(--accent-blue)]'
                     }`}
                     onClick={() => loadSessionMessages(session.session_id)}
                   >
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
-                        <div className="text-sm text-white font-medium">
+                        <div className="text-sm text-[var(--text-primary)] font-medium">
                           {session.session_id.slice(0, 8)}...
                         </div>
-                        <div className="text-xs text-blue-300">
+                        <div className="text-xs text-[var(--accent-blue)]">
                           {session.message_count} poruka
                         </div>
-                        <div className="text-xs text-gray-400">
+                        <div className="text-xs text-[var(--text-muted)]">
                           {formatDate(session.last_message)}
                         </div>
                       </div>
@@ -176,7 +176,7 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
                             e.stopPropagation();
                             loadSessionMessages(session.session_id);
                           }}
-                          className="p-1 text-blue-400 hover:text-blue-300"
+                          className="p-1 text-[var(--accent-blue)] hover:text-[var(--accent-blue)]/80"
                           title="Pogledaj poruke"
                         >
                           <FaEye size={14} />
@@ -186,7 +186,7 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
                             e.stopPropagation();
                             deleteSession(session.session_id);
                           }}
-                          className="p-1 text-red-400 hover:text-red-300"
+                          className="p-1 text-[var(--accent-red)] hover:text-[var(--accent-red)]/80"
                           title="Obriši sesiju"
                         >
                           <FaTrash size={14} />
@@ -200,33 +200,33 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
 
             {/* Desna kolona: Poruke */}
             <div className="flex-1 min-w-0 p-4 flex flex-col">
-              <h4 className="text-sm font-medium text-blue-300 mb-3">
+              <h4 className="text-sm font-medium text-[var(--accent-blue)] mb-3">
                 Poruke {selectedSession ? `(${sessionMessages.length})` : ''}
               </h4>
-              <div className="flex-1 overflow-y-auto space-y-2">
+              <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
                 {isLoading ? (
-                  <div className="text-center text-blue-300">Učitavanje...</div>
+                  <div className="text-center text-[var(--accent-blue)]">Učitavanje...</div>
                 ) : selectedSession ? (
                   sessionMessages.map((message) => (
                     <div
                       key={message.id}
                       className={`p-3 rounded-lg ${
                         message.sender === 'user'
-                          ? 'bg-blue-900/30 border border-blue-700'
-                          : 'bg-gray-700/30 border border-gray-600'
+                          ? 'bg-[var(--accent-blue)]/30 border border-[var(--accent-blue)]'
+                          : 'bg-[var(--bg-tertiary)] border border-[var(--border-color)]'
                       }`}
                     >
                       <div className="flex justify-between items-start mb-1">
                         <span className={`text-xs font-medium ${
-                          message.sender === 'user' ? 'text-blue-300' : 'text-green-300'
+                          message.sender === 'user' ? 'text-[var(--accent-blue)]' : 'text-[var(--accent-green)]'
                         }`}>
                           {message.sender === 'user' ? 'Vi' : 'AI'}
                         </span>
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-[var(--text-muted)]">
                           {formatDate(message.timestamp)}
                         </span>
                       </div>
-                      <div className="text-sm text-white">
+                      <div className="text-sm text-[var(--text-primary)]">
                         {message.content.length > 100
                           ? `${message.content.substring(0, 100)}...`
                           : message.content}
@@ -234,7 +234,7 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
                     </div>
                   ))
                 ) : (
-                  <div className="text-center text-gray-400 text-sm">
+                  <div className="text-center text-[var(--text-muted)] text-sm">
                     Izaberite sesiju da vidite poruke
                   </div>
                 )}

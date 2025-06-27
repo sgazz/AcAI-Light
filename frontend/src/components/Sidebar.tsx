@@ -23,10 +23,10 @@ const menu = [
 
 export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
   return (
-    <aside className="flex flex-col justify-between h-full w-64 bg-[#151c2c] text-white rounded-2xl p-4 shadow-lg">
+    <aside className="flex flex-col justify-between h-full w-64 bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-2xl p-4 shadow-lg border border-[var(--border-color)]">
       <div>
         <div className="flex items-center gap-2 mb-8 mt-2">
-          <div className="text-blue-400"><FaGraduationCap size={28} /></div>
+          <div className="text-[var(--accent-blue)]"><FaGraduationCap size={28} /></div>
           <span className="text-xl font-bold tracking-wide">AI Study Assistant</span>
         </div>
         <nav className="flex flex-col gap-2">
@@ -34,7 +34,7 @@ export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
             <button
               key={item.label}
               onClick={() => onMenuSelect(idx)}
-              className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-base font-medium hover:bg-blue-900/60 ${idx === selectedMenu ? 'bg-blue-900/80' : ''}`}
+              className={`flex items-center gap-3 px-4 py-2 rounded-lg transition-colors text-base font-medium hover:bg-[var(--accent-blue)]/20 ${idx === selectedMenu ? 'bg-[var(--accent-blue)]/30' : ''}`}
             >
               {item.icon}
               <span>{item.label}</span>
@@ -43,7 +43,7 @@ export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
         </nav>
       </div>
       <div className="flex items-center gap-3 p-2 mt-8">
-        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="avatar" className="w-10 h-10 rounded-full border-2 border-blue-400" />
+        <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="avatar" className="w-10 h-10 rounded-full border-2 border-[var(--accent-blue)]" />
         <span className="font-semibold">Korisnik</span>
       </div>
     </aside>

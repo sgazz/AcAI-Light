@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaTimes, FaChevronLeft, FaChevronRight, FaDownload, FaSpinner } from 'react-icons/fa';
+import { FaTimes, FaChevronLeft, FaChevronRight, FaDownload, FaSpinner, FaExclamationTriangle, FaFile } from 'react-icons/fa';
 import { getFileIcon } from '../utils/fileUtils';
 import { DOCUMENTS_ENDPOINT, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
@@ -103,10 +103,10 @@ export default function DocumentPreview({ documentId, filename, onClose, ocrInfo
   if (loading) {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-[#1a2332] rounded-xl p-8 max-w-2xl w-full mx-4">
+        <div className="bg-[var(--bg-tertiary)] rounded-xl p-8 max-w-2xl w-full mx-4">
           <div className="flex items-center justify-center">
-            <FaSpinner className="animate-spin text-blue-400 text-2xl mr-3" />
-            <span className="text-white">Učitavanje dokumenta...</span>
+            <FaSpinner className="animate-spin text-[var(--accent-blue)] text-2xl mr-3" />
+            <span className="text-[var(--text-primary)]">Učitavanje dokumenta...</span>
           </div>
         </div>
       </div>
@@ -119,14 +119,14 @@ export default function DocumentPreview({ documentId, filename, onClose, ocrInfo
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#1a2332] rounded-xl max-w-6xl w-full h-[90vh] flex flex-col">
+      <div className="bg-[var(--bg-tertiary)] rounded-xl max-w-6xl w-full h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-[var(--border-color)]">
           <div className="flex items-center gap-3">
             {getFileIcon(content.file_type)}
             <div>
-              <h2 className="text-xl font-bold text-white">{content.filename}</h2>
-              <p className="text-sm text-gray-400">
+              <h2 className="text-xl font-bold text-[var(--text-primary)]">{content.filename}</h2>
+              <p className="text-sm text-[var(--text-secondary)]">
                 {content.total_pages} stranica • {content.file_type?.toUpperCase() || 'NEPOZNATO'}
               </p>
             </div>
@@ -135,14 +135,14 @@ export default function DocumentPreview({ documentId, filename, onClose, ocrInfo
           <div className="flex items-center gap-3">
             <button
               onClick={handleDownload}
-              className="p-2 text-blue-400 hover:bg-blue-900/30 rounded-lg transition-colors"
+              className="p-2 text-[var(--accent-blue)] hover:bg-[var(--accent-blue)]/20 rounded-lg transition-colors"
               title="Preuzmi sadržaj"
             >
               <FaDownload size={16} />
             </button>
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:bg-gray-700 rounded-lg transition-colors"
+              className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg transition-colors"
               title="Zatvori"
             >
               <FaTimes size={16} />
@@ -152,12 +152,12 @@ export default function DocumentPreview({ documentId, filename, onClose, ocrInfo
 
         {/* OCR INFO */}
         {ocrInfo && ocrInfo.text && (
-          <div className="p-6 border-b border-green-700 bg-green-900/10">
-            <h3 className="text-lg font-bold text-green-300 mb-2">OCR rezultat</h3>
-            <div className="mb-2 text-green-200 whitespace-pre-line max-h-40 overflow-y-auto">
+          <div className="p-6 border-b border-[var(--accent-green)] bg-[var(--accent-green)]/10">
+            <h3 className="text-lg font-bold text-[var(--accent-green)] mb-2">OCR rezultat</h3>
+            <div className="mb-2 text-[var(--text-primary)] whitespace-pre-line max-h-40 overflow-y-auto">
               {ocrInfo.text}
             </div>
-            <div className="flex flex-wrap gap-4 text-sm text-green-100">
+            <div className="flex flex-wrap gap-4 text-sm text-[var(--text-secondary)]">
               {ocrInfo.confidence !== undefined && (
                 <span><strong>Confidence:</strong> {ocrInfo.confidence.toFixed(1)}%</span>
               )}
@@ -175,14 +175,14 @@ export default function DocumentPreview({ documentId, filename, onClose, ocrInfo
         )}
 
         {/* View Mode Toggle */}
-        <div className="flex items-center justify-center p-4 border-b border-gray-700">
-          <div className="flex bg-[#151c2c] rounded-lg p-1">
+        <div className="flex items-center justify-center p-4 border-b border-[var(--border-color)]">
+          <div className="flex bg-[var(--bg-secondary)] rounded-lg p-1">
             <button
               onClick={() => setViewMode('pages')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 viewMode === 'pages'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'bg-[var(--accent-blue)] text-[var(--text-primary)]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
               }`}
             >
               Po stranicama
@@ -191,8 +191,8 @@ export default function DocumentPreview({ documentId, filename, onClose, ocrInfo
               onClick={() => setViewMode('all')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
                 viewMode === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:text-white'
+                  ? 'bg-[var(--accent-blue)] text-[var(--text-primary)]'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
               }`}
             >
               Ceo dokument
@@ -205,24 +205,24 @@ export default function DocumentPreview({ documentId, filename, onClose, ocrInfo
           {viewMode === 'pages' ? (
             <div className="h-full flex flex-col">
               {/* Page Navigation */}
-              <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <div className="flex items-center justify-between p-4 border-b border-[var(--border-color)]">
                 <button
                   onClick={handlePreviousPage}
                   disabled={currentPage <= 1}
-                  className="flex items-center gap-2 px-3 py-2 bg-[#151c2c] text-white rounded-lg hover:bg-[#1e2a3a] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <FaChevronLeft size={14} />
                   Prethodna
                 </button>
                 
-                <div className="text-white">
+                <div className="text-[var(--text-primary)]">
                   Stranica {currentPage} od {content.total_pages}
                 </div>
                 
                 <button
                   onClick={handleNextPage}
                   disabled={currentPage >= content.total_pages}
-                  className="flex items-center gap-2 px-3 py-2 bg-[#151c2c] text-white rounded-lg hover:bg-[#1e2a3a] disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex items-center gap-2 px-3 py-2 bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Sledeća
                   <FaChevronRight size={14} />
@@ -231,8 +231,8 @@ export default function DocumentPreview({ documentId, filename, onClose, ocrInfo
 
               {/* Page Content */}
               <div className="flex-1 overflow-y-auto p-6">
-                <div className="bg-[#151c2c] rounded-lg p-6 h-full">
-                  <div className="text-white whitespace-pre-wrap leading-relaxed">
+                <div className="bg-[var(--bg-secondary)] rounded-lg p-6 h-full">
+                  <div className="text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed">
                     {content.pages[currentPage] || 'Sadržaj stranice nije dostupan'}
                   </div>
                 </div>
@@ -241,8 +241,8 @@ export default function DocumentPreview({ documentId, filename, onClose, ocrInfo
           ) : (
             /* All Content View */
             <div className="h-full overflow-y-auto p-6">
-              <div className="bg-[#151c2c] rounded-lg p-6">
-                <div className="text-white whitespace-pre-wrap leading-relaxed">
+              <div className="bg-[var(--bg-secondary)] rounded-lg p-6">
+                <div className="text-[var(--text-primary)] whitespace-pre-wrap leading-relaxed">
                   {content.all_content}
                 </div>
               </div>

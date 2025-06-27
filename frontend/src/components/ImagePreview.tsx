@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { FaTimes, FaDownload, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { FaTimes, FaDownload, FaEye, FaEyeSlash, FaImage } from 'react-icons/fa';
 import { useErrorToast } from './ErrorToastProvider';
 
 interface BoundingBox {
@@ -150,106 +150,200 @@ export default function ImagePreview({ imageUrl, ocrResult, filename, onClose }:
     }
   };
 
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'success':
+        return 'text-[var(--accent-green)]';
+      case 'low_confidence':
+        return 'text-[var(--accent-yellow)]';
+      case 'error':
+        return 'text-[var(--accent-red)]';
+      default:
+        return 'text-[var(--text-muted)]';
+    }
+  };
+
+  const getStatusText = (status?: string) => {
+    switch (status) {
+      case 'success':
+        return 'Uspešno';
+      case 'low_confidence':
+        return 'Niska pouzdanost';
+      case 'error':
+        return 'Greška';
+      default:
+        return 'Nepoznato';
+    }
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
-      <div className="bg-[#1a2236] rounded-xl p-6 max-w-6xl max-h-[90vh] overflow-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-semibold text-white">{filename}</h3>
-          <div className="flex gap-2">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-[var(--bg-tertiary)] rounded-xl max-w-6xl w-full h-[90vh] flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b border-[var(--border-color)]">
+          <div className="flex items-center gap-3">
+            <div className="text-[var(--accent-blue)]"><FaImage size={24} /></div>
+            <div>
+              <h2 className="text-xl font-bold text-[var(--text-primary)]">{filename}</h2>
+              <p className="text-sm text-[var(--text-secondary)]">OCR rezultat sa bounding boxovima</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setShowBoxes(!showBoxes)}
-              className="px-3 py-1 bg-gray-700 text-white rounded hover:bg-gray-600 flex items-center gap-1"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                showBoxes
+                  ? 'bg-[var(--accent-blue)] text-[var(--text-primary)]'
+                  : 'bg-[var(--bg-secondary)] text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+              }`}
             >
-              {showBoxes ? <FaEyeSlash size={14} /> : <FaEye size={14} />}
               {showBoxes ? 'Sakrij boxove' : 'Prikaži boxove'}
             </button>
             <button
               onClick={() => setZoom(Math.min(zoom + 0.2, 3))}
-              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-3 py-1 bg-[var(--accent-blue)] text-[var(--text-primary)] rounded hover:bg-[var(--accent-blue)]/80"
             >
               +
             </button>
             <button
               onClick={() => setZoom(Math.max(zoom - 0.2, 0.5))}
-              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+              className="px-3 py-1 bg-[var(--accent-blue)] text-[var(--text-primary)] rounded hover:bg-[var(--accent-blue)]/80"
             >
               -
             </button>
             <button
               onClick={() => exportResults('txt')}
-              className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-1"
+              className="px-3 py-1 bg-[var(--accent-green)] text-[var(--text-primary)] rounded hover:bg-[var(--accent-green)]/80 flex items-center gap-1"
             >
               <FaDownload size={14} />
               TXT
             </button>
             <button
               onClick={() => exportResults('json')}
-              className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-1"
+              className="px-3 py-1 bg-[var(--accent-green)] text-[var(--text-primary)] rounded hover:bg-[var(--accent-green)]/80 flex items-center gap-1"
             >
               <FaDownload size={14} />
               JSON
             </button>
             <button
               onClick={() => exportResults('csv')}
-              className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 flex items-center gap-1"
+              className="px-3 py-1 bg-[var(--accent-green)] text-[var(--text-primary)] rounded hover:bg-[var(--accent-green)]/80 flex items-center gap-1"
             >
               <FaDownload size={14} />
               CSV
             </button>
             <button
               onClick={onClose}
-              className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+              className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg transition-colors"
+              title="Zatvori"
             >
-              <FaTimes size={14} />
+              <FaTimes size={16} />
             </button>
           </div>
         </div>
 
-        <div className="flex gap-4">
-          <div className="flex-1">
-            <div className="relative overflow-auto border border-gray-600 rounded">
-              <canvas
-                ref={canvasRef}
-                className="absolute top-0 left-0 pointer-events-none"
-                style={{ transform: `scale(${zoom})` }}
-              />
+        {/* Content */}
+        <div className="flex-1 overflow-hidden flex">
+          {/* Image Section */}
+          <div className="flex-1 p-6 overflow-auto">
+            <div className="relative inline-block">
               <img
-                ref={imageRef}
                 src={imageUrl}
                 alt={filename}
-                className="max-w-full h-auto"
-                style={{ transform: `scale(${zoom})` }}
+                className="max-w-full h-auto rounded-lg shadow-lg"
                 onLoad={drawBoundingBoxes}
+                ref={imageRef}
               />
+              
+              {/* Bounding Boxes Overlay */}
+              {showBoxes && imageRef.current && ocrResult && typeof ocrResult.boxes === 'string' && (
+                <div className="absolute top-0 left-0 w-full h-full">
+                  {parseBoundingBoxes(ocrResult.boxes).map((box, index) => (
+                    <div
+                      key={index}
+                      className="absolute border-2 border-[var(--accent-green)] bg-[var(--accent-green)]/20 cursor-pointer hover:bg-[var(--accent-green)]/40 transition-colors"
+                      style={{
+                        left: `${box.x * zoom}%`,
+                        top: `${box.y * zoom}%`,
+                        width: `${box.width * zoom}%`,
+                        height: `${box.height * zoom}%`
+                      }}
+                      onClick={() => setSelectedBox(box)}
+                      title={`Klikni za detalje: ${box.text}`}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="w-80">
-            <div className="bg-[#151c2c] rounded-lg p-4">
-              <h4 className="text-white font-semibold mb-3">OCR Rezultat</h4>
-              
-              <div className="space-y-3">
+          {/* OCR Results Section */}
+          <div className="w-96 border-l border-[var(--border-color)] flex flex-col">
+            <div className="p-4 border-b border-[var(--border-color)]">
+              <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">OCR Rezultat</h3>
+              <div className="space-y-2 text-sm">
                 <div>
-                  <label className="text-gray-400 text-sm">Confidence:</label>
-                  <div className="text-white">
-                    {ocrResult ? (ocrResult.confidence as number)?.toFixed(1) : 'N/A'}%
-                  </div>
+                  <span className="font-medium text-[var(--text-secondary)]">Confidence:</span>
+                  <span className="ml-2 text-[var(--accent-green)]">
+                    {ocrResult && typeof ocrResult.confidence === 'number' ? ocrResult.confidence.toFixed(1) : 'N/A'}%
+                  </span>
                 </div>
-                
-                <div>
-                  <label className="text-gray-400 text-sm">Jezici:</label>
-                  <div className="text-white">
-                    {ocrResult ? (ocrResult.languages as string[])?.join(', ') : 'N/A'}
+                {ocrResult?.languages && Array.isArray(ocrResult.languages) && (
+                  <div>
+                    <span className="font-medium text-[var(--text-secondary)]">Jezici:</span>
+                    <span className="ml-2 text-[var(--text-primary)]">
+                      {(ocrResult.languages as string[]).join(', ')}
+                    </span>
                   </div>
-                </div>
-                
+                )}
                 <div>
-                  <label className="text-gray-400 text-sm">Prepoznati tekst:</label>
-                  <div className="text-white text-sm max-h-40 overflow-y-auto bg-gray-800 p-2 rounded">
-                    {ocrResult ? (ocrResult.text as string) || 'Nema prepoznatog teksta' : 'Nema OCR rezultata'}
-                  </div>
+                  <span className="font-medium text-[var(--text-secondary)]">Status:</span>
+                  <span className={`ml-2 ${getStatusColor(typeof ocrResult?.status === 'string' ? ocrResult.status : undefined)}`}>
+                    {getStatusText(typeof ocrResult?.status === 'string' ? ocrResult.status : undefined)}
+                  </span>
                 </div>
               </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {selectedBox ? (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-md font-semibold text-[var(--text-primary)]">Izabrani tekst</h4>
+                    <button
+                      onClick={() => setSelectedBox(null)}
+                      className="text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    >
+                      <FaTimes size={14} />
+                    </button>
+                  </div>
+                  <div className="bg-[var(--bg-secondary)] rounded-lg p-3 border border-[var(--border-color)]">
+                    <p className="text-[var(--text-primary)] font-medium mb-2">{selectedBox.text}</p>
+                    <div className="text-xs text-[var(--text-secondary)] space-y-1">
+                      <div>Pouzdanost: {selectedBox.confidence?.toFixed(1)}%</div>
+                      <div>Pozicija: ({selectedBox.x.toFixed(1)}%, {selectedBox.y.toFixed(1)}%)</div>
+                      <div>Veličina: {selectedBox.width.toFixed(1)}% × {selectedBox.height.toFixed(1)}%</div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  <h4 className="text-md font-semibold text-[var(--text-primary)]">Svi pronađeni tekstovi</h4>
+                  {ocrResult?.boxes && typeof ocrResult.boxes === 'string' && parseBoundingBoxes(ocrResult.boxes as string).map((box, index) => (
+                    <div
+                      key={index}
+                      className="bg-[var(--bg-secondary)] rounded-lg p-3 border border-[var(--border-color)] cursor-pointer hover:border-[var(--accent-blue)] transition-colors"
+                      onClick={() => setSelectedBox(box)}
+                    >
+                      <p className="text-[var(--text-primary)] text-sm mb-1">{box.text}</p>
+                      <div className="text-xs text-[var(--text-secondary)]">
+                        Pouzdanost: {box.confidence?.toFixed(1)}%
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>

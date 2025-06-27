@@ -104,36 +104,36 @@ export default function ChatHistory() {
   };
 
   return (
-    <div className="bg-[#151c2c] rounded-2xl p-4 shadow-lg">
+    <div className="bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-lg border border-[var(--border-color)]">
       <div className="flex items-center gap-2 mb-4">
-        <div className="text-blue-400"><FaHistory size={20} /></div>
-        <h3 className="text-lg font-semibold text-white">Istorija razgovora</h3>
+        <div className="text-[var(--accent-blue)]"><FaHistory size={20} /></div>
+        <h3 className="text-lg font-semibold text-[var(--text-primary)]">Istorija razgovora</h3>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Lista sesija */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-blue-300">Sesije ({sessions.length})</h4>
+          <h4 className="text-sm font-medium text-[var(--accent-blue)]">Sesije ({sessions.length})</h4>
           <div className="max-h-64 overflow-y-auto space-y-2">
             {sessions.map((session) => (
               <div
                 key={session.session_id}
                 className={`p-3 rounded-lg border cursor-pointer transition-colors ${
                   selectedSession === session.session_id
-                    ? 'border-blue-500 bg-blue-900/20'
-                    : 'border-gray-600 hover:border-blue-400'
+                    ? 'border-[var(--accent-blue)] bg-[var(--accent-blue)]/20'
+                    : 'border-[var(--border-color)] hover:border-[var(--accent-blue)]'
                 }`}
                 onClick={() => loadSessionMessages(session.session_id)}
               >
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <div className="text-sm text-white font-medium">
+                    <div className="text-sm text-[var(--text-primary)] font-medium">
                       {session.session_id.slice(0, 8)}...
                     </div>
-                    <div className="text-xs text-blue-300">
+                    <div className="text-xs text-[var(--accent-blue)]">
                       {session.message_count} poruka
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-[var(--text-muted)]">
                       {formatDate(session.last_message)}
                     </div>
                   </div>
@@ -143,7 +143,7 @@ export default function ChatHistory() {
                         e.stopPropagation();
                         loadSessionMessages(session.session_id);
                       }}
-                      className="p-1 text-blue-400 hover:text-blue-300"
+                      className="p-1 text-[var(--accent-blue)] hover:text-[var(--accent-blue)]/80"
                       title="Pogledaj poruke"
                     >
                       <FaEye size={14} />
@@ -153,7 +153,7 @@ export default function ChatHistory() {
                         e.stopPropagation();
                         deleteSession(session.session_id);
                       }}
-                      className="p-1 text-red-400 hover:text-red-300"
+                      className="p-1 text-[var(--accent-red)] hover:text-[var(--accent-red)]/80"
                       title="Obriši sesiju"
                     >
                       <FaTrash size={14} />
@@ -165,35 +165,35 @@ export default function ChatHistory() {
           </div>
         </div>
 
-        {/* Poruke izabrane sesije */}
+        {/* Lista poruka */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-blue-300">
+          <h4 className="text-sm font-medium text-[var(--accent-blue)]">
             Poruke {selectedSession ? `(${sessionMessages.length})` : ''}
           </h4>
           <div className="max-h-64 overflow-y-auto space-y-2">
             {isLoading ? (
-              <div className="text-center text-blue-300">Učitavanje...</div>
+              <div className="text-center text-[var(--accent-blue)]">Učitavanje...</div>
             ) : selectedSession ? (
               sessionMessages.map((message) => (
                 <div
                   key={message.id}
                   className={`p-3 rounded-lg ${
                     message.sender === 'user'
-                      ? 'bg-blue-900/30 border border-blue-700'
-                      : 'bg-gray-700/30 border border-gray-600'
+                      ? 'bg-[var(--accent-blue)]/30 border border-[var(--accent-blue)]'
+                      : 'bg-[var(--bg-tertiary)] border border-[var(--border-color)]'
                   }`}
                 >
                   <div className="flex justify-between items-start mb-1">
                     <span className={`text-xs font-medium ${
-                      message.sender === 'user' ? 'text-blue-300' : 'text-green-300'
+                      message.sender === 'user' ? 'text-[var(--accent-blue)]' : 'text-[var(--accent-green)]'
                     }`}>
                       {message.sender === 'user' ? 'Vi' : 'AI'}
                     </span>
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-[var(--text-muted)]">
                       {formatDate(message.timestamp)}
                     </span>
                   </div>
-                  <div className="text-sm text-white">
+                  <div className="text-sm text-[var(--text-primary)]">
                     {message.content.length > 100
                       ? `${message.content.substring(0, 100)}...`
                       : message.content}
@@ -201,7 +201,7 @@ export default function ChatHistory() {
                 </div>
               ))
             ) : (
-              <div className="text-center text-gray-400 text-sm">
+              <div className="text-center text-[var(--text-muted)] text-sm">
                 Izaberite sesiju da vidite poruke
               </div>
             )}

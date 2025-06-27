@@ -1,6 +1,6 @@
 'use client';
 
-import { FaExternalLinkAlt } from 'react-icons/fa';
+import { FaExternalLinkAlt, FaFileAlt, FaEye } from 'react-icons/fa';
 import { getFileIcon } from '../utils/fileUtils';
 
 interface Source {
@@ -10,14 +10,18 @@ interface Source {
   content: string;
   rerank_score?: number;
   original_score?: number;
+  file_type: string;
+  page_number: number;
+  chunk_index: number;
 }
 
 interface SourcesDisplayProps {
   sources: Source[];
   isVisible: boolean;
+  onSourceClick: (source: Source) => void;
 }
 
-export default function SourcesDisplay({ sources, isVisible }: SourcesDisplayProps) {
+export default function SourcesDisplay({ sources, isVisible, onSourceClick }: SourcesDisplayProps) {
   if (!isVisible || sources.length === 0) {
     return null;
   }
@@ -32,68 +36,60 @@ export default function SourcesDisplay({ sources, isVisible }: SourcesDisplayPro
   };
 
   return (
-    <div className="mt-4 p-4 bg-[#1a2236] rounded-lg border border-blue-900/30">
+    <div className="bg-[var(--bg-secondary)] rounded-lg p-4 border border-[var(--border-color)]">
       <div className="flex items-center gap-2 mb-3">
-        <FaExternalLinkAlt className="text-blue-400" size={14} />
-        <h4 className="text-sm font-medium text-blue-300">Izvori iz dokumenata</h4>
-        <span className="text-xs text-gray-500">({sources.length} rezultat)</span>
+        <div className="text-[var(--accent-blue)]"><FaFileAlt size={16} /></div>
+        <h3 className="text-sm font-semibold text-[var(--text-primary)]">Izvori</h3>
+        <span className="text-xs text-[var(--text-muted)]">({sources.length})</span>
       </div>
-      
-      <div className="space-y-3">
-        {sources.map((source, index) => (
-          <div
-            key={index}
-            className="p-3 bg-[#151c2c] rounded-lg border border-gray-700"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                {getFileIconForSource(source.filename)}
-                <span className="text-sm font-medium text-white">
-                  {source.filename}
-                </span>
-                <span className="text-xs text-gray-400">
-                  (stranica {source.page})
-                </span>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-xs text-gray-400">
-                    {formatScore(source.score)}% relevantnost
+
+      {sources.length === 0 ? (
+        <div className="text-center text-[var(--text-muted)] text-sm py-4">
+          Nema dostupnih izvora
+        </div>
+      ) : (
+        <div className="space-y-2 max-h-48 overflow-y-auto">
+          {sources.map((source, index) => (
+            <div
+              key={index}
+              className="p-3 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)] hover:border-[var(--accent-blue)] transition-colors"
+            >
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  {getFileIconForSource(source.filename)}
+                  <span className="text-sm font-medium text-[var(--text-primary)] truncate">
+                    {source.filename}
                   </span>
-                  
-                  {/* Prikaži re-ranking informacije ako postoje */}
-                  {source.rerank_score !== undefined && source.original_score !== undefined && (
-                    <div className="flex items-center gap-1 ml-2">
-                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                      <span className="text-xs text-purple-400">
-                        Re-rank: {formatScore(source.rerank_score)}%
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        (Original: {formatScore(source.original_score)}%)
-                      </span>
-                    </div>
-                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                    source.score >= 0.8 ? 'bg-[var(--accent-green)]/20 text-[var(--accent-green)]' :
+                    source.score >= 0.6 ? 'bg-[var(--accent-yellow)]/20 text-[var(--accent-yellow)]' :
+                    'bg-[var(--accent-red)]/20 text-[var(--accent-red)]'
+                  }`}>
+                    {(source.score * 100).toFixed(0)}%
+                  </span>
+                  <button
+                    onClick={() => onSourceClick(source)}
+                    className="p-1 text-[var(--accent-blue)] hover:text-[var(--accent-blue)]/80 hover:bg-[var(--accent-blue)]/10 rounded transition-colors"
+                    title="Pogledaj izvor"
+                  >
+                    <FaEye size={12} />
+                  </button>
                 </div>
               </div>
+              
+              <div className="text-xs text-[var(--text-secondary)] mb-2">
+                Stranica {source.page_number} • {source.chunk_index} chunk
+              </div>
+              
+              <div className="text-sm text-[var(--text-primary)] line-clamp-2">
+                {source.content}
+              </div>
             </div>
-            
-            <div className="text-sm text-gray-400 mb-2">
-              <strong>Izvor:</strong> {source.filename} (stranica {source.page})
-            </div>
-            <div className="text-sm text-gray-300">
-              <strong>Sadržaj:</strong> {source.content}
-            </div>
-          </div>
-        ))}
-      </div>
-      
-      <div className="mt-3 pt-3 border-t border-gray-700">
-        <p className="text-xs text-gray-500">
-          AI asistent je koristio ove izvore iz vaših dokumenata za generisanje odgovora.
-        </p>
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 } 

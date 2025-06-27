@@ -44,55 +44,41 @@ export default class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen bg-[#10182a] flex items-center justify-center p-4">
-          <div className="bg-[#1a2332] rounded-xl p-8 max-w-md w-full text-center">
-            <div className="text-red-400 text-6xl mb-4">
-              <FaExclamationTriangle className="mx-auto" />
+        <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-4">
+          <div className="bg-[var(--bg-secondary)] rounded-xl p-8 max-w-md w-full text-center border border-[var(--border-color)]">
+            <div className="text-[var(--accent-red)] mb-4">
+              <FaExclamationTriangle size={48} />
             </div>
-            <h1 className="text-2xl font-bold text-white mb-4">
-              Ups! Nešto je pošlo naopako
+            <h1 className="text-xl font-bold text-[var(--text-primary)] mb-2">
+              Nešto je pošlo naopako
             </h1>
-            <p className="text-gray-400 mb-6">
-              Došlo je do neočekivane greške. Molimo pokušajte ponovo.
+            <p className="text-[var(--text-secondary)] mb-6">
+              Došlo je do neočekivane greške. Molimo vas da osvežite stranicu ili kontaktirajte podršku.
             </p>
-            
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <details className="text-left mb-6">
-                <summary className="text-blue-400 cursor-pointer mb-2">
-                  Detalji greške (samo za razvoj)
-                </summary>
-                <div className="bg-[#151c2c] p-4 rounded-lg text-sm text-red-300 font-mono overflow-auto">
-                  <div className="mb-2">
-                    <strong>Greška:</strong> {this.state.error.message}
-                  </div>
-                  {this.state.errorInfo && (
-                    <div>
-                      <strong>Stack trace:</strong>
-                      <pre className="mt-2 text-xs">
-                        {this.state.errorInfo.componentStack}
-                      </pre>
-                    </div>
-                  )}
-                </div>
-              </details>
-            )}
-            
-            <div className="flex gap-3 justify-center">
+            <div className="space-y-3">
               <button
-                onClick={this.handleRetry}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                onClick={() => window.location.reload()}
+                className="w-full px-4 py-2 bg-[var(--accent-blue)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-blue)]/80 transition-colors"
               >
-                <FaRedo size={14} />
+                Osveži stranicu
+              </button>
+              <button
+                onClick={() => this.setState({ hasError: false, error: undefined })}
+                className="w-full px-4 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+              >
                 Pokušaj ponovo
               </button>
-              <button
-                onClick={this.handleGoHome}
-                className="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                <FaHome size={14} />
-                Početna strana
-              </button>
             </div>
+            {this.state.error && (
+              <details className="mt-6 text-left">
+                <summary className="text-sm text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-primary)]">
+                  Detalji greške
+                </summary>
+                <pre className="mt-2 p-3 bg-[var(--bg-tertiary)] rounded text-xs text-[var(--text-secondary)] overflow-auto">
+                  {this.state.error.toString()}
+                </pre>
+              </details>
+            )}
           </div>
         </div>
       );

@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { FaUpload, FaTrash, FaCheck, FaSpinner, FaEye, FaCog } from 'react-icons/fa';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { FaUpload, FaTrash, FaCheck, FaSpinner, FaEye, FaCog, FaCloudUploadAlt, FaTimes } from 'react-icons/fa';
 import ImagePreview from './ImagePreview';
 import { formatFileSize, getFileIcon, isImageFile, validateFile } from '../utils/fileUtils';
 import { DOCUMENTS_ENDPOINT, UPLOAD_ENDPOINT, apiRequest } from '../utils/api';
@@ -38,6 +38,7 @@ interface OCROptions {
 
 export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadProps) {
   const [documents, setDocuments] = useState<Document[]>([]);
+  const [uploads, setUploads] = useState<Array<{id: string; file: File; progress: number; status: 'uploading' | 'success' | 'error'; error?: string}>>([]);
   const [isDragOver, setIsDragOver] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -54,6 +55,10 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
     filename: string;
   } | null>(null);
   const { showError, showSuccess, showWarning } = useErrorToast();
+  
+  // Refs
+  const dropRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Učitaj postojeće dokumente
   useEffect(() => {
@@ -187,24 +192,32 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
     }
   }, [onDocumentUploaded, loadDocuments, showError, showSuccess, showWarning, ocrOptions]);
 
-  const handleFileSelect = useCallback(async (files: FileList) => {
-    setIsUploading(true);
+  const handleFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
     
-    // Upload svaki fajl pojedinačno
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const error = validateFile(file);
-      
-      if (error) {
-        showError(error, 'Greška validacije');
-        continue;
-      }
-      
-      await uploadDocument(file);
-    }
+    // Dodaj fajlove u uploads state
+    const newUploads = Array.from(files).map(file => ({
+      id: Math.random().toString(36).substr(2, 9),
+      file,
+      progress: 0,
+      status: 'uploading' as const
+    }));
     
-    setIsUploading(false);
-  }, [uploadDocument, showError]);
+    setUploads(prev => [...prev, ...newUploads]);
+  }, []);
+
+  const handleFileSelectFromDrop = useCallback(async (files: FileList) => {
+    // Dodaj fajlove u uploads state
+    const newUploads = Array.from(files).map(file => ({
+      id: Math.random().toString(36).substr(2, 9),
+      file,
+      progress: 0,
+      status: 'uploading' as const
+    }));
+    
+    setUploads(prev => [...prev, ...newUploads]);
+  }, []);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -212,9 +225,9 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
     
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      handleFileSelect(files);
+      handleFileSelectFromDrop(files);
     }
-  }, [handleFileSelect]);
+  }, [handleFileSelectFromDrop]);
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -229,7 +242,7 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
   const handleFileInput = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (files && files.length > 0) {
-      handleFileSelect(files);
+      handleFileSelect(e);
     }
   }, [handleFileSelect]);
 
@@ -259,278 +272,309 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
   const getStatusIcon = (status: Document['status']) => {
     switch (status) {
       case 'uploading':
-        return <FaSpinner className="text-blue-500 animate-spin" size={16} />;
+        return <FaSpinner className="text-[var(--accent-blue)] animate-spin" size={16} />;
       case 'uploaded':
-        return <FaCheck className="text-green-500" size={16} />;
+        return <FaCheck className="text-[var(--accent-green)]" size={16} />;
       case 'error':
-        return <FaTrash className="text-red-500" size={16} />;
+        return <FaTrash className="text-[var(--accent-red)]" size={16} />;
     }
   };
 
+  const startUpload = useCallback(async () => {
+    setIsUploading(true);
+    
+    for (const upload of uploads) {
+      if (upload.status === 'uploading') {
+        await uploadDocument(upload.file);
+      }
+    }
+    
+    setIsUploading(false);
+  }, [uploads, uploadDocument]);
+
+  const clearUploads = useCallback(() => {
+    setUploads([]);
+  }, []);
+
+  const removeUpload = useCallback((id: string) => {
+    setUploads(prev => prev.filter(upload => upload.id !== id));
+  }, []);
+
   if (isLoading) {
     return (
-      <div className="bg-[#1a2236] rounded-2xl p-6 shadow-lg">
+      <div className="bg-[var(--bg-tertiary)] rounded-xl p-6 h-full">
         <div className="flex items-center justify-center h-48">
-          <FaSpinner className="text-blue-500 animate-spin" size={24} />
-          <span className="ml-2 text-blue-300">Učitavanje dokumenata...</span>
+          <FaSpinner className="text-[var(--accent-blue)] animate-spin" size={24} />
+          <span className="ml-2 text-[var(--text-primary)]">Učitavanje dokumenata...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-[#1a2236] rounded-2xl p-6 shadow-lg">
-      <h3 className="text-lg font-semibold text-white mb-4">Upload Dokumenata</h3>
-      
-      {/* Drag & Drop Zone */}
-      <div
-        className={`border-2 border-dashed rounded-xl p-8 text-center transition-colors cursor-pointer ${
-          isDragOver 
-            ? 'border-blue-400 bg-blue-900/20' 
-            : 'border-gray-600 hover:border-gray-500'
-        }`}
-        onDrop={handleDrop}
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onClick={() => document.getElementById('file-upload')?.click()}
-      >
-        <FaUpload className="mx-auto text-gray-400 mb-4" size={32} />
-        <p className="text-gray-300 mb-2">
-          Prevucite dokumente ovde ili kliknite za odabir
-        </p>
-        <p className="text-sm text-gray-500 mb-4">
-          Podržani formati: PDF, DOCX, TXT, PNG, JPG, JPEG, BMP, TIFF (max 50MB)
-        </p>
-        
-        <input
-          type="file"
-          multiple
-          accept=".pdf,.docx,.txt,.png,.jpg,.jpeg,.bmp,.tiff,.tif"
-          onChange={handleFileInput}
-          className="hidden"
-          id="file-upload"
-          disabled={isUploading}
-        />
-      </div>
-
-      {/* OCR Options */}
-      <div className="mt-4">
-        <button
-          onClick={() => setShowOCROptions(!showOCROptions)}
-          className="flex items-center gap-2 text-gray-400 hover:text-blue-400 transition-colors text-sm"
-        >
-          <FaCog size={14} />
-          <span>OCR Opcije</span>
-        </button>
-        
-        {showOCROptions && (
-          <div className="mt-3 p-4 bg-[#151c2c] rounded-lg border border-gray-600">
-            <h5 className="text-white font-medium mb-3">Napredne OCR Opcije</h5>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Confidence Threshold */}
-              <div>
-                <label className="block text-gray-400 text-sm mb-2">
-                  Minimalni Confidence (%)
-                </label>
-                <input
-                  type="range"
-                  min="0"
-                  max="100"
-                  value={ocrOptions.minConfidence}
-                  onChange={(e) => setOCROptions(prev => ({
-                    ...prev,
-                    minConfidence: parseInt(e.target.value)
-                  }))}
-                  className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
-                />
-                <div className="flex justify-between text-xs text-gray-500 mt-1">
-                  <span>0%</span>
-                  <span className="text-blue-400">{ocrOptions.minConfidence}%</span>
-                  <span>100%</span>
-                </div>
-              </div>
-
-              {/* Languages */}
-              <div>
-                <label className="block text-gray-400 text-sm mb-2">
-                  Jezici
-                </label>
-                <div className="space-y-2">
-                  {['srp', 'eng'].map((lang) => (
-                    <label key={lang} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        checked={ocrOptions.languages.includes(lang)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setOCROptions(prev => ({
-                              ...prev,
-                              languages: [...prev.languages, lang]
-                            }));
-                          } else {
-                            setOCROptions(prev => ({
-                              ...prev,
-                              languages: prev.languages.filter(l => l !== lang)
-                            }));
-                          }
-                        }}
-                        className="rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
-                      />
-                      <span className="text-gray-300">
-                        {lang === 'srp' ? 'Srpski' : 'Engleski'}
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              {/* Preprocessing Options */}
-              <div>
-                <label className="block text-gray-400 text-sm mb-2">
-                  Preprocessing
-                </label>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={ocrOptions.deskew}
-                      onChange={(e) => setOCROptions(prev => ({
-                        ...prev,
-                        deskew: e.target.checked
-                      }))}
-                      className="rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
-                    />
-                    <span className="text-gray-300">Deskew (rotacija)</span>
-                  </label>
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={ocrOptions.resize}
-                      onChange={(e) => setOCROptions(prev => ({
-                        ...prev,
-                        resize: e.target.checked
-                      }))}
-                      className="rounded border-gray-600 bg-gray-700 text-blue-500 focus:ring-blue-500"
-                    />
-                    <span className="text-gray-300">Resize (promena veličine)</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Info */}
-              <div className="md:col-span-2">
-                <div className="text-xs text-gray-500 bg-gray-800 p-3 rounded">
-                  <p><strong>Confidence:</strong> Minimalni procenat pouzdanosti za prihvatljiv OCR rezultat</p>
-                  <p><strong>Jezici:</strong> Izaberi jezike za OCR prepoznavanje</p>
-                  <p><strong>Preprocessing:</strong> Dodatne opcije za poboljšanje kvaliteta slike</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Upload Progress */}
-      {isUploading && (
-        <div className="mt-4 p-4 bg-blue-900/20 rounded-lg">
-          <div className="flex items-center gap-2 text-blue-300">
-            <FaSpinner className="animate-spin" size={16} />
-            <span>Upload u toku...</span>
-          </div>
+    <div className="bg-[var(--bg-primary)] min-h-full w-full flex flex-col">
+      <div className="bg-[var(--bg-tertiary)] rounded-xl p-6 h-full">
+        <div className="flex items-center gap-2 mb-6">
+          <div className="text-[var(--accent-blue)]"><FaUpload size={24} /></div>
+          <h2 className="text-xl font-bold text-[var(--text-primary)]">Upload dokumenta</h2>
         </div>
-      )}
 
-      {/* Documents List */}
-      {documents.length > 0 && (
-        <div className="mt-6">
-          <h4 className="text-md font-medium text-white mb-3">Upload-ovani Dokumenti</h4>
-          <div className="space-y-2">
-            {documents.map((doc) => (
-              <div
-                key={doc.id}
-                className="flex items-center justify-between p-3 bg-[#151c2c] rounded-lg"
-              >
-                <div className="flex items-center gap-3">
-                  {getFileIcon(doc.file_type)}
-                  <div>
-                    <p className="text-white text-sm font-medium">{doc.filename}</p>
-                    <p className="text-gray-400 text-xs">
-                      {doc.file_type.toUpperCase()} • {doc.total_pages} stranica • {formatFileSize(doc.file_size)}
-                    </p>
-                    {doc.chunks_count > 0 && (
-                      <p className="text-gray-500 text-xs">
-                        {doc.chunks_count} chunk-ova • {new Date(doc.created_at).toLocaleDateString()}
-                      </p>
-                    )}
-                    {/* OCR informacije za slike */}
-                    {isImageFile(doc.filename) && doc.ocr_info && (
-                      <div className="mt-1">
-                        {doc.ocr_info.confidence ? (
-                          <p className="text-green-400 text-xs">
-                            OCR: {doc.ocr_info.confidence.toFixed(1)}% confidence • {doc.ocr_info.languages?.join(', ')}
-                          </p>
-                        ) : doc.ocr_info.status === 'no_text_found' ? (
-                          <p className="text-yellow-400 text-xs">
-                            OCR: Nije pronađen tekst u slici
-                          </p>
-                        ) : doc.ocr_info.status === 'error' ? (
-                          <p className="text-red-400 text-xs">
-                            OCR greška: {doc.ocr_info.message}
-                          </p>
-                        ) : null}
+        <div className="space-y-6">
+          {/* Drag & Drop Area */}
+          <div
+            ref={dropRef}
+            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
+              isDragOver
+                ? 'border-[var(--accent-blue)] bg-[var(--accent-blue)]/10'
+                : 'border-[var(--border-color)] hover:border-[var(--accent-blue)]'
+            }`}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+          >
+            <div className="text-[var(--accent-blue)] mb-4">
+              <FaCloudUploadAlt size={48} />
+            </div>
+            <p className="text-lg font-medium text-[var(--text-primary)] mb-2">
+              Prevucite dokumente ovde ili kliknite da izaberete
+            </p>
+            <p className="text-sm text-[var(--text-secondary)] mb-4">
+              Podržani formati: PDF, DOCX, TXT, PNG, JPG, JPEG
+            </p>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-6 py-2 bg-[var(--accent-blue)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-blue)]/80 transition-colors"
+            >
+              Izaberi fajlove
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.docx,.txt,.png,.jpg,.jpeg"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          </div>
+
+          {/* Upload Progress */}
+          {uploads.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Upload progres</h3>
+              {uploads.map((upload) => (
+                <div
+                  key={upload.id}
+                  className="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      {getFileIcon(upload.file.type)}
+                      <div>
+                        <p className="font-medium text-[var(--text-primary)]">{upload.file.name}</p>
+                        <p className="text-sm text-[var(--text-secondary)]">
+                          {formatFileSize(upload.file.size)}
+                        </p>
                       </div>
-                    )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {upload.status === 'uploading' && (
+                        <FaSpinner className="animate-spin text-[var(--accent-blue)]" />
+                      )}
+                      {upload.status === 'success' && (
+                        <FaCheck className="text-[var(--accent-green)]" />
+                      )}
+                      {upload.status === 'error' && (
+                        <FaTimes className="text-[var(--accent-red)]" />
+                      )}
+                      <button
+                        onClick={() => removeUpload(upload.id)}
+                        className="text-[var(--text-muted)] hover:text-[var(--accent-red)]"
+                      >
+                        <FaTimes size={16} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {upload.status === 'uploading' && (
+                    <div className="w-full bg-[var(--bg-tertiary)] rounded-full h-2">
+                      <div
+                        className="bg-[var(--accent-blue)] h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${upload.progress}%` }}
+                      />
+                    </div>
+                  )}
+
+                  {upload.status === 'error' && (
+                    <p className="text-sm text-[var(--accent-red)] mt-2">
+                      Greška: {upload.error}
+                    </p>
+                  )}
+
+                  {upload.status === 'success' && (
+                    <p className="text-sm text-[var(--accent-green)] mt-2">
+                      Uspešno uploadovano!
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* OCR Options */}
+          <div className="mt-4">
+            <button
+              onClick={() => setShowOCROptions(!showOCROptions)}
+              className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--accent-blue)] transition-colors text-sm"
+            >
+              <FaCog size={14} />
+              <span>OCR Opcije</span>
+            </button>
+            
+            {showOCROptions && (
+              <div className="mt-3 p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
+                <h5 className="text-[var(--text-primary)] font-medium mb-3">Napredne OCR Opcije</h5>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Confidence Threshold */}
+                  <div>
+                    <label className="block text-[var(--text-muted)] text-sm mb-2">
+                      Minimalni Confidence (%)
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="100"
+                      value={ocrOptions.minConfidence}
+                      onChange={(e) => setOCROptions(prev => ({
+                        ...prev,
+                        minConfidence: parseInt(e.target.value)
+                      }))}
+                      className="w-full h-2 bg-[var(--bg-tertiary)] rounded-lg appearance-none cursor-pointer"
+                    />
+                    <div className="flex justify-between text-xs text-[var(--text-secondary)] mt-1">
+                      <span>0%</span>
+                      <span className="text-[var(--accent-blue)]">{ocrOptions.minConfidence}%</span>
+                      <span>100%</span>
+                    </div>
+                  </div>
+
+                  {/* Languages */}
+                  <div>
+                    <label className="block text-[var(--text-muted)] text-sm mb-2">
+                      Jezici
+                    </label>
+                    <div className="space-y-2">
+                      {['srp', 'eng'].map((lang) => (
+                        <label key={lang} className="flex items-center gap-2 text-sm">
+                          <input
+                            type="checkbox"
+                            checked={ocrOptions.languages.includes(lang)}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setOCROptions(prev => ({
+                                  ...prev,
+                                  languages: [...prev.languages, lang]
+                                }));
+                              } else {
+                                setOCROptions(prev => ({
+                                  ...prev,
+                                  languages: prev.languages.filter(l => l !== lang)
+                                }));
+                              }
+                            }}
+                            className="rounded border-[var(--border-color)] bg-[var(--bg-tertiary)] text-[var(--accent-blue)] focus:ring-[var(--accent-blue)]"
+                          />
+                          <span className="text-[var(--text-secondary)]">
+                            {lang === 'srp' ? 'Srpski' : 'Engleski'}
+                          </span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Preprocessing Options */}
+                  <div>
+                    <label className="block text-[var(--text-muted)] text-sm mb-2">
+                      Preprocessing
+                    </label>
+                    <div className="space-y-2">
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={ocrOptions.deskew}
+                          onChange={(e) => setOCROptions(prev => ({
+                            ...prev,
+                            deskew: e.target.checked
+                          }))}
+                          className="rounded border-[var(--border-color)] bg-[var(--bg-tertiary)] text-[var(--accent-blue)] focus:ring-[var(--accent-blue)]"
+                        />
+                        <span className="text-[var(--text-secondary)]">Deskew (rotacija)</span>
+                      </label>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={ocrOptions.resize}
+                          onChange={(e) => setOCROptions(prev => ({
+                            ...prev,
+                            resize: e.target.checked
+                          }))}
+                          className="rounded border-[var(--border-color)] bg-[var(--bg-tertiary)] text-[var(--accent-blue)] focus:ring-[var(--accent-blue)]"
+                        />
+                        <span className="text-[var(--text-secondary)]">Resize (promena veličine)</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Info */}
+                  <div className="md:col-span-2">
+                    <div className="text-xs text-[var(--text-secondary)] bg-[var(--bg-tertiary)] p-3 rounded">
+                      <p><strong>Confidence:</strong> Minimalni procenat pouzdanosti za prihvatljiv OCR rezultat</p>
+                      <p><strong>Jezici:</strong> Izaberi jezike za OCR prepoznavanje</p>
+                      <p><strong>Preprocessing:</strong> Dodatne opcije za poboljšanje kvaliteta slike</p>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="flex items-center gap-2">
-                  {getStatusIcon(doc.status)}
-                  
-                  {doc.status === 'error' && doc.error_message && (
-                    <span className="text-red-400 text-xs max-w-32 truncate" title={doc.error_message}>
-                      {doc.error_message}
-                    </span>
-                  )}
-                  
-                  {/* Dugme za pregled slike sa bounding boxovima */}
-                  {isImageFile(doc.filename) && doc.ocr_info && doc.ocr_info.status === 'success' && (
-                    <button
-                      onClick={() => setSelectedImage({
-                        url: `http://localhost:8001/documents/${doc.id}/content`,
-                        ocrResult: doc.ocr_info,
-                        filename: doc.filename
-                      })}
-                      className="text-gray-400 hover:text-blue-400 transition-colors"
-                      title="Pregledaj sliku sa bounding boxovima"
-                    >
-                      <FaEye size={14} />
-                    </button>
-                  )}
-                  
-                  <button
-                    onClick={() => deleteDocument(doc.id)}
-                    className="text-gray-400 hover:text-red-400 transition-colors"
-                    title="Obriši dokument"
-                  >
-                    <FaTrash size={14} />
-                  </button>
-                </div>
               </div>
-            ))}
+            )}
           </div>
-        </div>
-      )}
 
-      {/* ImagePreview Modal */}
-      {selectedImage && (
-        <ImagePreview
-          imageUrl={selectedImage.url}
-          ocrResult={selectedImage.ocrResult}
-          filename={selectedImage.filename}
-          onClose={() => setSelectedImage(null)}
-        />
-      )}
+          {/* Upload Button */}
+          {isUploading && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => {}}
+                disabled={isUploading}
+                className="flex-1 px-6 py-3 bg-[var(--accent-blue)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-blue)]/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {isUploading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <FaSpinner className="animate-spin" />
+                    Uploadujem...
+                  </div>
+                ) : (
+                  'Uploaduj sve fajlove'
+                )}
+              </button>
+              <button
+                onClick={() => {}}
+                className="px-6 py-3 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
+              >
+                Obriši sve
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ImagePreview Modal */}
+        {selectedImage && (
+          <ImagePreview
+            imageUrl={selectedImage.url}
+            ocrResult={selectedImage.ocrResult}
+            filename={selectedImage.filename}
+            onClose={() => setSelectedImage(null)}
+          />
+        )}
+      </div>
     </div>
   );
 } 

@@ -38,7 +38,7 @@ export default function LoadingSpinner({
         );
       default:
         return (
-          <FaSpinner className={`${sizeClasses[size]} text-blue-400 animate-spin`} />
+          <div className={`animate-spin rounded-full border-2 border-[var(--border-color)] border-t-[var(--accent-blue)] ${sizeClasses[size]}`} />
         );
     }
   };
@@ -47,7 +47,7 @@ export default function LoadingSpinner({
     <div className={`flex items-center justify-center ${className}`}>
       {renderSpinner()}
       {text && (
-        <span className="ml-3 text-gray-300 text-sm">{text}</span>
+        <span className="ml-3 text-sm text-[var(--text-secondary)]">{text}</span>
       )}
     </div>
   );

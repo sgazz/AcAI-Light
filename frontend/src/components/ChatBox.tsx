@@ -4,11 +4,14 @@ import { useState, useEffect, useRef } from 'react';
 import { FaGraduationCap, FaToggleOn, FaToggleOff, FaBook, FaKeyboard, FaHistory } from 'react-icons/fa';
 import SourcesDisplay from './SourcesDisplay';
 import ChatHistorySidebar from './ChatHistorySidebar';
+import MessageRenderer from './MessageRenderer';
+import TypingIndicator from './TypingIndicator';
+import ThemeToggle from './ThemeToggle';
 import { CHAT_NEW_SESSION_ENDPOINT, CHAT_RAG_ENDPOINT, CHAT_RAG_ENHANCED_CONTEXT_ENDPOINT, QUERY_ENHANCE_ENDPOINT, FACT_CHECK_VERIFY_ENDPOINT, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
 
 interface Message {
-  id?: number;
+  id?: string;
   sender: 'user' | 'ai';
   content: string;
   timestamp?: string;
@@ -44,6 +47,8 @@ interface Message {
     reasoning: string;
     sources: string[];
   };
+  // Reaction field
+  reaction?: 'like' | 'dislike' | null;
 }
 
 export default function ChatBox() {
@@ -195,13 +200,16 @@ export default function ChatBox() {
     const enhancedMessage = await enhanceQuery(originalMessage);
     
     // Dodaj korisničku poruku odmah
+    const userMessageId = crypto.randomUUID();
     const newUserMessage: Message = {
+      id: userMessageId,
       sender: 'user',
       content: originalMessage,
       original_query: originalMessage,
       enhanced_query: enhancedMessage !== originalMessage ? enhancedMessage : undefined,
       query_rewriting_applied: enhancedMessage !== originalMessage,
     };
+    console.log('Creating user message with ID:', userMessageId);
     setMessages(prev => [...prev, newUserMessage]);
 
     try {
@@ -230,7 +238,9 @@ export default function ChatBox() {
         const factCheckResult = await verifyAnswer(data.response, JSON.stringify(data.sources || []));
         
         // Dodaj AI odgovor sa izvorima ako postoje
+        const aiMessageId = crypto.randomUUID();
         const aiMessage: Message = {
+          id: aiMessageId,
           sender: 'ai',
           content: data.response,
           sources: data.sources || [],
@@ -240,6 +250,7 @@ export default function ChatBox() {
           fact_checking_applied: factCheckResult !== null,
           fact_checker_info: factCheckResult,
         };
+        console.log('Creating AI message with ID:', aiMessageId);
         setMessages(prev => [...prev, aiMessage]);
         setLastContextAnalysis(data.context_analysis || null);
         
@@ -249,10 +260,13 @@ export default function ChatBox() {
         }
       } else {
         // Dodaj error poruku
+        const errorMessageId = crypto.randomUUID();
         const errorMessage: Message = {
+          id: errorMessageId,
           sender: 'ai',
           content: 'Izvinjavam se, došlo je do greške. Pokušajte ponovo.',
         };
+        console.log('Creating error message with ID:', errorMessageId);
         setMessages(prev => [...prev, errorMessage]);
         setLastContextAnalysis(null);
         showError(data.message || 'Greška pri slanju poruke', 'Greška chat-a', true, () => handleSendMessage());
@@ -260,10 +274,13 @@ export default function ChatBox() {
     } catch (error: any) {
       console.error('Greška pri slanju poruke:', error);
       // Dodaj error poruku u chat
+      const errorMessageId = crypto.randomUUID();
       const errorMessage: Message = {
+        id: errorMessageId,
         sender: 'ai',
         content: 'Greška u povezivanju sa serverom. Proverite da li je backend pokrenut.',
       };
+      console.log('Creating error message with ID:', errorMessageId);
       setMessages(prev => [...prev, errorMessage]);
       setLastContextAnalysis(null);
       showError(
@@ -282,19 +299,33 @@ export default function ChatBox() {
     await handleSendMessage();
   };
 
+  const handleReaction = (messageId: string, reaction: 'like' | 'dislike') => {
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId 
+        ? { ...msg, reaction: msg.reaction === reaction ? null : reaction }
+        : msg
+    ));
+    
+    // Ovde bi mogli da šaljemo reaction na backend
+    console.log(`Reaction ${reaction} za poruku ${messageId}`);
+  };
+
   return (
-    <div className="flex flex-col h-full bg-[#151c2c] rounded-2xl p-4 shadow-lg">
+    <div className="flex flex-col h-full bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-lg border border-[var(--border-color)]">
       {/* RAG & Enhanced Context Toggle Header */}
-      <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-700">
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-[var(--border-color)]">
         <div className="flex items-center gap-2">
-          <FaBook className="text-blue-400" size={16} />
-          <span className="text-sm font-medium text-white">AI Chat</span>
-          <div className="flex items-center gap-1 text-xs text-gray-500">
+          <FaBook className="text-[var(--accent-blue)]" size={16} />
+          <span className="text-sm font-medium text-[var(--text-primary)]">AI Chat</span>
+          <div className="flex items-center gap-1 text-xs text-[var(--text-muted)]">
             <FaKeyboard size={12} />
             <span>Ctrl+Enter</span>
           </div>
         </div>
         <div className="flex items-center gap-4">
+          {/* Theme Toggle */}
+          <ThemeToggle />
+          
           {/* History Button */}
           <button
             onClick={() => setIsHistorySidebarOpen(true)}
@@ -437,7 +468,7 @@ export default function ChatBox() {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto pb-4">
+      <div className="flex-1 overflow-y-auto pb-4 custom-scrollbar">
         {messages.length === 0 && !isLoading && (
           <div className="text-center text-blue-300 text-sm mt-8">
             <div className="mb-2">
@@ -455,100 +486,100 @@ export default function ChatBox() {
           </div>
         )}
         
-        {messages.map((msg, idx) => (
-          <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'} mb-2`}>
-            <div className={`max-w-[70%] px-4 py-2 rounded-2xl text-sm shadow-md ${msg.sender === 'user' ? 'bg-blue-900 text-white' : 'bg-[#1a2236] text-blue-100'}`}>
-              <div className="flex items-start gap-2">
-                {msg.sender === 'ai' && <div className="text-blue-400 mt-1"><FaGraduationCap size={16} /></div>}
-                <div className="flex-1">
-                  <span>{msg.content}</span>
+        {messages.map((msg, idx) => {
+          console.log('Rendering message:', { 
+            id: msg.id, 
+            sender: msg.sender, 
+            content: msg.content.substring(0, 50),
+            messageIdString: msg.id?.toString(),
+            hasReaction: !!msg.reaction
+          });
+          return (
+            <div key={idx} className="mb-4">
+              <MessageRenderer
+                content={msg.content}
+                sender={msg.sender}
+                timestamp={msg.timestamp}
+                messageId={msg.id}
+                onReaction={handleReaction}
+                initialReaction={msg.reaction}
+              />
+              
+              {/* Prikaži izvore za AI poruke */}
+              {msg.sender === 'ai' && msg.sources && msg.sources.length > 0 && (
+                <div className="mt-2 ml-8">
+                  <SourcesDisplay 
+                    sources={msg.sources} 
+                    isVisible={true} 
+                  />
+                </div>
+              )}
+              
+              {/* RAG indicator */}
+              {msg.sender === 'ai' && msg.used_rag && (
+                <div className="mt-2 ml-8 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-xs text-green-400">Koristi RAG</span>
                   
-                  {/* Prikaži izvore za AI poruke */}
-                  {msg.sender === 'ai' && msg.sources && msg.sources.length > 0 && (
-                    <SourcesDisplay 
-                      sources={msg.sources} 
-                      isVisible={true} 
-                    />
-                  )}
-                  
-                  {/* RAG indicator */}
-                  {msg.sender === 'ai' && msg.used_rag && (
-                    <div className="mt-2 flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-xs text-green-400">Koristi RAG</span>
-                      
-                      {/* Re-ranking indicator */}
-                      {msg.reranking_applied && (
-                        <>
-                          <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                          <span className="text-xs text-purple-400">Re-ranking</span>
-                          {msg.reranker_info && (
-                            <span className="text-xs text-gray-500">
-                              ({msg.reranker_info.model_name})
-                            </span>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Query Rewriting indicator */}
-                  {msg.sender === 'user' && msg.query_rewriting_applied && (
-                    <div className="mt-2 p-2 rounded-lg bg-orange-900/30 border border-orange-700">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                        <span className="text-xs text-orange-400 font-semibold">Query Rewriting</span>
-                      </div>
-                      <div className="text-xs text-orange-300">
-                        <div><strong>Original:</strong> {msg.original_query}</div>
-                        <div><strong>Poboljšan:</strong> {msg.enhanced_query}</div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Fact Checking indicator */}
-                  {msg.sender === 'ai' && msg.fact_checking_applied && msg.fact_checker_info && (
-                    <div className="mt-2 p-2 rounded-lg bg-yellow-900/30 border border-yellow-700">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className={`w-2 h-2 rounded-full ${msg.fact_checker_info.verified ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                        <span className="text-xs text-yellow-400 font-semibold">Fact Checking</span>
-                        <span className={`text-xs ${msg.fact_checker_info.verified ? 'text-green-400' : 'text-red-400'}`}>
-                          {msg.fact_checker_info.verified ? 'Verifikovan' : 'Nije verifikovan'}
-                        </span>
+                  {/* Re-ranking indicator */}
+                  {msg.reranking_applied && (
+                    <>
+                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                      <span className="text-xs text-purple-400">Re-ranking</span>
+                      {msg.reranker_info && (
                         <span className="text-xs text-gray-500">
-                          ({Math.round(msg.fact_checker_info.confidence * 100)}% pouzdanost)
+                          ({msg.reranker_info.model_name})
                         </span>
-                      </div>
-                      {msg.fact_checker_info.reasoning && (
-                        <div className="text-xs text-yellow-300 mt-1">
-                          <strong>Obrazloženje:</strong> {msg.fact_checker_info.reasoning}
-                        </div>
                       )}
-                      {msg.fact_checker_info.sources && msg.fact_checker_info.sources.length > 0 && (
-                        <div className="text-xs text-yellow-300 mt-1">
-                          <strong>Izvori:</strong> {msg.fact_checker_info.sources.join(', ')}
-                        </div>
-                      )}
+                    </>
+                  )}
+                </div>
+              )}
+              
+              {/* Query Rewriting indicator */}
+              {msg.sender === 'user' && msg.query_rewriting_applied && (
+                <div className="mt-2 ml-8 p-2 rounded-lg bg-orange-900/30 border border-orange-700">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <span className="text-xs text-orange-400 font-semibold">Query Rewriting</span>
+                  </div>
+                  <div className="text-xs text-orange-300">
+                    <div><strong>Original:</strong> {msg.original_query}</div>
+                    <div><strong>Poboljšan:</strong> {msg.enhanced_query}</div>
+                  </div>
+                </div>
+              )}
+              
+              {/* Fact Checking indicator */}
+              {msg.sender === 'ai' && msg.fact_checking_applied && msg.fact_checker_info && (
+                <div className="mt-2 ml-8 p-2 rounded-lg bg-yellow-900/30 border border-yellow-700">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className={`w-2 h-2 rounded-full ${msg.fact_checker_info.verified ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                    <span className="text-xs text-yellow-400 font-semibold">Fact Checking</span>
+                    <span className={`text-xs ${msg.fact_checker_info.verified ? 'text-green-400' : 'text-red-400'}`}>
+                      {msg.fact_checker_info.verified ? 'Verifikovan' : 'Nije verifikovan'}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      ({Math.round(msg.fact_checker_info.confidence * 100)}% pouzdanost)
+                    </span>
+                  </div>
+                  {msg.fact_checker_info.reasoning && (
+                    <div className="text-xs text-yellow-300 mt-1">
+                      <strong>Obrazloženje:</strong> {msg.fact_checker_info.reasoning}
+                    </div>
+                  )}
+                  {msg.fact_checker_info.sources && msg.fact_checker_info.sources.length > 0 && (
+                    <div className="text-xs text-yellow-300 mt-1">
+                      <strong>Izvori:</strong> {msg.fact_checker_info.sources.join(', ')}
                     </div>
                   )}
                 </div>
-              </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
         
-        {isLoading && (
-          <div className="flex justify-start mb-2">
-            <div className="bg-[#1a2236] text-blue-100 px-4 py-2 rounded-2xl text-sm shadow-md flex items-center gap-2">
-              <div className="text-blue-400 mr-2"><FaGraduationCap size={18} /></div>
-              <div className="flex space-x-1">
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce"></div>
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
-                <div className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
-              </div>
-            </div>
-          </div>
-        )}
+        {isLoading && <TypingIndicator />}
       </div>
       
       <form className="flex items-center gap-2 mt-2" onSubmit={sendMessage}>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaTimes, FaExclamationTriangle, FaInfoCircle, FaCheckCircle } from 'react-icons/fa';
+import { FaTimes, FaExclamationTriangle, FaExclamationCircle, FaCheckCircle } from 'react-icons/fa';
 
 export type ToastType = 'error' | 'warning' | 'info' | 'success';
 
@@ -37,48 +37,48 @@ export default function ErrorToast({
     }
   }, [duration, onClose]);
 
-  const getIcon = () => {
-    switch (type) {
-      case 'error':
-        return <FaExclamationTriangle className="text-red-400" size={20} />;
-      case 'warning':
-        return <FaExclamationTriangle className="text-yellow-400" size={20} />;
-      case 'info':
-        return <FaInfoCircle className="text-blue-400" size={20} />;
-      case 'success':
-        return <FaCheckCircle className="text-green-400" size={20} />;
-    }
-  };
-
   const getBgColor = () => {
     switch (type) {
       case 'error':
-        return 'bg-red-900/20 border-red-500/30';
+        return 'bg-[var(--accent-red)]/10 border-[var(--accent-red)]';
       case 'warning':
-        return 'bg-yellow-900/20 border-yellow-500/30';
-      case 'info':
-        return 'bg-blue-900/20 border-blue-500/30';
+        return 'bg-[var(--accent-yellow)]/10 border-[var(--accent-yellow)]';
       case 'success':
-        return 'bg-green-900/20 border-green-500/30';
+        return 'bg-[var(--accent-green)]/10 border-[var(--accent-green)]';
+      default:
+        return 'bg-[var(--accent-green)]/10 border-[var(--accent-green)]';
+    }
+  };
+
+  const getIcon = () => {
+    switch (type) {
+      case 'error':
+        return <FaExclamationTriangle className="text-[var(--accent-red)]" size={20} />;
+      case 'warning':
+        return <FaExclamationCircle className="text-[var(--accent-yellow)]" size={20} />;
+      case 'success':
+        return <FaCheckCircle className="text-[var(--accent-green)]" size={20} />;
+      default:
+        return <FaExclamationCircle className="text-[var(--accent-blue)]" size={20} />;
     }
   };
 
   const getTextColor = () => {
     switch (type) {
       case 'error':
-        return 'text-red-300';
+        return 'text-[var(--accent-red)]';
       case 'warning':
-        return 'text-yellow-300';
-      case 'info':
-        return 'text-blue-300';
+        return 'text-[var(--accent-yellow)]';
       case 'success':
-        return 'text-green-300';
+        return 'text-[var(--accent-green)]';
+      default:
+        return 'text-[var(--accent-green)]';
     }
   };
 
   return (
     <div
-      className={`transform transition-all duration-300 ${
+      className={`fixed top-4 right-4 z-50 transform transition-all duration-300 ${
         isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
       }`}
     >
@@ -94,14 +94,14 @@ export default function ErrorToast({
                 {title}
               </h3>
             )}
-            <p className="text-sm text-gray-300 leading-relaxed">
+            <p className="text-sm text-[var(--text-primary)] leading-relaxed">
               {message}
             </p>
             
             {showRetry && onRetry && (
               <button
                 onClick={onRetry}
-                className="mt-2 text-xs text-blue-400 hover:text-blue-300 underline"
+                className="mt-2 text-xs text-[var(--accent-blue)] hover:text-[var(--accent-blue)]/80 underline"
               >
                 Pokušaj ponovo
               </button>
@@ -113,7 +113,7 @@ export default function ErrorToast({
               setIsVisible(false);
               setTimeout(onClose, 300);
             }}
-            className="flex-shrink-0 text-gray-400 hover:text-gray-300 transition-colors"
+            className="flex-shrink-0 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
           >
             <FaTimes size={14} />
           </button>

@@ -117,56 +117,39 @@ export default function TestErrorHandling() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 bg-[#1a2332] rounded-xl p-4 shadow-lg max-w-md z-40 border border-gray-700">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-          <FaFlask className="text-blue-400" />
-          Error Handling Test
-        </h3>
+    <div className="bg-[var(--bg-secondary)] rounded-lg p-4 border border-[var(--border-color)]">
+      <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Test Error Handling</h3>
+      
+      <div className="space-y-3">
         <button
-          onClick={() => setIsVisible(false)}
-          className="text-gray-400 hover:text-white"
+          onClick={() => showError('Ovo je test greška', 'Test Greška')}
+          className="w-full px-4 py-2 bg-[var(--accent-red)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-red)]/80 transition-colors"
         >
-          <FaTimes size={16} />
+          Testiraj Error Toast
         </button>
-      </div>
-
-      <div className="space-y-2 mb-4">
-        {testResults.map((result, index) => (
-          <div key={index} className="flex items-center gap-2 text-sm">
-            {getStatusIcon(result.status)}
-            <span className={`flex-1 ${getStatusColor(result.status)}`}>
-              {result.name}
-            </span>
-            {result.message && (
-              <span className="text-xs text-gray-500">
-                {result.message}
-              </span>
-            )}
-          </div>
-        ))}
-      </div>
-
-      <div className="flex gap-2">
+        
         <button
-          onClick={runTests}
-          disabled={isRunning}
-          className="flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+          onClick={() => showWarning('Ovo je test upozorenje', 'Test Upozorenje')}
+          className="w-full px-4 py-2 bg-[var(--accent-yellow)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-yellow)]/80 transition-colors"
         >
-          {isRunning ? 'Testiranje...' : 'Pokreni Testove'}
+          Testiraj Warning Toast
         </button>
+        
         <button
-          onClick={() => setTestResults([])}
-          className="px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 text-sm"
+          onClick={() => showSuccess('Ovo je test uspeh', 'Test Uspeh')}
+          className="w-full px-4 py-2 bg-[var(--accent-green)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-green)]/80 transition-colors"
         >
-          Reset
+          Testiraj Success Toast
         </button>
-      </div>
-
-      <div className="mt-3 text-xs text-gray-400">
-        <p>• Testira toast notifikacije</p>
-        <p>• Proverava retry funkcionalnost</p>
-        <p>• Simulira različite tipove grešaka</p>
+        
+        <button
+          onClick={() => {
+            throw new Error('Ovo je test greška za Error Boundary');
+          }}
+          className="w-full px-4 py-2 bg-[var(--accent-red)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-red)]/80 transition-colors"
+        >
+          Testiraj Error Boundary
+        </button>
       </div>
     </div>
   );
