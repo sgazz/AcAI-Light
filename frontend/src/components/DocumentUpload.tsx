@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { FaUpload, FaTrash, FaCheck, FaSpinner, FaEye, FaCog, FaCloudUploadAlt, FaTimes } from 'react-icons/fa';
+import { FaUpload, FaTrash, FaCheck, FaSpinner, FaEye, FaCog, FaCloudUploadAlt, FaTimes, FaFileAlt, FaImage, FaCogs, FaMagic, FaLanguage, FaShieldAlt } from 'react-icons/fa';
 import ImagePreview from './ImagePreview';
 import { formatFileSize, getFileIcon, isImageFile, validateFile } from '../utils/fileUtils';
 import { DOCUMENTS_ENDPOINT, UPLOAD_ENDPOINT, apiRequest } from '../utils/api';
@@ -289,11 +289,11 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
   const getStatusIcon = (status: Document['status']) => {
     switch (status) {
       case 'uploading':
-        return <FaSpinner className="text-[var(--accent-blue)] animate-spin" size={16} />;
+        return <FaSpinner className="text-blue-400 animate-spin" size={16} />;
       case 'uploaded':
-        return <FaCheck className="text-[var(--accent-green)]" size={16} />;
+        return <FaCheck className="text-green-400" size={16} />;
       case 'error':
-        return <FaTrash className="text-[var(--accent-red)]" size={16} />;
+        return <FaTrash className="text-red-400" size={16} />;
     }
   };
 
@@ -334,48 +334,78 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
 
   if (isLoading) {
     return (
-      <div className="bg-[var(--bg-tertiary)] rounded-xl p-6 h-full">
-        <div className="flex items-center justify-center h-48">
-          <FaSpinner className="text-[var(--accent-blue)] animate-spin" size={24} />
-          <span className="ml-2 text-[var(--text-primary)]">Učitavanje dokumenata...</span>
+      <div className="bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-2xl p-8 h-full relative overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse"></div>
+          <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-blue-400/10 rounded-full blur-xl animate-bounce"></div>
+        </div>
+        
+        <div className="relative flex items-center justify-center h-48">
+          <div className="relative">
+            <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin mx-auto"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-xl animate-pulse"></div>
+          </div>
+          <span className="ml-4 text-white font-semibold">Učitavanje dokumenata...</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-[var(--bg-primary)] min-h-full w-full flex flex-col">
-      <div className="bg-[var(--bg-tertiary)] rounded-xl p-6 h-full">
-        <div className="flex items-center gap-2 mb-6">
-          <div className="text-[var(--accent-blue)]"><FaUpload size={24} /></div>
-          <h2 className="text-xl font-bold text-[var(--text-primary)]">Upload dokumenta</h2>
+    <div className="bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-2xl p-8 h-full relative overflow-hidden">
+      {/* Animated Background Pattern */}
+      <div className="absolute inset-0 opacity-5">
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse"></div>
+        <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-blue-400/10 rounded-full blur-xl animate-bounce"></div>
+        <div className="absolute bottom-1/4 left-1/4 w-24 h-24 bg-purple-400/10 rounded-full blur-xl animate-pulse"></div>
+      </div>
+
+      <div className="relative space-y-8">
+        {/* Premium Header */}
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
+              <FaUpload className="text-white" size={24} />
+            </div>
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+              Upload dokumenta
+            </h2>
+            <p className="text-sm text-slate-400 font-medium">Dodajte dokumente za AI analizu</p>
+          </div>
         </div>
 
-        <div className="space-y-6">
-          {/* Drag & Drop Area */}
-          <div
-            ref={dropRef}
-            className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              isDragOver
-                ? 'border-[var(--accent-blue)] bg-[var(--accent-blue)]/10'
-                : 'border-[var(--border-color)] hover:border-[var(--accent-blue)]'
-            }`}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          >
-            <div className="text-[var(--accent-blue)] mb-4">
-              <FaCloudUploadAlt size={48} />
+        {/* Premium Drag & Drop Area */}
+        <div
+          ref={dropRef}
+          className={`relative group border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-500 ${
+            isDragOver
+              ? 'border-blue-500/50 bg-gradient-to-r from-blue-500/10 to-purple-500/10 scale-105'
+              : 'border-white/20 hover:border-blue-500/30 hover:bg-slate-800/30'
+          }`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+        >
+          {/* Glow effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          
+          <div className="relative">
+            <div className="text-blue-400 mb-6 group-hover:scale-110 transition-transform duration-300">
+              <FaCloudUploadAlt size={64} />
             </div>
-            <p className="text-lg font-medium text-[var(--text-primary)] mb-2">
+            <p className="text-xl font-bold text-white mb-3">
               Prevucite dokumente ovde ili kliknite da izaberete
             </p>
-            <p className="text-sm text-[var(--text-secondary)] mb-4">
+            <p className="text-sm text-slate-400 mb-6">
               Podržani formati: PDF, DOCX, TXT, PNG, JPG, JPEG
             </p>
             <button
               onClick={() => fileInputRef.current?.click()}
-              className="px-6 py-2 bg-[var(--accent-blue)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-blue)]/80 transition-colors"
+              className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
             >
               Izaberi fajlove
             </button>
@@ -388,90 +418,117 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
               className="hidden"
             />
           </div>
+        </div>
 
-          {/* Upload Progress */}
-          {uploads.length > 0 && (
-            <div className="space-y-3">
-              <h3 className="text-lg font-semibold text-[var(--text-primary)]">Upload progres</h3>
-              {uploads.map((upload) => (
-                <div
-                  key={upload.id}
-                  className="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-3">
+        {/* Premium Upload Progress */}
+        {uploads.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-3">
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <FaFileAlt size={18} className="text-blue-400" />
+              </div>
+              Upload progres
+            </h3>
+            {uploads.map((upload, index) => (
+              <div
+                key={upload.id}
+                className="group relative p-6 bg-slate-800/50 rounded-2xl border border-white/10 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02]"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 bg-slate-700/50 rounded-xl">
                       {getFileIcon(upload.file.type)}
-                      <div>
-                        <p className="font-medium text-[var(--text-primary)]">{upload.file.name}</p>
-                        <p className="text-sm text-[var(--text-secondary)]">
-                          {formatFileSize(upload.file.size)}
-                        </p>
-                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      {upload.status === 'uploading' && (
-                        <FaSpinner className="animate-spin text-[var(--accent-blue)]" />
-                      )}
-                      {upload.status === 'success' && (
-                        <FaCheck className="text-[var(--accent-green)]" />
-                      )}
-                      {upload.status === 'error' && (
-                        <FaTimes className="text-[var(--accent-red)]" />
-                      )}
-                      <button
-                        onClick={() => removeUpload(upload.id)}
-                        className="text-[var(--text-muted)] hover:text-[var(--accent-red)]"
-                      >
-                        <FaTimes size={16} />
-                      </button>
+                    <div>
+                      <p className="font-bold text-white">{upload.file.name}</p>
+                      <p className="text-sm text-slate-400">
+                        {formatFileSize(upload.file.size)}
+                      </p>
                     </div>
                   </div>
-
-                  {upload.status === 'uploading' && (
-                    <div className="w-full bg-[var(--bg-tertiary)] rounded-full h-2">
-                      <div
-                        className="bg-[var(--accent-blue)] h-2 rounded-full transition-all duration-300"
-                        style={{ width: `${upload.progress}%` }}
-                      />
-                    </div>
-                  )}
-
-                  {upload.status === 'error' && (
-                    <p className="text-sm text-[var(--accent-red)] mt-2">
-                      Greška: {upload.error}
-                    </p>
-                  )}
-
-                  {upload.status === 'success' && (
-                    <p className="text-sm text-[var(--accent-green)] mt-2">
-                      Uspešno uploadovano!
-                    </p>
-                  )}
+                  <div className="flex items-center gap-3">
+                    {upload.status === 'uploading' && (
+                      <div className="relative">
+                        <FaSpinner className="animate-spin text-blue-400" size={20} />
+                        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-xl animate-pulse"></div>
+                      </div>
+                    )}
+                    {upload.status === 'success' && (
+                      <div className="p-2 bg-green-500/20 rounded-lg">
+                        <FaCheck className="text-green-400" size={16} />
+                      </div>
+                    )}
+                    {upload.status === 'error' && (
+                      <div className="p-2 bg-red-500/20 rounded-lg">
+                        <FaTimes className="text-red-400" size={16} />
+                      </div>
+                    )}
+                    <button
+                      onClick={() => removeUpload(upload.id)}
+                      className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all duration-200"
+                    >
+                      <FaTimes size={16} />
+                    </button>
+                  </div>
                 </div>
-              ))}
-            </div>
-          )}
 
-          {/* OCR Options */}
-          <div className="mt-4">
-            <button
-              onClick={() => setShowOCROptions(!showOCROptions)}
-              className="flex items-center gap-2 text-[var(--text-muted)] hover:text-[var(--accent-blue)] transition-colors text-sm"
-            >
-              <FaCog size={14} />
-              <span>OCR Opcije</span>
-            </button>
-            
-            {showOCROptions && (
-              <div className="mt-3 p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]">
-                <h5 className="text-[var(--text-primary)] font-medium mb-3">Napredne OCR Opcije</h5>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Confidence Threshold */}
-                  <div>
-                    <label className="block text-[var(--text-muted)] text-sm mb-2">
-                      Minimalni Confidence (%)
-                    </label>
+                {upload.status === 'uploading' && (
+                  <div className="w-full bg-slate-700/50 rounded-full h-3 overflow-hidden">
+                    <div
+                      className="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-500 shadow-lg"
+                      style={{ width: `${upload.progress}%` }}
+                    />
+                  </div>
+                )}
+
+                {upload.status === 'error' && (
+                  <p className="text-sm text-red-400 mt-3 font-medium">
+                    Greška: {upload.error}
+                  </p>
+                )}
+
+                {upload.status === 'success' && (
+                  <p className="text-sm text-green-400 mt-3 font-medium">
+                    Uspešno uploadovano!
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Premium OCR Options */}
+        <div className="space-y-4">
+          <button
+            onClick={() => setShowOCROptions(!showOCROptions)}
+            className="flex items-center gap-3 text-slate-400 hover:text-blue-400 transition-all duration-300 text-sm font-semibold group"
+          >
+            <div className="p-2 bg-slate-700/50 rounded-lg group-hover:bg-blue-500/20 transition-all duration-300">
+              <FaCogs size={16} className="group-hover:text-blue-400" />
+            </div>
+            <span>Napredne OCR Opcije</span>
+            <div className={`transition-transform duration-300 ${showOCROptions ? 'rotate-180' : ''}`}>
+              <FaTimes size={12} />
+            </div>
+          </button>
+          
+          {showOCROptions && (
+            <div className="space-y-6 p-6 bg-slate-800/30 rounded-2xl border border-white/10 backdrop-blur-sm animate-in slide-in-from-top-4 duration-500">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-blue-500/20 rounded-lg">
+                  <FaMagic size={18} className="text-blue-400" />
+                </div>
+                <h5 className="text-lg font-bold text-white">Napredne OCR Opcije</h5>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Confidence Threshold */}
+                <div className="space-y-3">
+                  <label className="block text-white font-semibold text-sm">
+                    Minimalni Confidence (%)
+                  </label>
+                  <div className="relative">
                     <input
                       type="range"
                       min="0"
@@ -481,23 +538,26 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
                         ...prev,
                         minConfidence: parseInt(e.target.value)
                       }))}
-                      className="w-full h-2 bg-[var(--bg-tertiary)] rounded-lg appearance-none cursor-pointer"
+                      className="w-full h-3 bg-slate-700/50 rounded-lg appearance-none cursor-pointer slider"
                     />
-                    <div className="flex justify-between text-xs text-[var(--text-secondary)] mt-1">
+                    <div className="flex justify-between text-xs text-slate-400 mt-2">
                       <span>0%</span>
-                      <span className="text-[var(--accent-blue)]">{ocrOptions.minConfidence}%</span>
+                      <span className="text-blue-400 font-bold">{ocrOptions.minConfidence}%</span>
                       <span>100%</span>
                     </div>
                   </div>
+                </div>
 
-                  {/* Languages */}
-                  <div>
-                    <label className="block text-[var(--text-muted)] text-sm mb-2">
-                      Jezici
-                    </label>
-                    <div className="space-y-2">
-                      {['srp', 'eng'].map((lang) => (
-                        <label key={lang} className="flex items-center gap-2 text-sm">
+                {/* Languages */}
+                <div className="space-y-3">
+                  <label className="block text-white font-semibold text-sm flex items-center gap-2">
+                    <FaLanguage size={14} />
+                    Jezici
+                  </label>
+                  <div className="space-y-3">
+                    {['srp', 'eng'].map((lang) => (
+                      <label key={lang} className="flex items-center gap-3 text-sm group cursor-pointer">
+                        <div className="relative">
                           <input
                             type="checkbox"
                             checked={ocrOptions.languages.includes(lang)}
@@ -514,23 +574,26 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
                                 }));
                               }
                             }}
-                            className="rounded border-[var(--border-color)] bg-[var(--bg-tertiary)] text-[var(--accent-blue)] focus:ring-[var(--accent-blue)]"
+                            className="w-5 h-5 rounded border-white/20 bg-slate-700/50 text-blue-500 focus:ring-blue-500/50 focus:ring-2 transition-all duration-200"
                           />
-                          <span className="text-[var(--text-secondary)]">
-                            {lang === 'srp' ? 'Srpski' : 'Engleski'}
-                          </span>
-                        </label>
-                      ))}
-                    </div>
+                        </div>
+                        <span className="text-slate-300 group-hover:text-white transition-colors duration-200">
+                          {lang === 'srp' ? 'Srpski' : 'Engleski'}
+                        </span>
+                      </label>
+                    ))}
                   </div>
+                </div>
 
-                  {/* Preprocessing Options */}
-                  <div>
-                    <label className="block text-[var(--text-muted)] text-sm mb-2">
-                      Preprocessing
-                    </label>
-                    <div className="space-y-2">
-                      <label className="flex items-center gap-2 text-sm">
+                {/* Preprocessing Options */}
+                <div className="space-y-3">
+                  <label className="block text-white font-semibold text-sm flex items-center gap-2">
+                    <FaShieldAlt size={14} />
+                    Preprocessing
+                  </label>
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 text-sm group cursor-pointer">
+                      <div className="relative">
                         <input
                           type="checkbox"
                           checked={ocrOptions.deskew}
@@ -538,11 +601,13 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
                             ...prev,
                             deskew: e.target.checked
                           }))}
-                          className="rounded border-[var(--border-color)] bg-[var(--bg-tertiary)] text-[var(--accent-blue)] focus:ring-[var(--accent-blue)]"
+                          className="w-5 h-5 rounded border-white/20 bg-slate-700/50 text-blue-500 focus:ring-blue-500/50 focus:ring-2 transition-all duration-200"
                         />
-                        <span className="text-[var(--text-secondary)]">Deskew (rotacija)</span>
-                      </label>
-                      <label className="flex items-center gap-2 text-sm">
+                      </div>
+                      <span className="text-slate-300 group-hover:text-white transition-colors duration-200">Deskew (rotacija)</span>
+                    </label>
+                    <label className="flex items-center gap-3 text-sm group cursor-pointer">
+                      <div className="relative">
                         <input
                           type="checkbox"
                           checked={ocrOptions.resize}
@@ -550,63 +615,63 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
                             ...prev,
                             resize: e.target.checked
                           }))}
-                          className="rounded border-[var(--border-color)] bg-[var(--bg-tertiary)] text-[var(--accent-blue)] focus:ring-[var(--accent-blue)]"
+                          className="w-5 h-5 rounded border-white/20 bg-slate-700/50 text-blue-500 focus:ring-blue-500/50 focus:ring-2 transition-all duration-200"
                         />
-                        <span className="text-[var(--text-secondary)]">Resize (promena veličine)</span>
-                      </label>
-                    </div>
+                      </div>
+                      <span className="text-slate-300 group-hover:text-white transition-colors duration-200">Resize (promena veličine)</span>
+                    </label>
                   </div>
+                </div>
 
-                  {/* Info */}
-                  <div className="md:col-span-2">
-                    <div className="text-xs text-[var(--text-secondary)] bg-[var(--bg-tertiary)] p-3 rounded">
-                      <p><strong>Confidence:</strong> Minimalni procenat pouzdanosti za prihvatljiv OCR rezultat</p>
-                      <p><strong>Jezici:</strong> Izaberi jezike za OCR prepoznavanje</p>
-                      <p><strong>Preprocessing:</strong> Dodatne opcije za poboljšanje kvaliteta slike</p>
-                    </div>
+                {/* Info */}
+                <div className="md:col-span-2">
+                  <div className="text-xs text-slate-400 bg-slate-700/30 p-4 rounded-xl border border-white/10">
+                    <p className="mb-2"><strong className="text-white">Confidence:</strong> Minimalni procenat pouzdanosti za prihvatljiv OCR rezultat</p>
+                    <p className="mb-2"><strong className="text-white">Jezici:</strong> Izaberi jezike za OCR prepoznavanje</p>
+                    <p><strong className="text-white">Preprocessing:</strong> Dodatne opcije za poboljšanje kvaliteta slike</p>
                   </div>
                 </div>
               </div>
-            )}
-          </div>
-
-          {/* Upload Button */}
-          {uploads.length > 0 && (
-            <div className="flex gap-3">
-              <button
-                onClick={startUpload}
-                disabled={isUploading}
-                className="flex-1 px-6 py-3 bg-[var(--accent-blue)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-blue)]/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                {isUploading ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <FaSpinner className="animate-spin" />
-                    Uploadujem...
-                  </div>
-                ) : (
-                  'Uploaduj sve fajlove'
-                )}
-              </button>
-              <button
-                onClick={clearUploads}
-                className="px-6 py-3 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
-              >
-                Obriši sve
-              </button>
             </div>
           )}
         </div>
 
-        {/* ImagePreview Modal */}
-        {selectedImage && (
-          <ImagePreview
-            imageUrl={selectedImage.url}
-            ocrResult={selectedImage.ocrResult}
-            filename={selectedImage.filename}
-            onClose={() => setSelectedImage(null)}
-          />
+        {/* Premium Upload Button */}
+        {uploads.length > 0 && (
+          <div className="flex gap-4">
+            <button
+              onClick={startUpload}
+              disabled={isUploading}
+              className="flex-1 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-semibold shadow-lg hover:shadow-xl"
+            >
+              {isUploading ? (
+                <div className="flex items-center justify-center gap-3">
+                  <FaSpinner className="animate-spin" />
+                  Uploadujem...
+                </div>
+              ) : (
+                'Uploaduj sve fajlove'
+              )}
+            </button>
+            <button
+              onClick={clearUploads}
+              className="px-8 py-4 bg-slate-700/50 text-white border border-white/10 rounded-xl hover:bg-slate-600/50 transition-all duration-300 font-semibold"
+            >
+              Obriši sve
+            </button>
+          </div>
         )}
       </div>
+
+      {/* ImagePreview Modal */}
+      {selectedImage && (
+        <ImagePreview
+          imageUrl={selectedImage.url}
+          ocrResult={selectedImage.ocrResult}
+          filename={selectedImage.filename}
+          onClose={() => setSelectedImage(null)}
+        />
+      )}
     </div>
   );
 } 
