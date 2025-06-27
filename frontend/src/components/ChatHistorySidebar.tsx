@@ -52,7 +52,6 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
 
   useEffect(() => {
     if (isOpen) {
-      console.log('ChatHistorySidebar: Otvaram sidebar, učitavam sesije');
       loadSessions();
     }
   }, [isOpen]);
@@ -113,10 +112,8 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
   }, [sessions, searchQuery, filterOption, sortOption, customDateRange]);
 
   const loadSessions = async () => {
-    console.log('ChatHistorySidebar: Pozivam loadSessions');
     try {
       const data = await apiRequest(CHAT_SESSIONS_ENDPOINT);
-      console.log('ChatHistorySidebar: API odgovor:', data);
       if (data.status === 'success') {
         setSessions(data.sessions);
       } else {
@@ -191,11 +188,24 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
   };
 
   const handleExport = () => {
+    console.log('=== CHAT HISTORY SIDEBAR HANDLE EXPORT ===');
+    console.log('ChatHistorySidebar handleExport pozvan:', { selectedSession, sessionMessages: sessionMessages.length });
+    console.log('Trenutno showExportModal pre poziva:', showExportModal);
+    
     if (!selectedSession || sessionMessages.length === 0) {
+      console.log('Export nije moguć - nema sesije ili poruka');
       showError('Izaberite sesiju sa porukama za export', 'Export greška');
       return;
     }
+    
+    console.log('Otvaram ExportModal, trenutno showExportModal:', showExportModal);
     setShowExportModal(true);
+    console.log('setShowExportModal(true) pozvan');
+    
+    // Dodajem timeout da proverim da li se state promenio
+    setTimeout(() => {
+      console.log('showExportModal nakon 100ms:', showExportModal);
+    }, 100);
   };
 
   const getSelectedSessionData = () => {
@@ -470,11 +480,13 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
                   </div>
                   Poruke {selectedSession ? `(${sessionMessages.length})` : ''}
                 </h4>
+                
                 {selectedSession && sessionMessages.length > 0 && (
                   <button
-                    onClick={handleExport}
+                    onClick={() => setShowExportModal(true)}
                     className="flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 text-sm font-semibold shadow-lg"
                     title="Export chat history"
+                    style={{ zIndex: 9999, position: 'relative' }}
                   >
                     <FaDownload size={16} />
                     Export

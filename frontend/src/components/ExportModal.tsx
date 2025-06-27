@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { FaTimes, FaDownload, FaFilePdf, FaFileCode, FaFileAlt, FaCalendar } from 'react-icons/fa';
+import { FaTimes, FaDownload, FaFilePdf, FaFileCode, FaFileAlt, FaCalendar, FaCog, FaCheck, FaSpinner, FaMagic, FaShieldAlt, FaClock, FaUser, FaRobot } from 'react-icons/fa';
 import jsPDF from 'jspdf';
 import { saveAs } from 'file-saver';
 
@@ -33,6 +33,7 @@ export default function ExportModal({ isOpen, onClose, session, messages }: Expo
   const [isExporting, setIsExporting] = useState(false);
   const [includeMetadata, setIncludeMetadata] = useState(true);
   const [includeTimestamps, setIncludeTimestamps] = useState(true);
+  const [exportSuccess, setExportSuccess] = useState(false);
 
   if (!isOpen) return null;
 
@@ -138,6 +139,9 @@ export default function ExportModal({ isOpen, onClose, session, messages }: Expo
       // Save the PDF
       const fileName = `chat-history-${session.session_id.slice(0, 8)}-${new Date().toISOString().split('T')[0]}.pdf`;
       doc.save(fileName);
+      
+      setExportSuccess(true);
+      setTimeout(() => setExportSuccess(false), 2000);
     } catch (error) {
       console.error('Greška pri export-u PDF-a:', error);
     } finally {
@@ -171,6 +175,9 @@ export default function ExportModal({ isOpen, onClose, session, messages }: Expo
       const blob = new Blob([jsonString], { type: 'application/json' });
       const fileName = `chat-history-${session.session_id.slice(0, 8)}-${new Date().toISOString().split('T')[0]}.json`;
       saveAs(blob, fileName);
+      
+      setExportSuccess(true);
+      setTimeout(() => setExportSuccess(false), 2000);
     } catch (error) {
       console.error('Greška pri export-u JSON-a:', error);
     } finally {
@@ -213,6 +220,9 @@ export default function ExportModal({ isOpen, onClose, session, messages }: Expo
       const blob = new Blob([markdown], { type: 'text/markdown' });
       const fileName = `chat-history-${session.session_id.slice(0, 8)}-${new Date().toISOString().split('T')[0]}.md`;
       saveAs(blob, fileName);
+      
+      setExportSuccess(true);
+      setTimeout(() => setExportSuccess(false), 2000);
     } catch (error) {
       console.error('Greška pri export-u Markdown-a:', error);
     } finally {
@@ -237,11 +247,11 @@ export default function ExportModal({ isOpen, onClose, session, messages }: Expo
   const getFormatIcon = (format: ExportFormat) => {
     switch (format) {
       case 'pdf':
-        return <FaFilePdf className="text-red-500" />;
+        return <FaFilePdf className="text-red-400" size={20} />;
       case 'json':
-        return <FaFileCode className="text-yellow-500" />;
+        return <FaFileCode className="text-yellow-400" size={20} />;
       case 'markdown':
-        return <FaFileAlt className="text-blue-500" />;
+        return <FaFileAlt className="text-blue-400" size={20} />;
     }
   };
 
@@ -258,146 +268,232 @@ export default function ExportModal({ isOpen, onClose, session, messages }: Expo
 
   return (
     <>
-      {/* Overlay */}
+      {/* Premium Overlay sa Glassmorphism */}
       <div 
-        className="fixed inset-0 bg-black bg-opacity-50 z-50"
+        className="fixed inset-0 bg-gradient-to-br from-black/60 via-purple-900/20 to-blue-900/30 backdrop-blur-xl z-50"
         onClick={onClose}
       />
       
-      {/* Modal */}
-      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[var(--bg-secondary)] rounded-xl shadow-2xl border border-[var(--border-color)] z-50 w-full max-w-md">
-        {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border-color)]">
-          <div className="flex items-center gap-2">
-            <FaDownload className="text-[var(--accent-blue)]" size={20} />
-            <h3 className="text-lg font-semibold text-[var(--text-primary)]">Export Chat History</h3>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-            title="Zatvori"
-          >
-            <FaTimes size={20} />
-          </button>
+      {/* Premium Modal */}
+      <div className="fixed top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/10 z-[101] w-full max-w-2xl relative overflow-hidden">
+        {/* Animated Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse"></div>
+          <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-blue-400/10 rounded-full blur-xl animate-bounce"></div>
         </div>
 
-        {/* Content */}
-        <div className="p-4 space-y-4">
-          {/* Session Info */}
-          {session && (
-            <div className="p-3 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)]">
-              <div className="flex items-center gap-2 mb-2">
-                <FaCalendar className="text-[var(--accent-blue)]" size={14} />
-                <span className="text-sm font-medium text-[var(--text-primary)]">Session Info</span>
+        <div className="relative">
+          {/* Premium Header */}
+          <div className="flex items-center justify-between p-6 border-b border-white/10 bg-gradient-to-r from-slate-800/50 via-slate-700/30 to-slate-800/50 backdrop-blur-sm">
+            <div className="flex items-center gap-4">
+              <div className="relative">
+                <div className="p-3 bg-gradient-to-br from-green-500 to-emerald-600 rounded-2xl shadow-lg">
+                  <FaDownload className="text-white" size={24} />
+                </div>
+                <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
               </div>
-              <div className="text-sm text-[var(--text-secondary)]">
-                <div>ID: {session.session_id.slice(0, 8)}...</div>
-                <div>Messages: {session.message_count}</div>
-                <div>Last: {formatDate(session.last_message)}</div>
+              <div>
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-white to-green-200 bg-clip-text text-transparent">
+                  Export Chat History
+                </h3>
+                <p className="text-sm text-slate-400 font-medium">Izaberite format i opcije za export</p>
               </div>
             </div>
-          )}
+            <button
+              onClick={onClose}
+              className="p-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 group"
+              title="Zatvori"
+            >
+              <FaTimes size={20} className="group-hover:rotate-90 transition-transform duration-300" />
+            </button>
+          </div>
 
-          {/* Export Format Selection */}
-          <div>
-            <label className="block text-sm font-medium text-[var(--text-primary)] mb-3">
-              Export Format
-            </label>
-            <div className="space-y-2">
-              {(['pdf', 'json', 'markdown'] as ExportFormat[]).map((format) => (
-                <label
-                  key={format}
-                  className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                    exportFormat === format
-                      ? 'border-[var(--accent-blue)] bg-[var(--accent-blue)]/20'
-                      : 'border-[var(--border-color)] hover:border-[var(--accent-blue)]'
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="exportFormat"
-                    value={format}
-                    checked={exportFormat === format}
-                    onChange={(e) => setExportFormat(e.target.value as ExportFormat)}
-                    className="sr-only"
-                  />
-                  <div className="flex items-center gap-3 flex-1">
-                    {getFormatIcon(format)}
-                    <div>
-                      <div className="text-sm font-medium text-[var(--text-primary)] capitalize">
-                        {format.toUpperCase()}
+          {/* Premium Content */}
+          <div className="p-6 space-y-6">
+            {/* Premium Session Info */}
+            {session && (
+              <div className="p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 backdrop-blur-sm">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-blue-500/20 rounded-lg">
+                    <FaCalendar size={16} className="text-blue-400" />
+                  </div>
+                  <span className="text-lg font-bold text-white">Session Info</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400">ID:</span>
+                    <span className="text-white font-mono">{session.session_id.slice(0, 8)}...</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400">Messages:</span>
+                    <span className="text-white font-bold">{session.message_count}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-slate-400">Last:</span>
+                    <span className="text-white">{formatDate(session.last_message)}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Premium Export Format Selection */}
+            <div className="space-y-4">
+              <label className="block text-lg font-bold text-white flex items-center gap-3">
+                <div className="p-2 bg-purple-500/20 rounded-lg">
+                  <FaMagic size={16} className="text-purple-400" />
+                </div>
+                Export Format
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {(['pdf', 'json', 'markdown'] as ExportFormat[]).map((format) => (
+                  <label
+                    key={format}
+                    className={`group relative p-4 rounded-2xl border cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
+                      exportFormat === format
+                        ? 'border-blue-500/50 bg-gradient-to-r from-blue-500/10 to-purple-500/10 shadow-xl shadow-blue-500/20'
+                        : 'border-white/10 hover:border-blue-500/30 hover:bg-slate-800/50'
+                    }`}
+                  >
+                    {/* Hover glow effect */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                    
+                    <input
+                      type="radio"
+                      name="exportFormat"
+                      value={format}
+                      checked={exportFormat === format}
+                      onChange={(e) => setExportFormat(e.target.value as ExportFormat)}
+                      className="sr-only"
+                    />
+                    <div className="relative flex flex-col items-center gap-3">
+                      <div className="p-3 bg-slate-700/50 rounded-xl">
+                        {getFormatIcon(format)}
                       </div>
-                      <div className="text-xs text-[var(--text-muted)]">
-                        {getFormatDescription(format)}
+                      <div className="text-center">
+                        <div className="text-sm font-bold text-white capitalize mb-1">
+                          {format.toUpperCase()}
+                        </div>
+                        <div className="text-xs text-slate-400 leading-relaxed">
+                          {getFormatDescription(format)}
+                        </div>
                       </div>
                     </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Premium Export Options */}
+            <div className="space-y-4">
+              <label className="block text-lg font-bold text-white flex items-center gap-3">
+                <div className="p-2 bg-yellow-500/20 rounded-lg">
+                  <FaCog size={16} className="text-yellow-400" />
+                </div>
+                Export Options
+              </label>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <label className="flex items-center gap-3 p-4 bg-slate-800/30 rounded-xl border border-white/10 cursor-pointer hover:bg-slate-700/30 transition-all duration-200 group">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={includeMetadata}
+                      onChange={(e) => setIncludeMetadata(e.target.checked)}
+                      className="w-5 h-5 rounded border-white/20 bg-slate-700/50 text-blue-500 focus:ring-blue-500/50 focus:ring-2 transition-all duration-200"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <FaShieldAlt size={14} className="text-blue-400" />
+                    <span className="text-sm text-white group-hover:text-blue-200 transition-colors duration-200">
+                      Include session metadata
+                    </span>
                   </div>
                 </label>
-              ))}
+                
+                <label className="flex items-center gap-3 p-4 bg-slate-800/30 rounded-xl border border-white/10 cursor-pointer hover:bg-slate-700/30 transition-all duration-200 group">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={includeTimestamps}
+                      onChange={(e) => setIncludeTimestamps(e.target.checked)}
+                      className="w-5 h-5 rounded border-white/20 bg-slate-700/50 text-blue-500 focus:ring-blue-500/50 focus:ring-2 transition-all duration-200"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <FaClock size={14} className="text-green-400" />
+                    <span className="text-sm text-white group-hover:text-green-200 transition-colors duration-200">
+                      Include message timestamps
+                    </span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            {/* Premium Preview */}
+            <div className="p-4 bg-gradient-to-r from-slate-800/30 to-slate-700/30 rounded-2xl border border-white/10 backdrop-blur-sm">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-2 bg-emerald-500/20 rounded-lg">
+                  <FaUser size={14} className="text-emerald-400" />
+                </div>
+                <span className="text-sm font-bold text-white">Preview</span>
+              </div>
+              <div className="text-xs text-slate-400 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span>Format:</span>
+                  <span className="text-white font-semibold">{exportFormat.toUpperCase()}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>Messages:</span>
+                  <span className="text-white font-semibold">{messages.length}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span>Size:</span>
+                  <span className="text-white font-semibold">~{Math.round(messages.length * 0.5)}KB</span>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Export Options */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-[var(--text-primary)]">
-              Export Options
-            </label>
-            
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={includeMetadata}
-                onChange={(e) => setIncludeMetadata(e.target.checked)}
-                className="rounded border-[var(--border-color)] text-[var(--accent-blue)] focus:ring-[var(--accent-blue)]"
-              />
-              <span className="text-sm text-[var(--text-secondary)]">
-                Include session metadata
-              </span>
-            </label>
-            
-            <label className="flex items-center gap-2">
-              <input
-                type="checkbox"
-                checked={includeTimestamps}
-                onChange={(e) => setIncludeTimestamps(e.target.checked)}
-                className="rounded border-[var(--border-color)] text-[var(--accent-blue)] focus:ring-[var(--accent-blue)]"
-              />
-              <span className="text-sm text-[var(--text-secondary)]">
-                Include message timestamps
-              </span>
-            </label>
+          {/* Premium Footer */}
+          <div className="flex items-center justify-end gap-4 p-6 border-t border-white/10 bg-gradient-to-r from-slate-800/30 to-slate-700/30">
+            <button
+              onClick={onClose}
+              className="px-6 py-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 font-semibold"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={isExporting || !session || messages.length === 0}
+              className={`flex items-center gap-3 px-8 py-3 rounded-xl transition-all duration-300 font-semibold ${
+                isExporting || !session || messages.length === 0
+                  ? 'bg-slate-700/50 text-slate-400 cursor-not-allowed'
+                  : exportSuccess
+                    ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg'
+                    : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 shadow-lg hover:shadow-xl'
+              }`}
+            >
+              {isExporting ? (
+                <>
+                  <div className="relative">
+                    <FaSpinner className="animate-spin" size={16} />
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-xl animate-pulse"></div>
+                  </div>
+                  Exporting...
+                </>
+              ) : exportSuccess ? (
+                <>
+                  <FaCheck size={16} />
+                  Exported!
+                </>
+              ) : (
+                <>
+                  <FaDownload size={16} />
+                  Export
+                </>
+              )}
+            </button>
           </div>
-        </div>
-
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-4 border-t border-[var(--border-color)]">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleExport}
-            disabled={isExporting || !session || messages.length === 0}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              isExporting || !session || messages.length === 0
-                ? 'bg-[var(--bg-tertiary)] text-[var(--text-muted)] cursor-not-allowed'
-                : 'bg-[var(--accent-blue)] text-white hover:bg-[var(--accent-blue)]/80'
-            }`}
-          >
-            {isExporting ? (
-              <>
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                Exporting...
-              </>
-            ) : (
-              <>
-                <FaDownload size={14} />
-                Export
-              </>
-            )}
-          </button>
         </div>
       </div>
     </>
