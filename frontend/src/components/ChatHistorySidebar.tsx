@@ -121,7 +121,7 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
       )}
       
       {/* Sidebar */}
-      <div className={`fixed top-0 right-0 h-full w-96 bg-[#151c2c] shadow-2xl transform transition-transform duration-300 ease-in-out z-50 ${
+      <div className={`fixed top-0 right-0 h-full w-1/2 bg-[#151c2c] shadow-2xl border-l border-gray-700 transform transition-transform duration-300 ease-in-out z-50 ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
         <div className="flex flex-col h-full">
@@ -140,106 +140,104 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
             </button>
           </div>
 
-          {/* Content */}
-          <div className="flex-1 overflow-hidden">
-            <div className="grid grid-cols-1 h-full">
-              {/* Lista sesija */}
-              <div className="p-4 border-b border-gray-700">
-                <h4 className="text-sm font-medium text-blue-300 mb-3">
-                  Sesije ({sessions.length})
-                </h4>
-                <div className="max-h-48 overflow-y-auto space-y-2">
-                  {sessions.map((session) => (
-                    <div
-                      key={session.session_id}
-                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                        selectedSession === session.session_id
-                          ? 'border-blue-500 bg-blue-900/20'
-                          : 'border-gray-600 hover:border-blue-400'
-                      }`}
-                      onClick={() => loadSessionMessages(session.session_id)}
-                    >
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="text-sm text-white font-medium">
-                            {session.session_id.slice(0, 8)}...
-                          </div>
-                          <div className="text-xs text-blue-300">
-                            {session.message_count} poruka
-                          </div>
-                          <div className="text-xs text-gray-400">
-                            {formatDate(session.last_message)}
-                          </div>
+          {/* Dvokolonski prikaz */}
+          <div className="flex-1 flex flex-row min-h-0">
+            {/* Leva kolona: Sesije */}
+            <div className="flex-1 min-w-0 border-r border-gray-700 p-4 flex flex-col">
+              <h4 className="text-sm font-medium text-blue-300 mb-3">
+                Sesije ({sessions.length})
+              </h4>
+              <div className="flex-1 overflow-y-auto space-y-2">
+                {sessions.map((session) => (
+                  <div
+                    key={session.session_id}
+                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                      selectedSession === session.session_id
+                        ? 'border-blue-500 bg-blue-900/20'
+                        : 'border-gray-600 hover:border-blue-400'
+                    }`}
+                    onClick={() => loadSessionMessages(session.session_id)}
+                  >
+                    <div className="flex justify-between items-start">
+                      <div className="flex-1">
+                        <div className="text-sm text-white font-medium">
+                          {session.session_id.slice(0, 8)}...
                         </div>
-                        <div className="flex gap-1">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              loadSessionMessages(session.session_id);
-                            }}
-                            className="p-1 text-blue-400 hover:text-blue-300"
-                            title="Pogledaj poruke"
-                          >
-                            <FaEye size={14} />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              deleteSession(session.session_id);
-                            }}
-                            className="p-1 text-red-400 hover:text-red-300"
-                            title="Obriši sesiju"
-                          >
-                            <FaTrash size={14} />
-                          </button>
+                        <div className="text-xs text-blue-300">
+                          {session.message_count} poruka
+                        </div>
+                        <div className="text-xs text-gray-400">
+                          {formatDate(session.last_message)}
                         </div>
                       </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            loadSessionMessages(session.session_id);
+                          }}
+                          className="p-1 text-blue-400 hover:text-blue-300"
+                          title="Pogledaj poruke"
+                        >
+                          <FaEye size={14} />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteSession(session.session_id);
+                          }}
+                          className="p-1 text-red-400 hover:text-red-300"
+                          title="Obriši sesiju"
+                        >
+                          <FaTrash size={14} />
+                        </button>
+                      </div>
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
+            </div>
 
-              {/* Poruke izabrane sesije */}
-              <div className="flex-1 p-4">
-                <h4 className="text-sm font-medium text-blue-300 mb-3">
-                  Poruke {selectedSession ? `(${sessionMessages.length})` : ''}
-                </h4>
-                <div className="h-full overflow-y-auto space-y-2">
-                  {isLoading ? (
-                    <div className="text-center text-blue-300">Učitavanje...</div>
-                  ) : selectedSession ? (
-                    sessionMessages.map((message) => (
-                      <div
-                        key={message.id}
-                        className={`p-3 rounded-lg ${
-                          message.sender === 'user'
-                            ? 'bg-blue-900/30 border border-blue-700'
-                            : 'bg-gray-700/30 border border-gray-600'
-                        }`}
-                      >
-                        <div className="flex justify-between items-start mb-1">
-                          <span className={`text-xs font-medium ${
-                            message.sender === 'user' ? 'text-blue-300' : 'text-green-300'
-                          }`}>
-                            {message.sender === 'user' ? 'Vi' : 'AI'}
-                          </span>
-                          <span className="text-xs text-gray-400">
-                            {formatDate(message.timestamp)}
-                          </span>
-                        </div>
-                        <div className="text-sm text-white">
-                          {message.content.length > 100
-                            ? `${message.content.substring(0, 100)}...`
-                            : message.content}
-                        </div>
+            {/* Desna kolona: Poruke */}
+            <div className="flex-1 min-w-0 p-4 flex flex-col">
+              <h4 className="text-sm font-medium text-blue-300 mb-3">
+                Poruke {selectedSession ? `(${sessionMessages.length})` : ''}
+              </h4>
+              <div className="flex-1 overflow-y-auto space-y-2">
+                {isLoading ? (
+                  <div className="text-center text-blue-300">Učitavanje...</div>
+                ) : selectedSession ? (
+                  sessionMessages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={`p-3 rounded-lg ${
+                        message.sender === 'user'
+                          ? 'bg-blue-900/30 border border-blue-700'
+                          : 'bg-gray-700/30 border border-gray-600'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className={`text-xs font-medium ${
+                          message.sender === 'user' ? 'text-blue-300' : 'text-green-300'
+                        }`}>
+                          {message.sender === 'user' ? 'Vi' : 'AI'}
+                        </span>
+                        <span className="text-xs text-gray-400">
+                          {formatDate(message.timestamp)}
+                        </span>
                       </div>
-                    ))
-                  ) : (
-                    <div className="text-center text-gray-400 text-sm">
-                      Izaberite sesiju da vidite poruke
+                      <div className="text-sm text-white">
+                        {message.content.length > 100
+                          ? `${message.content.substring(0, 100)}...`
+                          : message.content}
+                      </div>
                     </div>
-                  )}
-                </div>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-400 text-sm">
+                    Izaberite sesiju da vidite poruke
+                  </div>
+                )}
               </div>
             </div>
           </div>
