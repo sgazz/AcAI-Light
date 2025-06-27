@@ -3,6 +3,7 @@ import PyPDF2
 from docx import Document
 from typing import List, Dict, Any
 import re
+import unicodedata
 from .config import Config
 
 class DocumentProcessor:
@@ -37,10 +38,13 @@ class DocumentProcessor:
                 for page_num, page in enumerate(pdf_reader.pages):
                     page_text = page.extract_text()
                     if page_text.strip():
+                        # Normalizuj tekst za bolje embedding
+                        normalized_text = self._normalize_text_for_embedding(page_text)
                         text_content.append({
                             'page': page_num + 1,
                             'content': page_text.strip(),
-                            'chunks': self._create_chunks(page_text, page_num + 1)
+                            'normalized_content': normalized_text,
+                            'chunks': self._create_chunks(normalized_text, page_num + 1)
                         })
                 
                 return {
@@ -73,10 +77,13 @@ class DocumentProcessor:
             
             for paragraph in paragraphs:
                 if current_chars + len(paragraph) > page_size and current_page:
+                    page_content = '\n'.join(current_page)
+                    normalized_content = self._normalize_text_for_embedding(page_content)
                     text_content.append({
                         'page': page_num,
-                        'content': '\n'.join(current_page),
-                        'chunks': self._create_chunks('\n'.join(current_page), page_num)
+                        'content': page_content,
+                        'normalized_content': normalized_content,
+                        'chunks': self._create_chunks(normalized_content, page_num)
                     })
                     current_page = [paragraph]
                     current_chars = len(paragraph)
@@ -87,10 +94,13 @@ class DocumentProcessor:
             
             # Dodaj poslednju stranicu
             if current_page:
+                page_content = '\n'.join(current_page)
+                normalized_content = self._normalize_text_for_embedding(page_content)
                 text_content.append({
                     'page': page_num,
-                    'content': '\n'.join(current_page),
-                    'chunks': self._create_chunks('\n'.join(current_page), page_num)
+                    'content': page_content,
+                    'normalized_content': normalized_content,
+                    'chunks': self._create_chunks(normalized_content, page_num)
                 })
             
             return {
@@ -109,7 +119,17 @@ class DocumentProcessor:
             with open(file_path, 'r', encoding='utf-8') as file:
                 content = file.read()
             
-            chunks = self._create_chunks(content, 1)
+            # Proveri da li je OCR tekst (sadrži OCR metadata)
+            is_ocr_text = self._is_ocr_text(content)
+            
+            if is_ocr_text:
+                # Posebna obrada za OCR tekst
+                normalized_content = self._normalize_ocr_text(content)
+            else:
+                # Obična normalizacija
+                normalized_content = self._normalize_text_for_embedding(content)
+            
+            chunks = self._create_chunks(normalized_content, 1)
             
             return {
                 'filename': os.path.basename(file_path),
@@ -118,12 +138,87 @@ class DocumentProcessor:
                 'pages': [{
                     'page': 1,
                     'content': content,
+                    'normalized_content': normalized_content,
                     'chunks': chunks
                 }],
                 'full_text': content
             }
         except Exception as e:
             raise Exception(f"Greška pri procesiranju TXT-a: {str(e)}")
+    
+    def _is_ocr_text(self, text: str) -> bool:
+        """Proverava da li je tekst OCR rezultat"""
+        ocr_indicators = [
+            'OCR rezultat',
+            'Confidence:',
+            'Jezici:',
+            'srp, eng',
+            'srp+eng'
+        ]
+        return any(indicator in text for indicator in ocr_indicators)
+    
+    def _normalize_ocr_text(self, text: str) -> str:
+        """Normalizuje OCR tekst za bolje embedding"""
+        # Razdvoji metadata od teksta
+        lines = text.split('\n')
+        metadata_end = 0
+        
+        for i, line in enumerate(lines):
+            if line.startswith('-' * 50):
+                metadata_end = i + 1
+                break
+        
+        # Uzmi samo OCR tekst (nakon metadata)
+        ocr_text = '\n'.join(lines[metadata_end:])
+        
+        # Normalizuj OCR tekst
+        normalized = self._normalize_text_for_embedding(ocr_text)
+        
+        # Dodaj ključne reči iz metadata za bolje pretraživanje
+        metadata_keywords = []
+        for line in lines[:metadata_end]:
+            if 'Confidence:' in line:
+                confidence = re.search(r'Confidence: ([\d.]+)', line)
+                if confidence:
+                    metadata_keywords.append(f"confidence_{confidence.group(1)}")
+            elif 'Jezici:' in line:
+                languages = re.search(r'Jezici: (.+)', line)
+                if languages:
+                    lang_list = languages.group(1).split(', ')
+                    metadata_keywords.extend(lang_list)
+        
+        # Dodaj ključne reči na početak
+        if metadata_keywords:
+            normalized = f"{' '.join(metadata_keywords)} {normalized}"
+        
+        return normalized
+    
+    def _normalize_text_for_embedding(self, text: str) -> str:
+        """Normalizuje tekst za bolje embedding prepoznavanje"""
+        # 1. Normalizuj Unicode karaktere
+        text = unicodedata.normalize('NFKC', text)
+        
+        # 2. Zameni srpska slova sa latiničnim ekvivalentima za bolje embedding
+        serbian_mapping = {
+            'č': 'c', 'ć': 'c', 'đ': 'd', 'š': 's', 'ž': 'z',
+            'Č': 'C', 'Ć': 'C', 'Đ': 'D', 'Š': 'S', 'Ž': 'Z'
+        }
+        
+        for serbian, latin in serbian_mapping.items():
+            text = text.replace(serbian, latin)
+        
+        # 3. Dodaj originalne srpske reči kao dodatne ključne reči
+        original_words = text.split()
+        serbian_words = [word for word in original_words if any(c in 'čćđšžČĆĐŠŽ' for c in word)]
+        
+        # 4. Normalizuj tekst
+        text = self.clean_text(text)
+        
+        # 5. Dodaj originalne srpske reči na početak za bolje pretraživanje
+        if serbian_words:
+            text = f"{' '.join(serbian_words)} {text}"
+        
+        return text
     
     def _create_chunks(self, text: str, page_num: int, chunk_size: int = None, overlap: int = None) -> List[Dict[str, Any]]:
         """Kreira chunke teksta sa overlap-om"""
