@@ -22,6 +22,9 @@ interface Message {
     content: string;
     rerank_score?: number;
     original_score?: number;
+    file_type: string;
+    page_number: number;
+    chunk_index: number;
   }>;
   used_rag?: boolean;
   reranking_applied?: boolean;
@@ -310,6 +313,12 @@ export default function ChatBox() {
     console.log(`Reaction ${reaction} za poruku ${messageId}`);
   };
 
+  const handleSourceClick = (source: any) => {
+    console.log('Source clicked:', source);
+    // Ovde bi mogli da implementiramo prikaz detalja izvora
+    showSuccess(`Prikazan izvor: ${source.filename}`, 'Izvor');
+  };
+
   return (
     <div className="flex flex-col h-full bg-[var(--bg-secondary)] rounded-2xl p-4 shadow-lg border border-[var(--border-color)]">
       {/* RAG & Enhanced Context Toggle Header */}
@@ -511,6 +520,7 @@ export default function ChatBox() {
                   <SourcesDisplay 
                     sources={msg.sources} 
                     isVisible={true} 
+                    onSourceClick={handleSourceClick}
                   />
                 </div>
               )}

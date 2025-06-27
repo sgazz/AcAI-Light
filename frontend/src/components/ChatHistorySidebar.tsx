@@ -1,10 +1,11 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { FaHistory, FaTrash, FaEye, FaTimes, FaSearch, FaFilter, FaCalendar, FaSort } from 'react-icons/fa';
+import { FaHistory, FaTrash, FaEye, FaTimes, FaSearch, FaFilter, FaCalendar, FaSort, FaDownload } from 'react-icons/fa';
 import { formatDate } from '../utils/dateUtils';
 import { CHAT_SESSIONS_ENDPOINT, CHAT_HISTORY_ENDPOINT, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
+import ExportModal from './ExportModal';
 
 interface Session {
   session_id: string;
@@ -43,6 +44,9 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
     start: '',
     end: ''
   });
+  
+  // Export state
+  const [showExportModal, setShowExportModal] = useState(false);
   
   const { showError, showSuccess } = useErrorToast();
 
@@ -184,6 +188,19 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
     setFilterOption('all');
     setSortOption('date-desc');
     setCustomDateRange({ start: '', end: '' });
+  };
+
+  const handleExport = () => {
+    if (!selectedSession || sessionMessages.length === 0) {
+      showError('Izaberite sesiju sa porukama za export', 'Export greška');
+      return;
+    }
+    setShowExportModal(true);
+  };
+
+  const getSelectedSessionData = () => {
+    if (!selectedSession) return null;
+    return sessions.find(s => s.session_id === selectedSession) || null;
   };
 
   return (
@@ -387,9 +404,21 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
 
             {/* Desna kolona: Poruke */}
             <div className="flex-1 min-w-0 p-4 flex flex-col">
-              <h4 className="text-sm font-medium text-[var(--accent-blue)] mb-3">
-                Poruke {selectedSession ? `(${sessionMessages.length})` : ''}
-              </h4>
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium text-[var(--accent-blue)]">
+                  Poruke {selectedSession ? `(${sessionMessages.length})` : ''}
+                </h4>
+                {selectedSession && sessionMessages.length > 0 && (
+                  <button
+                    onClick={handleExport}
+                    className="flex items-center gap-1 px-2 py-1 bg-[var(--accent-green)]/20 text-[var(--accent-green)] rounded hover:bg-[var(--accent-green)]/30 transition-colors text-sm"
+                    title="Export chat history"
+                  >
+                    <FaDownload size={12} />
+                    Export
+                  </button>
+                )}
+              </div>
               <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
                 {isLoading ? (
                   <div className="text-center text-[var(--accent-blue)]">Učitavanje...</div>
@@ -430,6 +459,14 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
           </div>
         </div>
       </div>
+
+      {/* Export Modal */}
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        session={getSelectedSessionData()}
+        messages={sessionMessages}
+      />
     </>
   );
 } 
