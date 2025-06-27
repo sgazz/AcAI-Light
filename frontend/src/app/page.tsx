@@ -22,6 +22,11 @@ export default function Home() {
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const { toasts, showError, showSuccess, showInfo } = useToast();
 
+  // Debug selectedMenu promene
+  useEffect(() => {
+    console.log('Page: selectedMenu promenjen na:', selectedMenu);
+  }, [selectedMenu]);
+
   useEffect(() => {
     fetch(HEALTH_CHECK_ENDPOINT)
       .then(res => res.json())
@@ -77,8 +82,18 @@ export default function Home() {
   useKeyboardShortcuts(shortcuts);
 
   const renderContent = () => {
+    console.log('Page: selectedMenu =', selectedMenu);
     switch (selectedMenu) {
+      case 0: // Active Recall (Chat)
+        console.log('Page: Renderujem ChatBox + ChatHistory');
+        return (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+            <ChatBox />
+            <ChatHistory />
+          </div>
+        );
       case 8: // Dokumenti
+        console.log('Page: Renderujem Dokumenti');
         return (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
             <DocumentUpload onDocumentUploaded={handleDocumentUploaded} />
@@ -86,6 +101,7 @@ export default function Home() {
           </div>
         );
       default:
+        console.log('Page: Renderujem default ChatBox');
         return <ChatBox />;
     }
   };
@@ -99,7 +115,6 @@ export default function Home() {
           <main className="flex-1 overflow-hidden">
             {renderContent()}
           </main>
-          {selectedMenu === 0 && <ChatHistory />}
         </div>
         <TestErrorHandling />
       </div>

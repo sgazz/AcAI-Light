@@ -28,18 +28,22 @@ export default function ChatHistory() {
   const { showError, showSuccess } = useErrorToast();
 
   useEffect(() => {
+    console.log('ChatHistory: Komponenta se učitava');
     loadSessions();
   }, []);
 
   const loadSessions = async () => {
+    console.log('ChatHistory: Pozivam loadSessions');
     try {
       const data = await apiRequest(CHAT_SESSIONS_ENDPOINT);
+      console.log('ChatHistory: API odgovor:', data);
       if (data.status === 'success') {
         setSessions(data.sessions);
       } else {
         throw new Error(data.message || 'Greška pri učitavanju sesija');
       }
     } catch (error: any) {
+      console.error('ChatHistory: Greška pri učitavanju sesija:', error);
       showError(
         error.message || 'Greška pri učitavanju sesija',
         'Greška učitavanja',

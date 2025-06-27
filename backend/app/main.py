@@ -16,6 +16,7 @@ from datetime import datetime
 import json
 from fastapi import WebSocket
 from fastapi import WebSocketDisconnect
+from sqlalchemy import text
 
 # Učitaj environment varijable
 load_dotenv()
@@ -216,7 +217,7 @@ async def create_new_session():
 async def get_sessions(db: Session = Depends(get_db)):
     try:
         # Dohvati sve sesije sa brojem poruka i vremenom
-        result = db.execute("""
+        result = db.execute(text("""
             SELECT 
                 session_id,
                 COUNT(*) as message_count,
@@ -225,7 +226,7 @@ async def get_sessions(db: Session = Depends(get_db)):
             FROM chat_messages 
             GROUP BY session_id
             ORDER BY last_message DESC
-        """).fetchall()
+        """)).fetchall()
         
         sessions = [
             {
