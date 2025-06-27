@@ -100,12 +100,19 @@ body {
 
 /* Typing indicator */
 @keyframes typing {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-4px); }
+  0%, 100% { 
+    transform: translateY(0); 
+    opacity: 0.7;
+  }
+  50% { 
+    transform: translateY(-6px); 
+    opacity: 1;
+  }
 }
 
 .typing-dot {
-  animation: typing 1.4s infinite ease-in-out;
+  animation: typing 1.4s infinite ease-in-out !important;
+  background-color: var(--accent-blue) !important;
 }
 
 .typing-dot:nth-child(1) { animation-delay: 0s; }

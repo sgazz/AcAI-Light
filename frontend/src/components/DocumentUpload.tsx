@@ -205,7 +205,17 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
     }));
     
     setUploads(prev => [...prev, ...newUploads]);
-  }, []);
+    
+    // Automatski pokreni upload
+    setIsUploading(true);
+    for (const file of files) {
+      await uploadDocument(file);
+    }
+    setIsUploading(false);
+    
+    // Resetuj file input
+    e.target.value = '';
+  }, [uploadDocument]);
 
   const handleFileSelectFromDrop = useCallback(async (files: FileList) => {
     // Dodaj fajlove u uploads state
@@ -217,7 +227,14 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
     }));
     
     setUploads(prev => [...prev, ...newUploads]);
-  }, []);
+    
+    // Automatski pokreni upload
+    setIsUploading(true);
+    for (const file of files) {
+      await uploadDocument(file);
+    }
+    setIsUploading(false);
+  }, [uploadDocument]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -285,7 +302,22 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
     
     for (const upload of uploads) {
       if (upload.status === 'uploading') {
-        await uploadDocument(upload.file);
+        try {
+          await uploadDocument(upload.file);
+          // Ažuriraj status na success
+          setUploads(prev => prev.map(u => 
+            u.id === upload.id 
+              ? { ...u, status: 'success' as const }
+              : u
+          ));
+        } catch (error: any) {
+          // Ažuriraj status na error
+          setUploads(prev => prev.map(u => 
+            u.id === upload.id 
+              ? { ...u, status: 'error' as const, error: error.message || 'Nepoznata greška' }
+              : u
+          ));
+        }
       }
     }
     
@@ -539,10 +571,10 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
           </div>
 
           {/* Upload Button */}
-          {isUploading && (
+          {uploads.length > 0 && (
             <div className="flex gap-3">
               <button
-                onClick={() => {}}
+                onClick={startUpload}
                 disabled={isUploading}
                 className="flex-1 px-6 py-3 bg-[var(--accent-blue)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-blue)]/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
@@ -556,7 +588,7 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
                 )}
               </button>
               <button
-                onClick={() => {}}
+                onClick={clearUploads}
                 className="px-6 py-3 bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors"
               >
                 Obriši sve

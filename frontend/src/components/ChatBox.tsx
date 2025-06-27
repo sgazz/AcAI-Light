@@ -293,7 +293,10 @@ export default function ChatBox() {
         () => handleSendMessage()
       );
     } finally {
-      setIsLoading(false);
+      // Dodaj malo kašnjenja da se TypingIndicator vidi
+      setTimeout(() => {
+        setIsLoading(false);
+      }, 500);
     }
   };
 
