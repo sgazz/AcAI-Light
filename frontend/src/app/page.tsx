@@ -11,12 +11,10 @@ import { useKeyboardShortcuts, SHORTCUTS } from '../hooks/useKeyboardShortcuts';
 import { useEffect, useState } from 'react';
 import ErrorToast from '../components/ErrorToast';
 import { HEALTH_CHECK_ENDPOINT } from '../utils/api';
-import ChatHistory from '../components/ChatHistory';
 import { OfflineDetector } from '../components/OfflineDetector';
 import TestErrorHandling from '../components/TestErrorHandling';
 
 export default function Home() {
-  const [apiMsg, setApiMsg] = useState('');
   const [selectedMenu, setSelectedMenu] = useState(8); // Dokumenti
   const [refreshDocuments, setRefreshDocuments] = useState(0); // Key za osvežavanje DocumentList
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
@@ -30,9 +28,11 @@ export default function Home() {
   useEffect(() => {
     fetch(HEALTH_CHECK_ENDPOINT)
       .then(res => res.json())
-      .then(data => setApiMsg(data.message))
+      .then(data => {
+        console.log('Page: API response:', data);
+      })
       .catch(() => {
-        setApiMsg('Greška u povezivanju sa backendom!');
+        console.error('Page: Greška u povezivanju sa backendom!');
         showError('Nije moguće povezati se sa backend serverom', 'Povezivanje');
       });
   }, [showError]);
@@ -85,13 +85,8 @@ export default function Home() {
     console.log('Page: selectedMenu =', selectedMenu);
     switch (selectedMenu) {
       case 0: // Active Recall (Chat)
-        console.log('Page: Renderujem ChatBox + ChatHistory');
-        return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-            <ChatBox />
-            <ChatHistory />
-          </div>
-        );
+        console.log('Page: Renderujem ChatBox (sa sidebar istorijom)');
+        return <ChatBox />;
       case 8: // Dokumenti
         console.log('Page: Renderujem Dokumenti');
         return (

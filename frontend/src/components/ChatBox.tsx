@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { FaGraduationCap, FaToggleOn, FaToggleOff, FaBook, FaKeyboard } from 'react-icons/fa';
+import { FaGraduationCap, FaToggleOn, FaToggleOff, FaBook, FaKeyboard, FaHistory } from 'react-icons/fa';
 import SourcesDisplay from './SourcesDisplay';
+import ChatHistorySidebar from './ChatHistorySidebar';
 import { CHAT_NEW_SESSION_ENDPOINT, CHAT_RAG_ENDPOINT, CHAT_RAG_ENHANCED_CONTEXT_ENDPOINT, QUERY_ENHANCE_ENDPOINT, FACT_CHECK_VERIFY_ENDPOINT, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
 
@@ -57,6 +58,7 @@ export default function ChatBox() {
   const [useFactChecking, setUseFactChecking] = useState(false);
   const [lastContextAnalysis, setLastContextAnalysis] = useState<any>(null);
   const [queryHistory, setQueryHistory] = useState<Array<{original: string, enhanced: string, timestamp: string}>>([]);
+  const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const { showError, showSuccess, showWarning } = useErrorToast();
 
@@ -293,6 +295,16 @@ export default function ChatBox() {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          {/* History Button */}
+          <button
+            onClick={() => setIsHistorySidebarOpen(true)}
+            className="flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-600 hover:bg-blue-700 transition-colors text-white text-sm"
+            title="Prikaži istoriju razgovora"
+          >
+            <FaHistory size={14} />
+            <span>Istorija</span>
+          </button>
+          
           {/* Query Rewriting Toggle */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-400">Query Rewriting</span>
@@ -558,6 +570,12 @@ export default function ChatBox() {
           </svg>
         </button>
       </form>
+      
+      {/* ChatHistory Sidebar */}
+      <ChatHistorySidebar 
+        isOpen={isHistorySidebarOpen}
+        onClose={() => setIsHistorySidebarOpen(false)}
+      />
     </div>
   );
 } 
