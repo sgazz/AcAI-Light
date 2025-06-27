@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { FaHistory, FaTrash, FaEye, FaTimes } from 'react-icons/fa';
+import { useState, useEffect, useMemo } from 'react';
+import { FaHistory, FaTrash, FaEye, FaTimes, FaSearch, FaFilter, FaCalendar, FaSort } from 'react-icons/fa';
 import { formatDate } from '../utils/dateUtils';
 import { CHAT_SESSIONS_ENDPOINT, CHAT_HISTORY_ENDPOINT, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
@@ -25,11 +25,25 @@ interface ChatHistorySidebarProps {
   onClose: () => void;
 }
 
+type SortOption = 'date-desc' | 'date-asc' | 'messages-desc' | 'messages-asc';
+type FilterOption = 'all' | 'today' | 'week' | 'month' | 'custom';
+
 export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySidebarProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [sessionMessages, setSessionMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterOption, setFilterOption] = useState<FilterOption>('all');
+  const [sortOption, setSortOption] = useState<SortOption>('date-desc');
+  const [showFilters, setShowFilters] = useState(false);
+  const [customDateRange, setCustomDateRange] = useState({
+    start: '',
+    end: ''
+  });
+  
   const { showError, showSuccess } = useErrorToast();
 
   useEffect(() => {
@@ -38,6 +52,61 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
       loadSessions();
     }
   }, [isOpen]);
+
+  // Filtriranje i sortiranje sesija
+  const filteredAndSortedSessions = useMemo(() => {
+    let filtered = sessions.filter(session => {
+      // Search filter
+      const matchesSearch = searchQuery === '' || 
+        session.session_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        session.first_message.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        session.last_message.toLowerCase().includes(searchQuery.toLowerCase());
+
+      if (!matchesSearch) return false;
+
+      // Date filter
+      const sessionDate = new Date(session.last_message);
+      const now = new Date();
+      
+      switch (filterOption) {
+        case 'today':
+          return sessionDate.toDateString() === now.toDateString();
+        case 'week':
+          const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          return sessionDate >= weekAgo;
+        case 'month':
+          const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          return sessionDate >= monthAgo;
+        case 'custom':
+          if (customDateRange.start && customDateRange.end) {
+            const startDate = new Date(customDateRange.start);
+            const endDate = new Date(customDateRange.end);
+            return sessionDate >= startDate && sessionDate <= endDate;
+          }
+          return true;
+        default:
+          return true;
+      }
+    });
+
+    // Sortiranje
+    filtered.sort((a, b) => {
+      switch (sortOption) {
+        case 'date-desc':
+          return new Date(b.last_message).getTime() - new Date(a.last_message).getTime();
+        case 'date-asc':
+          return new Date(a.last_message).getTime() - new Date(b.last_message).getTime();
+        case 'messages-desc':
+          return b.message_count - a.message_count;
+        case 'messages-asc':
+          return a.message_count - b.message_count;
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [sessions, searchQuery, filterOption, sortOption, customDateRange]);
 
   const loadSessions = async () => {
     console.log('ChatHistorySidebar: Pozivam loadSessions');
@@ -110,6 +179,13 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
     }
   };
 
+  const clearFilters = () => {
+    setSearchQuery('');
+    setFilterOption('all');
+    setSortOption('date-desc');
+    setCustomDateRange({ start: '', end: '' });
+  };
+
   return (
     <>
       {/* Overlay */}
@@ -140,61 +216,172 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
             </button>
           </div>
 
+          {/* Search & Filter Bar */}
+          <div className="p-4 border-b border-[var(--border-color)] space-y-3">
+            {/* Search Box */}
+            <div className="relative">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--text-muted)]" size={14} />
+              <input
+                type="text"
+                placeholder="Pretraži sesije..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none focus:border-[var(--accent-blue)] transition-colors"
+              />
+            </div>
+
+            {/* Filter Controls */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`flex items-center gap-2 px-3 py-1 rounded-lg transition-colors ${
+                  showFilters 
+                    ? 'bg-[var(--accent-blue)] text-white' 
+                    : 'bg-[var(--bg-tertiary)] text-[var(--text-primary)] hover:bg-[var(--accent-blue)]/20'
+                }`}
+              >
+                <FaFilter size={14} />
+                <span className="text-sm">Filter</span>
+              </button>
+
+              <select
+                value={sortOption}
+                onChange={(e) => setSortOption(e.target.value as SortOption)}
+                className="px-3 py-1 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-lg text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-blue)] transition-colors"
+              >
+                <option value="date-desc">Najnovije prvo</option>
+                <option value="date-asc">Najstarije prvo</option>
+                <option value="messages-desc">Najviše poruka</option>
+                <option value="messages-asc">Najmanje poruka</option>
+              </select>
+
+              {(searchQuery || filterOption !== 'all') && (
+                <button
+                  onClick={clearFilters}
+                  className="px-3 py-1 bg-[var(--accent-red)]/20 text-[var(--accent-red)] rounded-lg hover:bg-[var(--accent-red)]/30 transition-colors text-sm"
+                >
+                  Očisti
+                </button>
+              )}
+            </div>
+
+            {/* Advanced Filters */}
+            {showFilters && (
+              <div className="space-y-3 p-3 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)]">
+                <div className="flex items-center gap-2">
+                  <FaCalendar size={14} className="text-[var(--accent-blue)]" />
+                  <span className="text-sm font-medium text-[var(--text-primary)]">Filter po datumu:</span>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2">
+                  {(['all', 'today', 'week', 'month'] as FilterOption[]).map((option) => (
+                    <button
+                      key={option}
+                      onClick={() => setFilterOption(option)}
+                      className={`px-3 py-1 rounded text-sm transition-colors ${
+                        filterOption === option
+                          ? 'bg-[var(--accent-blue)] text-white'
+                          : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] hover:bg-[var(--accent-blue)]/20'
+                      }`}
+                    >
+                      {option === 'all' && 'Sve'}
+                      {option === 'today' && 'Danas'}
+                      {option === 'week' && 'Nedelja'}
+                      {option === 'month' && 'Mesec'}
+                    </button>
+                  ))}
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm text-[var(--text-primary)]">Prilagođeni period:</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="date"
+                      value={customDateRange.start}
+                      onChange={(e) => setCustomDateRange(prev => ({ ...prev, start: e.target.value }))}
+                      className="px-2 py-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-blue)]"
+                    />
+                    <input
+                      type="date"
+                      value={customDateRange.end}
+                      onChange={(e) => setCustomDateRange(prev => ({ ...prev, end: e.target.value }))}
+                      className="px-2 py-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-blue)]"
+                    />
+                  </div>
+                  {customDateRange.start && customDateRange.end && (
+                    <button
+                      onClick={() => setFilterOption('custom')}
+                      className="w-full px-3 py-1 bg-[var(--accent-green)]/20 text-[var(--accent-green)] rounded hover:bg-[var(--accent-green)]/30 transition-colors text-sm"
+                    >
+                      Primeni prilagođeni filter
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Dvokolonski prikaz */}
           <div className="flex-1 flex flex-row min-h-0">
             {/* Leva kolona: Sesije */}
             <div className="flex-1 min-w-0 border-r border-[var(--border-color)] p-4 flex flex-col">
               <h4 className="text-sm font-medium text-[var(--accent-blue)] mb-3">
-                Sesije ({sessions.length})
+                Sesije ({filteredAndSortedSessions.length} od {sessions.length})
               </h4>
               <div className="flex-1 overflow-y-auto space-y-2 custom-scrollbar">
-                {sessions.map((session) => (
-                  <div
-                    key={session.session_id}
-                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedSession === session.session_id
-                        ? 'border-[var(--accent-blue)] bg-[var(--accent-blue)]/20'
-                        : 'border-[var(--border-color)] hover:border-[var(--accent-blue)]'
-                    }`}
-                    onClick={() => loadSessionMessages(session.session_id)}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="flex-1">
-                        <div className="text-sm text-[var(--text-primary)] font-medium">
-                          {session.session_id.slice(0, 8)}...
+                {filteredAndSortedSessions.length === 0 ? (
+                  <div className="text-center text-[var(--text-muted)] py-8">
+                    {searchQuery || filterOption !== 'all' ? 'Nema rezultata za vašu pretragu' : 'Nema sesija'}
+                  </div>
+                ) : (
+                  filteredAndSortedSessions.map((session) => (
+                    <div
+                      key={session.session_id}
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                        selectedSession === session.session_id
+                          ? 'border-[var(--accent-blue)] bg-[var(--accent-blue)]/20'
+                          : 'border-[var(--border-color)] hover:border-[var(--accent-blue)]'
+                      }`}
+                      onClick={() => loadSessionMessages(session.session_id)}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="text-sm text-[var(--text-primary)] font-medium">
+                            {session.session_id.slice(0, 8)}...
+                          </div>
+                          <div className="text-xs text-[var(--accent-blue)]">
+                            {session.message_count} poruka
+                          </div>
+                          <div className="text-xs text-[var(--text-muted)]">
+                            {formatDate(session.last_message)}
+                          </div>
                         </div>
-                        <div className="text-xs text-[var(--accent-blue)]">
-                          {session.message_count} poruka
+                        <div className="flex gap-1">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              loadSessionMessages(session.session_id);
+                            }}
+                            className="p-1 text-[var(--accent-blue)] hover:text-[var(--accent-blue)]/80"
+                            title="Pogledaj poruke"
+                          >
+                            <FaEye size={14} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              deleteSession(session.session_id);
+                            }}
+                            className="p-1 text-[var(--accent-red)] hover:text-[var(--accent-red)]/80"
+                            title="Obriši sesiju"
+                          >
+                            <FaTrash size={14} />
+                          </button>
                         </div>
-                        <div className="text-xs text-[var(--text-muted)]">
-                          {formatDate(session.last_message)}
-                        </div>
-                      </div>
-                      <div className="flex gap-1">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            loadSessionMessages(session.session_id);
-                          }}
-                          className="p-1 text-[var(--accent-blue)] hover:text-[var(--accent-blue)]/80"
-                          title="Pogledaj poruke"
-                        >
-                          <FaEye size={14} />
-                        </button>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteSession(session.session_id);
-                          }}
-                          className="p-1 text-[var(--accent-red)] hover:text-[var(--accent-red)]/80"
-                          title="Obriši sesiju"
-                        >
-                          <FaTrash size={14} />
-                        </button>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </div>
 
