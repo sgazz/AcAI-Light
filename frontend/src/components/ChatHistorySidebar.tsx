@@ -214,7 +214,7 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
       )}
       
       {/* Premium Sidebar sa Glassmorphism */}
-      <div className={`fixed top-0 right-0 h-full w-1/2 bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl shadow-2xl border-l border-white/10 transform transition-all duration-500 ease-out z-50 ${
+      <div className={`fixed top-0 right-0 h-full w-3/4 bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl shadow-2xl border-l border-white/10 transform transition-all duration-500 ease-out z-50 ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
         <div className="flex flex-col h-full relative overflow-hidden">
