@@ -14,7 +14,7 @@ import { useEffect, useState } from 'react';
 import ErrorToast from '../components/ErrorToast';
 import { HEALTH_CHECK_ENDPOINT } from '../utils/api';
 import { OfflineDetector } from '../components/OfflineDetector';
-import TestErrorHandling from '../components/TestErrorHandling';
+import FileSharing from '../components/FileHandling/FileSharing';
 
 export default function Home() {
   const [selectedMenu, setSelectedMenu] = useState(0);
@@ -192,11 +192,55 @@ export default function Home() {
         return (
           <div className="h-full flex flex-col">
             <div className="flex-1 p-6">
-              <h2 className="text-2xl font-bold mb-4">Dokumenti</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <DocumentUpload />
-                <DocumentList />
+              <div className="mb-6">
+                <h2 className="text-2xl font-bold mb-2">Dokumenti</h2>
+                <p className="text-gray-300">Upload, pregled i upravljanje dokumentima</p>
               </div>
+              
+              {/* File Handling Section */}
+              <div className="mb-8">
+                <h3 className="text-lg font-semibold mb-4 text-blue-300">📁 File Handling</h3>
+                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
+                  <FileSharing
+                    onFileUpload={(files: File[]) => {
+                      console.log('Files uploaded:', files);
+                      showSuccess(`${files.length} fajlova uspešno uploadovano`, 'Upload');
+                    }}
+                    onFileRemove={(fileId: string) => {
+                      console.log('File removed:', fileId);
+                      showInfo('Fajl uklonjen', 'File Management');
+                    }}
+                    maxFiles={10}
+                    maxSize={50}
+                    acceptedTypes={[
+                      'image/*', 
+                      'application/pdf', 
+                      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                      'text/*',
+                      'application/json',
+                      'application/xml'
+                    ]}
+                  />
+                </div>
+              </div>
+              
+              {/* Existing Document Management */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-green-300">📋 Document Management</h3>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <DocumentUpload />
+                  <DocumentList />
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      case 9:
+        return (
+          <div className="h-full flex flex-col">
+            <div className="flex-1 p-6">
+              <h2 className="text-2xl font-bold mb-4">Dodatne Funkcionalnosti</h2>
+              <p className="text-gray-300">Dodatne funkcionalnosti će biti implementirane ovde.</p>
             </div>
           </div>
         );
@@ -215,30 +259,29 @@ export default function Home() {
             {renderContent()}
           </main>
         </div>
-        <TestErrorHandling />
-      </div>
 
-      {/* Toast notifications */}
-      <div className="fixed top-4 right-4 z-50 space-y-2">
-        {toasts.map(toast => (
-          <ErrorToast
-            key={toast.id}
-            type={toast.type}
-            message={toast.message}
-            title={toast.title}
-            duration={toast.duration}
-            onClose={toast.onClose}
-            showRetry={toast.showRetry}
-            onRetry={toast.onRetry}
-          />
-        ))}
-      </div>
+        {/* Toast notifications */}
+        <div className="fixed top-4 right-4 z-50 space-y-2">
+          {toasts.map(toast => (
+            <ErrorToast
+              key={toast.id}
+              type={toast.type}
+              message={toast.message}
+              title={toast.title}
+              duration={toast.duration}
+              onClose={toast.onClose}
+              showRetry={toast.showRetry}
+              onRetry={toast.onRetry}
+            />
+          ))}
+        </div>
 
-      {/* Keyboard shortcuts help */}
-      <KeyboardShortcutsHelp 
-        isOpen={showShortcutsHelp} 
-        onClose={() => setShowShortcutsHelp(false)} 
-      />
+        {/* Keyboard shortcuts help */}
+        <KeyboardShortcutsHelp 
+          isOpen={showShortcutsHelp} 
+          onClose={() => setShowShortcutsHelp(false)} 
+        />
+      </div>
     </ErrorBoundary>
   );
 }
