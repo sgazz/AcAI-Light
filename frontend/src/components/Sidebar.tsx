@@ -1,6 +1,6 @@
 'use client';
 
-import { FaGraduationCap, FaMicrophone, FaUsers, FaRegLightbulb, FaProjectDiagram, FaBook, FaSuitcase, FaFileAlt } from 'react-icons/fa';
+import { FaGraduationCap, FaMicrophone, FaUsers, FaRegLightbulb, FaProjectDiagram, FaBook, FaSuitcase, FaFileAlt, FaTachometerAlt } from 'react-icons/fa';
 import { MdQuiz } from 'react-icons/md';
 import { HiOutlineDocumentText } from 'react-icons/hi';
 
@@ -19,6 +19,7 @@ const menu = [
   { icon: <div><FaBook size={20} /></div>, label: 'Study Journal' },
   { icon: <div><FaSuitcase size={20} /></div>, label: 'Career Guidance' },
   { icon: <div><FaFileAlt size={20} /></div>, label: 'Dokumenti' },
+  { icon: <div><FaTachometerAlt size={20} /></div>, label: 'Performance Test' },
 ];
 
 export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {

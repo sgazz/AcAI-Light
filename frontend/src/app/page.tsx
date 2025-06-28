@@ -15,6 +15,7 @@ import ErrorToast from '../components/ErrorToast';
 import { HEALTH_CHECK_ENDPOINT } from '../utils/api';
 import { OfflineDetector } from '../components/OfflineDetector';
 import FileSharing from '../components/FileHandling/FileSharing';
+import VirtualScrollTest from '../components/Performance/VirtualScrollTest';
 
 export default function Home() {
   const [selectedMenu, setSelectedMenu] = useState(0);
@@ -236,14 +237,7 @@ export default function Home() {
           </div>
         );
       case 9:
-        return (
-          <div className="h-full flex flex-col">
-            <div className="flex-1 p-6">
-              <h2 className="text-2xl font-bold mb-4">Dodatne Funkcionalnosti</h2>
-              <p className="text-gray-300">Dodatne funkcionalnosti će biti implementirane ovde.</p>
-            </div>
-          </div>
-        );
+        return <VirtualScrollTest />;
       default:
         return <ChatBox />;
     }
