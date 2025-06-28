@@ -23,7 +23,7 @@ const menu = [
 
 export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
   return (
-    <aside className="flex flex-col justify-between h-full w-64 relative overflow-hidden">
+    <aside className="flex flex-col justify-between h-full w-80 relative overflow-hidden">
       {/* Premium Glassmorphism Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-white/10"></div>
       
