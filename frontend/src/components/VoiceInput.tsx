@@ -53,7 +53,7 @@ declare var SpeechRecognition: {
 };
 
 import { useState, useEffect, useRef } from 'react';
-import { FaMicrophone, FaMicrophoneSlash, FaVolumeUp, FaVolumeMute } from 'react-icons/fa';
+import { FaMicrophone, FaMicrophoneSlash, FaVolumeUp, FaVolumeMute, FaGlobe } from 'react-icons/fa';
 import { useErrorToast } from './ErrorToastProvider';
 
 interface VoiceInputProps {
@@ -63,7 +63,29 @@ interface VoiceInputProps {
   isEnabled?: boolean;
   showTTS?: boolean;
   onTTSChange?: (enabled: boolean) => void;
+  defaultLanguage?: string;
 }
+
+type Language = {
+  code: string;
+  name: string;
+  nativeName: string;
+};
+
+const SUPPORTED_LANGUAGES: Language[] = [
+  { code: 'sr-RS', name: 'Serbian', nativeName: 'Српски' },
+  { code: 'en-US', name: 'English (US)', nativeName: 'English' },
+  { code: 'en-GB', name: 'English (UK)', nativeName: 'English' },
+  { code: 'de-DE', name: 'German', nativeName: 'Deutsch' },
+  { code: 'fr-FR', name: 'French', nativeName: 'Français' },
+  { code: 'es-ES', name: 'Spanish', nativeName: 'Español' },
+  { code: 'it-IT', name: 'Italian', nativeName: 'Italiano' },
+  { code: 'pt-BR', name: 'Portuguese (Brazil)', nativeName: 'Português' },
+  { code: 'ru-RU', name: 'Russian', nativeName: 'Русский' },
+  { code: 'ja-JP', name: 'Japanese', nativeName: '日本語' },
+  { code: 'ko-KR', name: 'Korean', nativeName: '한국어' },
+  { code: 'zh-CN', name: 'Chinese (Simplified)', nativeName: '中文' },
+];
 
 export default function VoiceInput({ 
   onTranscript, 
@@ -71,7 +93,8 @@ export default function VoiceInput({
   onStop, 
   isEnabled = true,
   showTTS = true,
-  onTTSChange 
+  onTTSChange,
+  defaultLanguage = 'sr-RS'
 }: VoiceInputProps) {
   const [isListening, setIsListening] = useState(false);
   const [isTTSEnabled, setIsTTSEnabled] = useState(false);
@@ -81,6 +104,9 @@ export default function VoiceInput({
   const [tts, setTts] = useState<any>(null);
   const [isSupported, setIsSupported] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
+  const [selectedLanguage, setSelectedLanguage] = useState(defaultLanguage);
+  const [showLanguageSelector, setShowLanguageSelector] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const microphoneRef = useRef<MediaStreamAudioSourceNode | null>(null);
@@ -89,18 +115,32 @@ export default function VoiceInput({
   // Inicijalizacija Web Speech API
   useEffect(() => {
     const initSpeechRecognition = () => {
-      const SpeechRecognition = window.SpeechRecognition || (window as any).webkitSpeechRecognition;
-      
-      if (SpeechRecognition) {
+      try {
+        // Proveri da li je u browser environment
+        if (typeof window === 'undefined') {
+          setIsSupported(false);
+          setError('Web Speech API nije dostupan u server environment');
+          return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        
+        if (!SpeechRecognition) {
+          setIsSupported(false);
+          setError('Web Speech API nije podržan u ovom browseru. Pokušajte sa Chrome, Edge ili Safari.');
+          return;
+        }
+
         const recognitionInstance = new SpeechRecognition();
         recognitionInstance.continuous = true;
         recognitionInstance.interimResults = true;
-        recognitionInstance.lang = 'sr-RS'; // Srpski jezik
+        recognitionInstance.lang = selectedLanguage;
         
         recognitionInstance.onstart = () => {
           setIsListening(true);
           setTranscript('');
           setInterimTranscript('');
+          setError(null);
           onStart?.();
           showSuccess('Mikrofon aktiviran', 'Voice Input');
         };
@@ -130,19 +170,43 @@ export default function VoiceInput({
           console.error('Speech recognition error:', event.error);
           setIsListening(false);
           
+          let errorMessage = 'Greška prepoznavanja govora';
+          
           switch (event.error) {
             case 'no-speech':
-              showWarning('Nije detektovan govor', 'Voice Input');
+              errorMessage = 'Nije detektovan govor. Pokušajte ponovo.';
+              showWarning(errorMessage, 'Voice Input');
               break;
             case 'audio-capture':
-              showError('Greška pri snimanju zvuka', 'Voice Input');
+              errorMessage = 'Greška pri snimanju zvuka. Proverite mikrofon.';
+              showError(errorMessage, 'Voice Input');
               break;
             case 'not-allowed':
-              showError('Pristup mikrofonu nije dozvoljen', 'Voice Input');
+              errorMessage = 'Pristup mikrofonu nije dozvoljen. Dozvolite pristup u browser podešavanjima.';
+              showError(errorMessage, 'Voice Input');
+              break;
+            case 'network':
+              errorMessage = 'Greška mreže. Proverite internet konekciju.';
+              showError(errorMessage, 'Voice Input');
+              break;
+            case 'service-not-allowed':
+              errorMessage = 'Speech recognition servis nije dostupan.';
+              showError(errorMessage, 'Voice Input');
+              break;
+            case 'bad-grammar':
+              errorMessage = 'Greška u gramatici. Proverite jezik podešavanja.';
+              showError(errorMessage, 'Voice Input');
+              break;
+            case 'language-not-supported':
+              errorMessage = 'Izabrani jezik nije podržan.';
+              showError(errorMessage, 'Voice Input');
               break;
             default:
-              showError(`Greška prepoznavanja govora: ${event.error}`, 'Voice Input');
+              errorMessage = `Greška prepoznavanja govora: ${event.error}`;
+              showError(errorMessage, 'Voice Input');
           }
+          
+          setError(errorMessage);
         };
 
         recognitionInstance.onend = () => {
@@ -152,22 +216,32 @@ export default function VoiceInput({
 
         setRecognition(recognitionInstance);
         setIsSupported(true);
-      } else {
+        setError(null);
+        
+      } catch (err: any) {
+        console.error('Error initializing speech recognition:', err);
         setIsSupported(false);
-        showError('Web Speech API nije podržan u ovom browseru', 'Voice Input');
+        setError(`Greška pri inicijalizaciji: ${err.message}`);
+        showError('Greška pri inicijalizaciji Web Speech API', 'Voice Input');
       }
     };
 
     // Inicijalizacija TTS
     const initTTS = () => {
-      if ('speechSynthesis' in window) {
-        setTts(window.speechSynthesis);
+      try {
+        if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+          setTts(window.speechSynthesis);
+        } else {
+          console.warn('Speech Synthesis nije podržan u ovom browseru');
+        }
+      } catch (err) {
+        console.error('Error initializing TTS:', err);
       }
     };
 
     initSpeechRecognition();
     initTTS();
-  }, [onStart, onStop, onTranscript, showError, showSuccess, showWarning]);
+  }, [selectedLanguage, onStart, onStop, onTranscript, showError, showSuccess, showWarning]);
 
   // Audio level monitoring
   useEffect(() => {
@@ -223,7 +297,12 @@ export default function VoiceInput({
     if (isListening) {
       recognition?.stop();
     } else {
-      recognition?.start();
+      try {
+        recognition?.start();
+      } catch (err: any) {
+        console.error('Error starting recognition:', err);
+        showError(`Greška pri pokretanju: ${err.message}`, 'Voice Input');
+      }
     }
   };
 
@@ -241,15 +320,20 @@ export default function VoiceInput({
 
   const speakText = (text: string) => {
     if (tts && isTTSEnabled) {
-      tts.cancel(); // Prekini prethodni govor
-      
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'sr-RS';
-      utterance.rate = 0.9;
-      utterance.pitch = 1;
-      utterance.volume = 0.8;
-      
-      tts.speak(utterance);
+      try {
+        tts.cancel(); // Prekini prethodni govor
+        
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = selectedLanguage;
+        utterance.rate = 0.9;
+        utterance.pitch = 1;
+        utterance.volume = 0.8;
+        
+        tts.speak(utterance);
+      } catch (err: any) {
+        console.error('Error with TTS:', err);
+        showError('Greška pri TTS reprodukciji', 'Voice Input');
+      }
     }
   };
 
@@ -258,13 +342,40 @@ export default function VoiceInput({
     setInterimTranscript('');
   };
 
+  const changeLanguage = (languageCode: string) => {
+    setSelectedLanguage(languageCode);
+    setShowLanguageSelector(false);
+    
+    // Restart recognition ako je aktivan
+    if (isListening && recognition) {
+      recognition.stop();
+      setTimeout(() => {
+        recognition.lang = languageCode;
+        recognition.start();
+      }, 100);
+    }
+    
+    showSuccess(`Jezik promenjen na: ${SUPPORTED_LANGUAGES.find(l => l.code === languageCode)?.name}`, 'Voice Input');
+  };
+
+  const getCurrentLanguageName = () => {
+    return SUPPORTED_LANGUAGES.find(l => l.code === selectedLanguage)?.name || selectedLanguage;
+  };
+
   if (!isSupported) {
     return (
       <div className="flex items-center gap-2 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
         <FaMicrophoneSlash className="text-red-500" />
-        <span className="text-sm text-red-700 dark:text-red-300">
-          Web Speech API nije podržan
-        </span>
+        <div>
+          <span className="text-sm text-red-700 dark:text-red-300 font-medium">
+            Web Speech API nije podržan
+          </span>
+          {error && (
+            <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+              {error}
+            </p>
+          )}
+        </div>
       </div>
     );
   }
@@ -272,7 +383,7 @@ export default function VoiceInput({
   return (
     <div className="space-y-3">
       {/* Voice Input Controls */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <button
           onClick={toggleListening}
           disabled={!isEnabled}
@@ -294,6 +405,34 @@ export default function VoiceInput({
             </>
           )}
         </button>
+
+        {/* Language Selector */}
+        <div className="relative">
+          <button
+            onClick={() => setShowLanguageSelector(!showLanguageSelector)}
+            className="flex items-center gap-2 px-3 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded-lg transition-colors"
+          >
+            <FaGlobe />
+            <span className="text-sm">{getCurrentLanguageName()}</span>
+          </button>
+          
+          {showLanguageSelector && (
+            <div className="absolute top-full left-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg z-10 max-h-60 overflow-y-auto">
+              {SUPPORTED_LANGUAGES.map((language) => (
+                <button
+                  key={language.code}
+                  onClick={() => changeLanguage(language.code)}
+                  className={`w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
+                    selectedLanguage === language.code ? 'bg-blue-100 dark:bg-blue-900' : ''
+                  }`}
+                >
+                  <div className="font-medium">{language.name}</div>
+                  <div className="text-sm text-gray-600 dark:text-gray-400">{language.nativeName}</div>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
 
         {showTTS && (
           <button
@@ -319,6 +458,13 @@ export default function VoiceInput({
         )}
       </div>
 
+      {/* Error Display */}
+      {error && (
+        <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <p className="text-sm text-red-700 dark:text-red-300">{error}</p>
+        </div>
+      )}
+
       {/* Audio Level Visualizer */}
       {isListening && (
         <div className="flex items-center gap-2">
@@ -335,7 +481,7 @@ export default function VoiceInput({
             ))}
           </div>
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            Snimanje...
+            Snimanje... ({getCurrentLanguageName()})
           </span>
         </div>
       )}
@@ -377,6 +523,11 @@ export default function VoiceInput({
         <div className="flex items-center gap-1">
           <div className={`w-2 h-2 rounded-full ${isListening ? 'bg-red-500 animate-pulse' : 'bg-gray-400'}`} />
           <span>{isListening ? 'Snimanje aktivno' : 'Spremno za snimanje'}</span>
+        </div>
+        
+        <div className="flex items-center gap-1">
+          <FaGlobe className="text-xs" />
+          <span>{getCurrentLanguageName()}</span>
         </div>
         
         {showTTS && (

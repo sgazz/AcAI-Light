@@ -51,6 +51,11 @@ export default function Home() {
     showInfo(`Audio poruka: ${message}`, 'Audio Mode');
   };
 
+  // Audio Mode language handler
+  const handleLanguageChange = (language: string) => {
+    showSuccess(`Jezik promenjen na: ${language}`, 'Audio Mode');
+  };
+
   // Keyboard shortcuts
   const shortcuts = [
     {
