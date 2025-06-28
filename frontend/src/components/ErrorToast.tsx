@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaTimes, FaExclamationTriangle, FaExclamationCircle, FaCheckCircle } from 'react-icons/fa';
+import { FaTimes, FaExclamationTriangle, FaExclamationCircle, FaCheckCircle, FaInfoCircle } from 'react-icons/fa';
 
 export type ToastType = 'error' | 'warning' | 'info' | 'success';
 
@@ -37,86 +37,111 @@ export default function ErrorToast({
     }
   }, [duration, onClose]);
 
-  const getBgColor = () => {
+  const getToastConfig = () => {
     switch (type) {
       case 'error':
-        return 'bg-[var(--accent-red)]/10 border-[var(--accent-red)]';
+        return {
+          bgGradient: 'from-red-500/20 to-red-600/20',
+          borderColor: 'border-red-500/30',
+          iconBg: 'from-red-500 to-red-600',
+          icon: <FaExclamationTriangle className="text-white" size={20} />,
+          titleColor: 'text-red-400',
+          glowColor: 'from-red-500/20 to-red-600/20'
+        };
       case 'warning':
-        return 'bg-[var(--accent-yellow)]/10 border-[var(--accent-yellow)]';
+        return {
+          bgGradient: 'from-yellow-500/20 to-orange-500/20',
+          borderColor: 'border-yellow-500/30',
+          iconBg: 'from-yellow-500 to-orange-500',
+          icon: <FaExclamationCircle className="text-white" size={20} />,
+          titleColor: 'text-yellow-400',
+          glowColor: 'from-yellow-500/20 to-orange-500/20'
+        };
       case 'success':
-        return 'bg-[var(--accent-green)]/10 border-[var(--accent-green)]';
+        return {
+          bgGradient: 'from-green-500/20 to-emerald-500/20',
+          borderColor: 'border-green-500/30',
+          iconBg: 'from-green-500 to-emerald-600',
+          icon: <FaCheckCircle className="text-white" size={20} />,
+          titleColor: 'text-green-400',
+          glowColor: 'from-green-500/20 to-emerald-500/20'
+        };
       default:
-        return 'bg-[var(--accent-green)]/10 border-[var(--accent-green)]';
+        return {
+          bgGradient: 'from-blue-500/20 to-purple-500/20',
+          borderColor: 'border-blue-500/30',
+          iconBg: 'from-blue-500 to-purple-600',
+          icon: <FaInfoCircle className="text-white" size={20} />,
+          titleColor: 'text-blue-400',
+          glowColor: 'from-blue-500/20 to-purple-500/20'
+        };
     }
   };
 
-  const getIcon = () => {
-    switch (type) {
-      case 'error':
-        return <FaExclamationTriangle className="text-[var(--accent-red)]" size={20} />;
-      case 'warning':
-        return <FaExclamationCircle className="text-[var(--accent-yellow)]" size={20} />;
-      case 'success':
-        return <FaCheckCircle className="text-[var(--accent-green)]" size={20} />;
-      default:
-        return <FaExclamationCircle className="text-[var(--accent-blue)]" size={20} />;
-    }
-  };
-
-  const getTextColor = () => {
-    switch (type) {
-      case 'error':
-        return 'text-[var(--accent-red)]';
-      case 'warning':
-        return 'text-[var(--accent-yellow)]';
-      case 'success':
-        return 'text-[var(--accent-green)]';
-      default:
-        return 'text-[var(--accent-green)]';
-    }
-  };
+  const config = getToastConfig();
 
   return (
     <div
-      className={`fixed top-4 right-4 z-50 transform transition-all duration-300 ${
-        isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
+      className={`fixed top-4 right-4 z-50 transform transition-all duration-500 ease-out ${
+        isVisible ? 'translate-x-0 opacity-100 scale-100' : 'translate-x-full opacity-0 scale-95'
       }`}
+      style={{ animationDelay: '0ms' }}
     >
-      <div className={`${getBgColor()} border rounded-lg p-4 shadow-lg backdrop-blur-sm max-w-md`}>
-        <div className="flex items-start gap-3">
-          <div className="flex-shrink-0 mt-0.5">
-            {getIcon()}
+      {/* Premium Toast sa Glassmorphism */}
+      <div className={`relative group max-w-md`}>
+        {/* Glow effect */}
+        <div className={`absolute inset-0 bg-gradient-to-r ${config.glowColor} rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
+        
+        {/* Main toast container */}
+        <div className={`relative bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-2xl border ${config.borderColor} shadow-2xl p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl`}>
+          {/* Animated Background Pattern */}
+          <div className="absolute inset-0 opacity-5">
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse"></div>
+            <div className="absolute top-1/4 right-1/4 w-16 h-16 bg-blue-400/10 rounded-full blur-xl animate-bounce"></div>
           </div>
-          
-          <div className="flex-1 min-w-0">
-            {title && (
-              <h3 className={`text-sm font-semibold ${getTextColor()} mb-1`}>
-                {title}
-              </h3>
-            )}
-            <p className="text-sm text-[var(--text-primary)] leading-relaxed">
-              {message}
-            </p>
+
+          <div className="relative flex items-start gap-4">
+            {/* Premium Icon */}
+            <div className="relative flex-shrink-0">
+              <div className={`p-3 bg-gradient-to-br ${config.iconBg} rounded-2xl shadow-lg`}>
+                {config.icon}
+              </div>
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-white rounded-full animate-pulse"></div>
+            </div>
             
-            {showRetry && onRetry && (
-              <button
-                onClick={onRetry}
-                className="mt-2 text-xs text-[var(--accent-blue)] hover:text-[var(--accent-blue)]/80 underline"
-              >
-                Pokušaj ponovo
-              </button>
-            )}
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              {title && (
+                <h3 className={`text-lg font-bold ${config.titleColor} mb-2 bg-gradient-to-r ${config.titleColor} bg-clip-text text-transparent`}>
+                  {title}
+                </h3>
+              )}
+              <p className="text-sm text-white leading-relaxed font-medium">
+                {message}
+              </p>
+              
+              {showRetry && onRetry && (
+                <button
+                  onClick={onRetry}
+                  className="mt-3 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 font-semibold text-xs shadow-lg hover:shadow-xl hover:scale-105"
+                >
+                  Pokušaj ponovo
+                </button>
+              )}
+            </div>
+            
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setIsVisible(false);
+                setTimeout(onClose, 300);
+              }}
+              className="flex-shrink-0 p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 group/close"
+              title="Zatvori"
+            >
+              <FaTimes size={16} className="group-hover/close:rotate-90 transition-transform duration-300" />
+            </button>
           </div>
-          
-          <button
-            onClick={() => {
-              setIsVisible(false);
-              setTimeout(onClose, 300);
-            }}
-            className="flex-shrink-0 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors"
-          >
-            <FaTimes size={14} />
-          </button>
         </div>
       </div>
     </div>

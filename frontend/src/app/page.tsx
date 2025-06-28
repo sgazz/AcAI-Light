@@ -17,128 +17,167 @@ import { OfflineDetector } from '../components/OfflineDetector';
 import TestErrorHandling from '../components/TestErrorHandling';
 
 export default function Home() {
-  const [selectedMenu, setSelectedMenu] = useState(8); // Dokumenti
-  const [refreshDocuments, setRefreshDocuments] = useState(0); // Key za osvežavanje DocumentList
+  const [selectedMenu, setSelectedMenu] = useState(0);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
-  const [showVoiceTest, setShowVoiceTest] = useState(false);
   const { toasts, showError, showSuccess, showInfo } = useToast();
-
-  // Debug selectedMenu promene
-  useEffect(() => {
-    console.log('Page: selectedMenu promenjen na:', selectedMenu);
-  }, [selectedMenu]);
-
-  useEffect(() => {
-    fetch(HEALTH_CHECK_ENDPOINT)
-      .then(res => res.json())
-      .then(data => {
-        console.log('Page: API response:', data);
-      })
-      .catch(() => {
-        console.error('Page: Greška u povezivanju sa backendom!');
-        showError('Nije moguće povezati se sa backend serverom', 'Povezivanje');
-      });
-  }, [showError]);
-
-  const handleDocumentUploaded = () => {
-    setRefreshDocuments(prev => prev + 1);
-    showSuccess('Dokument je uspešno uploadovan', 'Upload');
-  };
-
-  // Audio Mode message handler
-  const handleAudioMessage = (message: string) => {
-    // Ovo će biti implementirano kroz ChatBox callback
-    showInfo(`Audio poruka: ${message}`, 'Audio Mode');
-  };
-
-  // Audio Mode language handler
-  const handleLanguageChange = (language: string) => {
-    showSuccess(`Jezik promenjen na: ${language}`, 'Audio Mode');
-  };
+  const [isOnline, setIsOnline] = useState(true);
 
   // Keyboard shortcuts
   const shortcuts = [
     {
-      ...SHORTCUTS.SEND_MESSAGE,
-      action: () => {
-        // Ovo će biti implementirano u ChatBox komponenti
-        showInfo('Koristite Ctrl+Enter u chat polju za slanje', 'Keyboard Shortcut');
-      }
-    },
-    {
-      ...SHORTCUTS.NEW_SESSION,
-      action: () => {
-        // Ovo će biti implementirano u ChatBox komponenti
-        showInfo('Nova sesija će biti kreirana', 'Keyboard Shortcut');
-      }
-    },
-    {
-      ...SHORTCUTS.TOGGLE_DOCUMENTS,
-      action: () => {
-        setSelectedMenu(8); // Prebaci na dokumente
-        showInfo('Prebačeno na sekciju dokumenta', 'Keyboard Shortcut');
-      }
-    },
-    {
       ...SHORTCUTS.HELP,
+      action: () => setShowShortcutsHelp(!showShortcutsHelp)
+    },
+    {
+      ...SHORTCUTS.FOCUS_CHAT,
       action: () => {
-        setShowShortcutsHelp(true);
+        const input = document.querySelector('textarea, input[type="text"]') as HTMLInputElement;
+        if (input) input.focus();
       }
     },
     {
       ...SHORTCUTS.ESCAPE,
-      action: () => {
-        setShowShortcutsHelp(false);
-        setShowVoiceTest(false);
-      }
+      action: () => setShowShortcutsHelp(false)
     }
   ];
 
   useKeyboardShortcuts(shortcuts);
 
+  // Health check
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const response = await fetch(HEALTH_CHECK_ENDPOINT);
+        if (!response.ok) {
+          showError('Backend server nije dostupan', 'Connection Error');
+        }
+      } catch (error) {
+        showError('Ne mogu da se povežem sa backend serverom', 'Connection Error');
+      }
+    };
+
+    checkHealth();
+    const interval = setInterval(checkHealth, 30000); // Check every 30 seconds
+
+    return () => clearInterval(interval);
+  }, [showError]);
+
+  // Online/offline detection
+  useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      showSuccess('Povezivanje uspostavljeno', 'Online');
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      showError('Izgubljena veza sa internetom', 'Offline');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [showSuccess, showError]);
+
   const renderContent = () => {
-    console.log('Page: selectedMenu =', selectedMenu);
     switch (selectedMenu) {
-      case 0: // Active Recall (Chat)
-        console.log('Page: Renderujem ChatBox (sa sidebar istorijom)');
+      case 0:
         return <ChatBox />;
-      case 2: // Audio Mode
-        console.log('Page: Renderujem Audio Mode');
+      case 1:
         return (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-bold">Audio Mode</h2>
-              <button
-                onClick={() => setShowVoiceTest(!showVoiceTest)}
-                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm"
-              >
-                {showVoiceTest ? 'Sakrij Test' : 'Prikaži Test'}
-              </button>
+          <div className="h-full flex flex-col">
+            <div className="flex-1 p-6">
+              <h2 className="text-2xl font-bold mb-4">Mind Mapping</h2>
+              <p className="text-gray-300">Mind mapping funkcionalnost će biti implementirana ovde.</p>
             </div>
-            {showVoiceTest ? (
-              <VoiceInputTest />
-            ) : (
-              <AudioMode onSendMessage={handleAudioMessage} isEnabled={true} />
-            )}
           </div>
         );
-      case 8: // Dokumenti
-        console.log('Page: Renderujem Dokumenti');
+      case 2:
         return (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-            <DocumentUpload onDocumentUploaded={handleDocumentUploaded} />
-            <DocumentList key={refreshDocuments} />
+          <div className="h-full flex flex-col">
+            <div className="flex-1 p-6">
+              <AudioMode 
+                onSendMessage={(message) => {
+                  console.log('Audio message:', message);
+                  // Handle audio message
+                }}
+                onTTSResponse={(text) => {
+                  console.log('TTS response:', text);
+                  // Handle TTS response
+                }}
+              />
+            </div>
+          </div>
+        );
+      case 3:
+        return (
+          <div className="h-full flex flex-col">
+            <div className="flex-1 p-6">
+              <h2 className="text-2xl font-bold mb-4">Study Room</h2>
+              <p className="text-gray-300">Study room funkcionalnost će biti implementirana ovde.</p>
+            </div>
+          </div>
+        );
+      case 4:
+        return (
+          <div className="h-full flex flex-col">
+            <div className="flex-1 p-6">
+              <h2 className="text-2xl font-bold mb-4">Exam Simulation</h2>
+              <p className="text-gray-300">Exam simulation funkcionalnost će biti implementirana ovde.</p>
+            </div>
+          </div>
+        );
+      case 5:
+        return (
+          <div className="h-full flex flex-col">
+            <div className="flex-1 p-6">
+              <h2 className="text-2xl font-bold mb-4">Problem Generator</h2>
+              <p className="text-gray-300">Problem generator funkcionalnost će biti implementirana ovde.</p>
+            </div>
+          </div>
+        );
+      case 6:
+        return (
+          <div className="h-full flex flex-col">
+            <div className="flex-1 p-6">
+              <h2 className="text-2xl font-bold mb-4">Study Journal</h2>
+              <p className="text-gray-300">Study journal funkcionalnost će biti implementirana ovde.</p>
+            </div>
+          </div>
+        );
+      case 7:
+        return (
+          <div className="h-full flex flex-col">
+            <div className="flex-1 p-6">
+              <h2 className="text-2xl font-bold mb-4">Career Guidance</h2>
+              <p className="text-gray-300">Career guidance funkcionalnost će biti implementirana ovde.</p>
+            </div>
+          </div>
+        );
+      case 8:
+        return (
+          <div className="h-full flex flex-col">
+            <div className="flex-1 p-6">
+              <h2 className="text-2xl font-bold mb-4">Dokumenti</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DocumentUpload />
+                <DocumentList />
+              </div>
+            </div>
           </div>
         );
       default:
-        console.log('Page: Renderujem default ChatBox');
         return <ChatBox />;
     }
   };
 
   return (
     <ErrorBoundary>
-      <div className="min-h-screen bg-[#10182a] text-white">
+      <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
         <OfflineDetector />
         <div className="flex h-screen p-4 gap-4">
           <Sidebar selectedMenu={selectedMenu} onMenuSelect={setSelectedMenu} />
