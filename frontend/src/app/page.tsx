@@ -4,6 +4,8 @@ import Sidebar from '../components/Sidebar';
 import ChatBox from '../components/ChatBox';
 import DocumentUpload from '../components/DocumentUpload';
 import DocumentList from '../components/DocumentList';
+import AudioMode from '../components/AudioMode';
+import VoiceInputTest from '../components/VoiceInputTest';
 import ErrorBoundary from '../components/ErrorBoundary';
 import KeyboardShortcutsHelp from '../components/KeyboardShortcutsHelp';
 import { useToast } from '../components/ErrorToast';
@@ -18,6 +20,7 @@ export default function Home() {
   const [selectedMenu, setSelectedMenu] = useState(8); // Dokumenti
   const [refreshDocuments, setRefreshDocuments] = useState(0); // Key za osvežavanje DocumentList
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [showVoiceTest, setShowVoiceTest] = useState(false);
   const { toasts, showError, showSuccess, showInfo } = useToast();
 
   // Debug selectedMenu promene
@@ -40,6 +43,12 @@ export default function Home() {
   const handleDocumentUploaded = () => {
     setRefreshDocuments(prev => prev + 1);
     showSuccess('Dokument je uspešno uploadovan', 'Upload');
+  };
+
+  // Audio Mode message handler
+  const handleAudioMessage = (message: string) => {
+    // Ovo će biti implementirano kroz ChatBox callback
+    showInfo(`Audio poruka: ${message}`, 'Audio Mode');
   };
 
   // Keyboard shortcuts
@@ -75,6 +84,7 @@ export default function Home() {
       ...SHORTCUTS.ESCAPE,
       action: () => {
         setShowShortcutsHelp(false);
+        setShowVoiceTest(false);
       }
     }
   ];
@@ -87,6 +97,26 @@ export default function Home() {
       case 0: // Active Recall (Chat)
         console.log('Page: Renderujem ChatBox (sa sidebar istorijom)');
         return <ChatBox />;
+      case 2: // Audio Mode
+        console.log('Page: Renderujem Audio Mode');
+        return (
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xl font-bold">Audio Mode</h2>
+              <button
+                onClick={() => setShowVoiceTest(!showVoiceTest)}
+                className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg text-sm"
+              >
+                {showVoiceTest ? 'Sakrij Test' : 'Prikaži Test'}
+              </button>
+            </div>
+            {showVoiceTest ? (
+              <VoiceInputTest />
+            ) : (
+              <AudioMode onSendMessage={handleAudioMessage} isEnabled={true} />
+            )}
+          </div>
+        );
       case 8: // Dokumenti
         console.log('Page: Renderujem Dokumenti');
         return (
