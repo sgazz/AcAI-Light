@@ -44,41 +44,77 @@ export default class ErrorBoundary extends Component<Props, State> {
       }
 
       return (
-        <div className="min-h-screen bg-[var(--bg-primary)] flex items-center justify-center p-4">
-          <div className="bg-[var(--bg-secondary)] rounded-xl p-8 max-w-md w-full text-center border border-[var(--border-color)]">
-            <div className="text-[var(--accent-red)] mb-4">
-              <FaExclamationTriangle size={48} />
+        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4 relative overflow-hidden">
+          {/* Animated Background Pattern */}
+          <div className="absolute inset-0 opacity-10">
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-red-500/20 via-orange-500/20 to-pink-500/20 animate-pulse"></div>
+            <div className="absolute top-1/4 right-1/4 w-64 h-64 bg-red-400/10 rounded-full blur-3xl animate-bounce"></div>
+            <div className="absolute bottom-1/4 left-1/4 w-48 h-48 bg-orange-400/10 rounded-full blur-3xl animate-pulse"></div>
+          </div>
+
+          <div className="relative max-w-md w-full">
+            {/* Premium Glassmorphism Error Container */}
+            <div className="relative group">
+              {/* Glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+              
+              {/* Main container */}
+              <div className="relative bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-3xl border border-red-500/30 shadow-2xl p-8 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
+                {/* Animated Background Pattern */}
+                <div className="absolute inset-0 opacity-5">
+                  <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-red-500/20 via-orange-500/20 to-pink-500/20 animate-pulse"></div>
+                  <div className="absolute top-1/4 right-1/4 w-16 h-16 bg-red-400/10 rounded-full blur-xl animate-bounce"></div>
+                </div>
+
+                <div className="relative text-center">
+                  {/* Premium Error Icon */}
+                  <div className="relative inline-block mb-6">
+                    <div className="p-4 bg-gradient-to-br from-red-500 to-orange-600 rounded-3xl shadow-2xl">
+                      <FaExclamationTriangle className="text-white" size={48} />
+                    </div>
+                    <div className="absolute -top-2 -right-2 w-6 h-6 bg-red-400 rounded-full animate-pulse border-2 border-slate-900"></div>
+                  </div>
+                  
+                  {/* Error Content */}
+                  <h1 className="text-2xl font-bold text-white mb-3 bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent">
+                    Nešto je pošlo naopako
+                  </h1>
+                  <p className="text-slate-300 mb-8 leading-relaxed font-medium">
+                    Došlo je do neočekivane greške. Molimo vas da osvežite stranicu ili kontaktirajte podršku.
+                  </p>
+                  
+                  {/* Premium Action Buttons */}
+                  <div className="space-y-4">
+                    <button
+                      onClick={() => window.location.reload()}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105 transform"
+                    >
+                      Osveži stranicu
+                    </button>
+                    <button
+                      onClick={() => this.setState({ hasError: false, error: undefined })}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-slate-700/50 to-slate-600/50 text-white border border-white/20 rounded-2xl hover:from-slate-600/50 hover:to-slate-500/50 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105 transform"
+                    >
+                      Pokušaj ponovo
+                    </button>
+                  </div>
+                  
+                  {/* Error Details */}
+                  {this.state.error && (
+                    <details className="mt-8 text-left group/details">
+                      <summary className="text-sm text-slate-400 cursor-pointer hover:text-white transition-colors duration-300 font-medium group-open/details:text-white">
+                        Detalji greške
+                      </summary>
+                      <div className="mt-4 p-4 bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 backdrop-blur-sm">
+                        <pre className="text-xs text-slate-300 overflow-auto leading-relaxed font-mono">
+                          {this.state.error.toString()}
+                        </pre>
+                      </div>
+                    </details>
+                  )}
+                </div>
+              </div>
             </div>
-            <h1 className="text-xl font-bold text-[var(--text-primary)] mb-2">
-              Nešto je pošlo naopako
-            </h1>
-            <p className="text-[var(--text-secondary)] mb-6">
-              Došlo je do neočekivane greške. Molimo vas da osvežite stranicu ili kontaktirajte podršku.
-            </p>
-            <div className="space-y-3">
-              <button
-                onClick={() => window.location.reload()}
-                className="w-full px-4 py-2 bg-[var(--accent-blue)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-blue)]/80 transition-colors"
-              >
-                Osveži stranicu
-              </button>
-              <button
-                onClick={() => this.setState({ hasError: false, error: undefined })}
-                className="w-full px-4 py-2 bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-color)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
-              >
-                Pokušaj ponovo
-              </button>
-            </div>
-            {this.state.error && (
-              <details className="mt-6 text-left">
-                <summary className="text-sm text-[var(--text-muted)] cursor-pointer hover:text-[var(--text-primary)]">
-                  Detalji greške
-                </summary>
-                <pre className="mt-2 p-3 bg-[var(--bg-tertiary)] rounded text-xs text-[var(--text-secondary)] overflow-auto">
-                  {this.state.error.toString()}
-                </pre>
-              </details>
-            )}
           </div>
         </div>
       );

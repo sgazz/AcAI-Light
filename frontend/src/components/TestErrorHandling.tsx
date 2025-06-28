@@ -108,48 +108,85 @@ export default function TestErrorHandling() {
     return (
       <button
         onClick={() => setIsVisible(true)}
-        className="fixed bottom-4 left-4 bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors z-40"
+        className="fixed bottom-4 left-4 relative group z-40"
         title="Test Error Handling"
       >
-        <FaFlask size={20} />
+        {/* Glow effect */}
+        <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        
+        {/* Main button */}
+        <div className="relative p-3 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-full shadow-2xl hover:shadow-xl transition-all duration-300 hover:scale-110 transform">
+          <FaFlask size={20} />
+        </div>
       </button>
     );
   }
 
   return (
-    <div className="bg-[var(--bg-secondary)] rounded-lg p-4 border border-[var(--border-color)]">
-      <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-4">Test Error Handling</h3>
+    <div className="fixed bottom-4 left-4 z-40 relative group">
+      {/* Glow effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       
-      <div className="space-y-3">
-        <button
-          onClick={() => showError('Ovo je test greška', 'Test Greška')}
-          className="w-full px-4 py-2 bg-[var(--accent-red)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-red)]/80 transition-colors"
-        >
-          Testiraj Error Toast
-        </button>
-        
-        <button
-          onClick={() => showWarning('Ovo je test upozorenje', 'Test Upozorenje')}
-          className="w-full px-4 py-2 bg-[var(--accent-yellow)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-yellow)]/80 transition-colors"
-        >
-          Testiraj Warning Toast
-        </button>
-        
-        <button
-          onClick={() => showSuccess('Ovo je test uspeh', 'Test Uspeh')}
-          className="w-full px-4 py-2 bg-[var(--accent-green)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-green)]/80 transition-colors"
-        >
-          Testiraj Success Toast
-        </button>
-        
-        <button
-          onClick={() => {
-            throw new Error('Ovo je test greška za Error Boundary');
-          }}
-          className="w-full px-4 py-2 bg-[var(--accent-red)] text-[var(--text-primary)] rounded-lg hover:bg-[var(--accent-red)]/80 transition-colors"
-        >
-          Testiraj Error Boundary
-        </button>
+      {/* Main container */}
+      <div className="relative bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-2xl p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl min-w-80">
+        {/* Animated Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse"></div>
+          <div className="absolute top-1/4 right-1/4 w-16 h-16 bg-blue-400/10 rounded-full blur-xl animate-bounce"></div>
+        </div>
+
+        <div className="relative">
+          {/* Premium Header */}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
+                <FaFlask className="text-white" size={20} />
+              </div>
+              <h3 className="text-lg font-bold text-white bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                Test Error Handling
+              </h3>
+            </div>
+            <button
+              onClick={() => setIsVisible(false)}
+              className="p-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300"
+            >
+              <FaTimes size={16} />
+            </button>
+          </div>
+          
+          {/* Premium Test Buttons */}
+          <div className="space-y-3">
+            <button
+              onClick={() => showError('Ovo je test greška', 'Test Greška')}
+              className="w-full px-4 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105 transform"
+            >
+              Testiraj Error Toast
+            </button>
+            
+            <button
+              onClick={() => showWarning('Ovo je test upozorenje', 'Test Upozorenje')}
+              className="w-full px-4 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-xl hover:from-yellow-600 hover:to-orange-600 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105 transform"
+            >
+              Testiraj Warning Toast
+            </button>
+            
+            <button
+              onClick={() => showSuccess('Ovo je test uspeh', 'Test Uspeh')}
+              className="w-full px-4 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105 transform"
+            >
+              Testiraj Success Toast
+            </button>
+            
+            <button
+              onClick={() => {
+                throw new Error('Ovo je test greška za Error Boundary');
+              }}
+              className="w-full px-4 py-3 bg-gradient-to-r from-red-600 to-pink-600 text-white rounded-xl hover:from-red-700 hover:to-pink-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105 transform"
+            >
+              Testiraj Error Boundary
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
