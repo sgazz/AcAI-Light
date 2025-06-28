@@ -86,6 +86,57 @@ interface WCAGComplianceProps {
 
 ---
 
+## 🎯 **Sledeći Prioritet: Sidebar Enhancements (MVP Faza 1)**
+
+### **Zašto je ovo sledeći prioritet:**
+
+1. **MVP Completion** - Popunjavanje praznih Sidebar stavki
+2. **User Experience** - Korisnici trebaju funkcionalne opcije
+3. **Feature Parity** - Svi meni itemi trebaju da rade
+4. **Learning Tools** - Dodavanje korisnih edukativnih funkcionalnosti
+
+### **Šta uključuje Sidebar Enhancements:**
+
+1. **Mind Mapping** 🧠
+   - Drag & drop node creation
+   - Connection management
+   - AI-powered suggestions
+   - Export functionality
+
+2. **Study Journal** 📚
+   - Daily study logs
+   - Progress tracking
+   - Goal setting
+   - Analytics dashboard
+
+3. **Exam Simulation** 🎯
+   - Question bank
+   - Timer functionality
+   - Score tracking
+   - Review mode
+
+### **Timeline: 3-4 nedelje**
+
+**Nedelja 1-2:**
+- [ ] Mind Mapping implementation
+- [ ] Basic drag & drop functionality
+
+**Nedelja 3:**
+- [ ] Study Journal implementation
+- [ ] Progress tracking system
+
+**Nedelja 4:**
+- [ ] Exam Simulation implementation
+- [ ] Timer and scoring system
+
+### **Success Metrics:**
+- [ ] 7/10 Sidebar stavki funkcionalne
+- [ ] Mind mapping drag & drop radi
+- [ ] Study journal data persistence
+- [ ] Exam simulation complete flow
+
+---
+
 ## 📋 **Pregled Grana**
 
 ### **Trenutne Grane:**
@@ -131,24 +182,43 @@ interface WCAGComplianceProps {
    - Optimizovani re-renders
    - Memory management
 
-6. **Advanced Accessibility** 📋 **SLEDEĆI PRIORITET**
+6. **Advanced Accessibility** 📋 **PLANIRANO**
    - WCAG 2.1 compliance
    - Screen reader support
    - ARIA live regions
    - Color blind support
 
-### **Faza 4: Collaboration & AI Features (2-3 nedelje)**
-7. **Collaborative Features** 📋 **PLANIRANO**
-   - Shared sessions
-   - Real-time collaboration
-   - User roles
-   - Session permissions
+### **Faza 4: Sidebar Enhancements (3-4 nedelje)**
+7. **Mind Mapping** 📋 **SLEDEĆI PRIORITET**
+   - Drag & drop node creation
+   - Connection management
+   - AI-powered suggestions
+   - Export functionality
 
-8. **AI Personality & Customization** 📋 **PLANIRANO**
-   - AI personality settings
-   - Custom prompts
-   - Conversation styles
-   - AI mood settings
+8. **Study Journal** 📋 **PLANIRANO**
+   - Daily study logs
+   - Progress tracking
+   - Goal setting
+   - Analytics dashboard
+
+9. **Exam Simulation** 📋 **PLANIRANO**
+   - Question bank
+   - Timer functionality
+   - Score tracking
+   - Review mode
+
+### **Faza 5: Collaboration & AI Features (2-3 nedelje)**
+10. **Collaborative Features** 📋 **PLANIRANO**
+    - Shared sessions
+    - Real-time collaboration
+    - User roles
+    - Session permissions
+
+11. **AI Personality & Customization** 📋 **PLANIRANO**
+    - AI personality settings
+    - Custom prompts
+    - Conversation styles
+    - AI mood settings
 
 ---
 
@@ -227,7 +297,13 @@ interface WCAGComplianceProps {
   "react-speech-kit": "^2.0.5",
   "react-beautiful-dnd": "^13.1.1",
   "react-dropzone": "^14.2.3",
-  "react-zoom-pan-pinch": "^2.1.0"
+  "react-zoom-pan-pinch": "^2.1.0",
+  "react-flow-renderer": "^10.3.17",
+  "recharts": "^2.8.0",
+  "react-countdown": "^2.3.5",
+  "react-quill": "^2.0.0",
+  "socket.io-client": "^4.7.2",
+  "react-webcam": "^7.1.1"
 }
 ```
 
@@ -265,6 +341,24 @@ components/
 │   ├── ARIALiveRegions.tsx
 │   ├── ColorBlindSupport.tsx
 │   └── WCAGCompliance.tsx
+├── SidebarEnhancements/ 📋 **SLEDEĆI PRIORITET**
+│   ├── MindMapping/
+│   │   ├── MindMapping.tsx
+│   │   ├── MindMapNode.tsx
+│   │   ├── MindMapConnection.tsx
+│   │   ├── MindMapCanvas.tsx
+│   │   └── MindMapToolbar.tsx
+│   ├── StudyJournal/
+│   │   ├── StudyJournal.tsx
+│   │   ├── StudyEntry.tsx
+│   │   ├── ProgressChart.tsx
+│   │   └── GoalTracker.tsx
+│   └── ExamSimulation/
+│       ├── ExamSimulation.tsx
+│       ├── QuestionBank.tsx
+│       ├── ExamTimer.tsx
+│       ├── ScoreAnalytics.tsx
+│       └── QuestionEditor.tsx
 ├── Collaboration/ 📋 **PLANIRANO**
 │   ├── SharedSessions.tsx
 │   ├── RealTimeCollaboration.tsx
@@ -301,7 +395,13 @@ components/
 - [ ] Screen reader support
 - [ ] Memory optimization
 
-### **Nedelja 8-10: Collaboration & AI Features**
+### **Nedelja 8-11: Sidebar Enhancements**
+- [ ] Mind Mapping implementation
+- [ ] Study Journal implementation
+- [ ] Exam Simulation implementation
+- [ ] Testing i polish
+
+### **Nedelja 12-14: Collaboration & AI Features**
 - [ ] Shared sessions
 - [ ] Real-time collaboration
 - [ ] AI personality settings
@@ -368,7 +468,10 @@ main
 ├── feature/export-functionality ✅
 ├── feature/voice-input ✅
 ├── feature/file-handling ✅
-├── feature/virtual-scrolling
+├── feature/virtual-scrolling ✅
+├── feature/mind-mapping
+├── feature/study-journal
+├── feature/exam-simulation
 ├── feature/collaboration
 └── advanced-ui-ux-improvements (feature branch)
 ```
@@ -378,9 +481,13 @@ main
 feat: add PDF export functionality ✅
 feat: implement voice input with Web Speech API ✅
 feat: add advanced file handling with drag & drop ✅
+feat: implement virtual scrolling for large lists ✅
+feat: add mind mapping drag & drop functionality
+feat: implement study journal entry system
+feat: add exam simulation timer and scoring
 perf: optimize virtual scrolling for large lists
 fix: resolve accessibility issues in export modal
-docs: update advanced UI/UX implementation guide
+docs: update sidebar enhancements implementation guide
 ```
 
 ### **Pull Request Process:**
