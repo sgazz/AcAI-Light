@@ -1,17 +1,23 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { FaHistory, FaTrash, FaEye, FaTimes, FaSearch, FaFilter, FaCalendar, FaSort, FaDownload, FaComments, FaClock, FaUser, FaRobot, FaStar, FaBookmark, FaShare, FaEllipsisH } from 'react-icons/fa';
+import { FaHistory, FaTrash, FaEye, FaTimes, FaSearch, FaFilter, FaCalendar, FaSort, FaDownload, FaComments, FaClock, FaUser, FaRobot, FaStar, FaBookmark, FaShare, FaEllipsisH, FaEdit, FaTags, FaArchive } from 'react-icons/fa';
 import { formatDate } from '../utils/dateUtils';
 import { CHAT_SESSIONS_ENDPOINT, CHAT_HISTORY_ENDPOINT, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
 import ExportModal from './ExportModal';
+import SessionRenameModal from './SessionManagement/SessionRenameModal';
+import SessionCategories from './SessionManagement/SessionCategories';
+import SessionArchive from './SessionManagement/SessionArchive';
+import SessionSharing from './SessionManagement/SessionSharing';
 
 interface Session {
   session_id: string;
   message_count: number;
   first_message: string;
   last_message: string;
+  name?: string;
+  categories?: string[];
 }
 
 interface Message {
@@ -47,6 +53,13 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
   
   // Export state
   const [showExportModal, setShowExportModal] = useState(false);
+  
+  // Session Management state
+  const [showRenameModal, setShowRenameModal] = useState(false);
+  const [showCategoriesModal, setShowCategoriesModal] = useState(false);
+  const [showArchiveModal, setShowArchiveModal] = useState(false);
+  const [showSharingModal, setShowSharingModal] = useState(false);
+  const [selectedSessionForManagement, setSelectedSessionForManagement] = useState<Session | null>(null);
   
   const { showError, showSuccess } = useErrorToast();
 
@@ -211,6 +224,177 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
   const getSelectedSessionData = () => {
     if (!selectedSession) return null;
     return sessions.find(s => s.session_id === selectedSession) || null;
+  };
+
+  // Session Management Functions
+  const handleRenameSession = async (sessionId: string, newName: string) => {
+    try {
+      // Simuliramo API poziv - u realnoj aplikaciji bi ovo bilo pravi API poziv
+      const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${sessionId}/rename`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newName }),
+      });
+      
+      if (data.status === 'success') {
+        setSessions(prev => prev.map(s => 
+          s.session_id === sessionId ? { ...s, name: newName } : s
+        ));
+        showSuccess('Sesija uspešno preimenovana', 'Preimenovanje');
+      } else {
+        throw new Error(data.message || 'Greška pri preimenovanju sesije');
+      }
+    } catch (error: any) {
+      showError(error.message || 'Greška pri preimenovanju sesije', 'Greška');
+      throw error;
+    }
+  };
+
+  const handleUpdateCategories = async (sessionId: string, categories: string[]) => {
+    try {
+      // Simuliramo API poziv - u realnoj aplikaciji bi ovo bilo pravi API poziv
+      const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${sessionId}/categories`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ categories }),
+      });
+      
+      if (data.status === 'success') {
+        setSessions(prev => prev.map(s => 
+          s.session_id === sessionId ? { ...s, categories } : s
+        ));
+        showSuccess('Kategorije uspešno ažurirane', 'Ažuriranje');
+      } else {
+        throw new Error(data.message || 'Greška pri ažuriranju kategorija');
+      }
+    } catch (error: any) {
+      showError(error.message || 'Greška pri ažuriranju kategorija', 'Greška');
+      throw error;
+    }
+  };
+
+  const handleArchiveSession = async (sessionId: string) => {
+    try {
+      // Simuliramo API poziv - u realnoj aplikaciji bi ovo bilo pravi API poziv
+      const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${sessionId}/archive`, {
+        method: 'POST',
+      });
+      
+      if (data.status === 'success') {
+        setSessions(prev => prev.filter(s => s.session_id !== sessionId));
+        if (selectedSession === sessionId) {
+          setSelectedSession(null);
+          setSessionMessages([]);
+        }
+        showSuccess('Sesija uspešno arhivirana', 'Arhiviranje');
+      } else {
+        throw new Error(data.message || 'Greška pri arhiviranju sesije');
+      }
+    } catch (error: any) {
+      showError(error.message || 'Greška pri arhiviranju sesije', 'Greška');
+      throw error;
+    }
+  };
+
+  const handleRestoreSession = async (sessionId: string) => {
+    try {
+      // Simuliramo API poziv - u realnoj aplikaciji bi ovo bilo pravi API poziv
+      const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${sessionId}/restore`, {
+        method: 'POST',
+      });
+      
+      if (data.status === 'success') {
+        // Učitaj ponovo sesije da uključimo vraćenu sesiju
+        await loadSessions();
+        showSuccess('Sesija uspešno vraćena iz arhive', 'Vraćanje');
+      } else {
+        throw new Error(data.message || 'Greška pri vraćanju sesije');
+      }
+    } catch (error: any) {
+      showError(error.message || 'Greška pri vraćanju sesije', 'Greška');
+      throw error;
+    }
+  };
+
+  const handleShareSession = async (settings: any) => {
+    try {
+      // Simuliramo API poziv - u realnoj aplikaciji bi ovo bilo pravi API poziv
+      const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${selectedSession}/share`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings),
+      });
+      
+      if (data.status === 'success') {
+        showSuccess('Link za deljenje uspešno kreiran', 'Deljenje');
+        return data.share_link;
+      } else {
+        throw new Error(data.message || 'Greška pri kreiranju linka za deljenje');
+      }
+    } catch (error: any) {
+      showError(error.message || 'Greška pri kreiranju linka za deljenje', 'Greška');
+      throw error;
+    }
+  };
+
+  const handleRevokeShare = async (linkId: string) => {
+    try {
+      // Simuliramo API poziv - u realnoj aplikaciji bi ovo bilo pravi API poziv
+      const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/share/${linkId}`, {
+        method: 'DELETE',
+      });
+      
+      if (data.status === 'success') {
+        showSuccess('Link za deljenje uspešno opozvan', 'Opozivanje');
+      } else {
+        throw new Error(data.message || 'Greška pri opozivanju linka');
+      }
+    } catch (error: any) {
+      showError(error.message || 'Greška pri opozivanju linka', 'Greška');
+      throw error;
+    }
+  };
+
+  const handleExportArchivedSession = async (sessionId: string) => {
+    try {
+      // Simuliramo API poziv - u realnoj aplikaciji bi ovo bilo pravi API poziv
+      const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${sessionId}/export`, {
+        method: 'GET',
+      });
+      
+      if (data.status === 'success') {
+        showSuccess('Sesija uspešno eksportovana', 'Export');
+      } else {
+        throw new Error(data.message || 'Greška pri exportu sesije');
+      }
+    } catch (error: any) {
+      showError(error.message || 'Greška pri exportu sesije', 'Greška');
+      throw error;
+    }
+  };
+
+  const openSessionManagement = (modal: 'rename' | 'categories' | 'archive' | 'sharing', session: Session) => {
+    setSelectedSessionForManagement(session);
+    switch (modal) {
+      case 'rename':
+        setShowRenameModal(true);
+        break;
+      case 'categories':
+        setShowCategoriesModal(true);
+        break;
+      case 'archive':
+        setShowArchiveModal(true);
+        break;
+      case 'sharing':
+        setShowSharingModal(true);
+        break;
+    }
   };
 
   return (
@@ -456,6 +640,46 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
+                              openSessionManagement('rename', session);
+                            }}
+                            className="p-3 text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/20 rounded-xl transition-all duration-200"
+                            title="Preimenuj sesiju"
+                          >
+                            <FaEdit size={16} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openSessionManagement('categories', session);
+                            }}
+                            className="p-3 text-purple-400 hover:text-purple-300 hover:bg-purple-500/20 rounded-xl transition-all duration-200"
+                            title="Kategorije"
+                          >
+                            <FaTags size={16} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openSessionManagement('sharing', session);
+                            }}
+                            className="p-3 text-green-400 hover:text-green-300 hover:bg-green-500/20 rounded-xl transition-all duration-200"
+                            title="Podeli sesiju"
+                          >
+                            <FaShare size={16} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openSessionManagement('archive', session);
+                            }}
+                            className="p-3 text-orange-400 hover:text-orange-300 hover:bg-orange-500/20 rounded-xl transition-all duration-200"
+                            title="Arhiviraj sesiju"
+                          >
+                            <FaArchive size={16} />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
                               deleteSession(session.session_id);
                             }}
                             className="p-3 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-xl transition-all duration-200"
@@ -565,6 +789,45 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
         session={getSelectedSessionData()}
         messages={sessionMessages}
       />
+
+      {/* Session Management Modals */}
+      {selectedSessionForManagement && (
+        <>
+          <SessionRenameModal
+            isOpen={showRenameModal}
+            onClose={() => setShowRenameModal(false)}
+            sessionId={selectedSessionForManagement.session_id}
+            currentName={selectedSessionForManagement.name}
+            onRename={handleRenameSession}
+            onDelete={deleteSession}
+          />
+          
+          <SessionCategories
+            isOpen={showCategoriesModal}
+            onClose={() => setShowCategoriesModal(false)}
+            sessionId={selectedSessionForManagement.session_id}
+            currentCategories={selectedSessionForManagement.categories || []}
+            onUpdateCategories={handleUpdateCategories}
+          />
+          
+          <SessionArchive
+            isOpen={showArchiveModal}
+            onClose={() => setShowArchiveModal(false)}
+            onRestore={handleRestoreSession}
+            onDelete={deleteSession}
+            onExport={handleExportArchivedSession}
+          />
+          
+          <SessionSharing
+            isOpen={showSharingModal}
+            onClose={() => setShowSharingModal(false)}
+            sessionId={selectedSessionForManagement.session_id}
+            sessionName={selectedSessionForManagement.name}
+            onShare={handleShareSession}
+            onRevoke={handleRevokeShare}
+          />
+        </>
+      )}
     </>
   );
 } 
