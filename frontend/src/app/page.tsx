@@ -16,6 +16,7 @@ import { HEALTH_CHECK_ENDPOINT } from '../utils/api';
 import { OfflineDetector } from '../components/OfflineDetector';
 import FileSharing from '../components/FileHandling/FileSharing';
 import VirtualScrollTest from '../components/Performance/VirtualScrollTest';
+import MindMapping from '../components/SidebarEnhancements/MindMapping/MindMapping';
 
 export default function Home() {
   const [selectedMenu, setSelectedMenu] = useState(0);
@@ -119,14 +120,7 @@ export default function Home() {
       case 0:
         return <ChatBox />;
       case 1:
-        return (
-          <div className="h-full flex flex-col">
-            <div className="flex-1 p-6">
-              <h2 className="text-2xl font-bold mb-4">Mind Mapping</h2>
-              <p className="text-gray-300">Mind mapping funkcionalnost će biti implementirana ovde.</p>
-            </div>
-          </div>
-        );
+        return <MindMapping />;
       case 2:
         return (
           <div className="h-full flex flex-col">
