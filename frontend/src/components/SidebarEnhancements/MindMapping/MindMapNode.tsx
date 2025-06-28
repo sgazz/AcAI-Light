@@ -1,26 +1,29 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FaEdit, FaTrash, FaLink, FaUnlink } from 'react-icons/fa';
+import { motion, PanInfo } from 'framer-motion';
+import { FaEdit, FaTrash, FaLink, FaPlus } from 'react-icons/fa';
 
 interface MindMapNodeProps {
-  id: string;
   content: string;
   position: { x: number; y: number };
   color: string;
   size: 'small' | 'medium' | 'large';
   isSelected: boolean;
   isDragging: boolean;
+  isConnecting: boolean;
+  isConnectionStart: boolean;
+  toolMode: 'select' | 'pan' | 'connect';
   onContentChange: (content: string) => void;
-  onColorChange: (color: string) => void;
-  onSizeChange: (size: 'small' | 'medium' | 'large') => void;
   onDelete: () => void;
   onSelect: () => void;
   onDragStart: () => void;
   onDrag: (position: { x: number; y: number }) => void;
   onDragEnd: () => void;
   onAddConnection: () => void;
+  onStartConnection: () => void;
+  onFinishConnection: () => void;
+  onAddChild: () => void;
   className?: string;
 }
 
@@ -31,22 +34,25 @@ const nodeSizes = {
 };
 
 export default function MindMapNode({
-  id,
   content,
   position,
   color,
   size,
   isSelected,
   isDragging,
+  isConnecting,
+  isConnectionStart,
+  toolMode,
   onContentChange,
-  onColorChange,
-  onSizeChange,
   onDelete,
   onSelect,
   onDragStart,
   onDrag,
   onDragEnd,
   onAddConnection,
+  onStartConnection,
+  onFinishConnection,
+  onAddChild,
   className = '',
 }: MindMapNodeProps) {
   const [isEditing, setIsEditing] = useState(false);
@@ -67,7 +73,9 @@ export default function MindMapNode({
   }, [isEditing]);
 
   const handleDoubleClick = () => {
-    setIsEditing(true);
+    if (toolMode === 'select') {
+      setIsEditing(true);
+    }
   };
 
   const handleContentSave = () => {
@@ -91,6 +99,36 @@ export default function MindMapNode({
     handleContentSave();
   };
 
+  const handleClick = () => {
+    if (toolMode === 'connect') {
+      if (isConnectionStart) {
+        onFinishConnection();
+      } else {
+        onStartConnection();
+      }
+    } else {
+      onSelect();
+    }
+  };
+
+  const handleDragStart = () => {
+    if (toolMode === 'select') {
+      onDragStart();
+    }
+  };
+
+  const handleDrag = (event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
+    if (toolMode === 'select') {
+      onDrag({ x: info.point.x, y: info.point.y });
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (toolMode === 'select') {
+      onDragEnd();
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.8 }}
@@ -101,12 +139,12 @@ export default function MindMapNode({
         y: position.y - sizeConfig.height / 2,
       }}
       exit={{ opacity: 0, scale: 0.8 }}
-      drag
+      drag={toolMode === 'select'}
       dragMomentum={false}
       dragElastic={0.1}
-      onDragStart={onDragStart}
-      onDrag={(e, info) => onDrag({ x: info.point.x, y: info.point.y })}
-      onDragEnd={onDragEnd}
+      onDragStart={handleDragStart}
+      onDrag={handleDrag}
+      onDragEnd={handleDragEnd}
       className={`absolute cursor-move select-none ${className}`}
       style={{
         width: sizeConfig.width,
@@ -118,13 +156,15 @@ export default function MindMapNode({
         className={`w-full h-full rounded-2xl border-2 backdrop-blur-sm transition-all duration-200 ${
           isSelected
             ? 'border-blue-400 shadow-lg shadow-blue-500/50'
+            : isConnectionStart
+            ? 'border-purple-400 shadow-lg shadow-purple-500/50'
             : 'border-white/20 hover:border-white/40'
-        }`}
+        } ${isConnecting && isConnectionStart ? 'ring-2 ring-purple-400' : ''}`}
         style={{
           backgroundColor: `${color}20`,
-          borderColor: isSelected ? '#60A5FA' : `${color}60`,
+          borderColor: isSelected ? '#60A5FA' : isConnectionStart ? '#A78BFA' : `${color}60`,
         }}
-        onClick={onSelect}
+        onClick={handleClick}
         onDoubleClick={handleDoubleClick}
       >
         {/* Content Area */}
@@ -156,13 +196,28 @@ export default function MindMapNode({
           <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-400 rounded-full animate-pulse" />
         )}
 
+        {/* Connection Start Indicator */}
+        {isConnectionStart && (
+          <div className="absolute -top-1 -left-1 w-3 h-3 bg-purple-400 rounded-full animate-pulse" />
+        )}
+
         {/* Quick Actions (visible on hover or selection) */}
-        {(isSelected || isEditing) && (
+        {(isSelected || isEditing) && toolMode === 'select' && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             className="absolute -top-2 -right-2 flex gap-1"
           >
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddChild();
+              }}
+              className="p-1 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors"
+              title="Add Child Node"
+            >
+              <FaPlus size={10} />
+            </button>
             <button
               onClick={(e) => {
                 e.stopPropagation();
@@ -178,7 +233,7 @@ export default function MindMapNode({
                 e.stopPropagation();
                 setIsEditing(true);
               }}
-              className="p-1 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors"
+              className="p-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full transition-colors"
               title="Edit"
             >
               <FaEdit size={10} />
@@ -198,11 +253,7 @@ export default function MindMapNode({
       </div>
 
       {/* Size Indicator */}
-      {isSelected && (
-        <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 bg-slate-800 text-white text-xs px-2 py-1 rounded">
-          {size}
-        </div>
-      )}
+      <div className="absolute -bottom-1 -right-1 w-2 h-2 bg-slate-400 rounded-full opacity-50" />
     </motion.div>
   );
 } 
