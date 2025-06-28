@@ -36,60 +36,97 @@ export default function SourcesDisplay({ sources, isVisible, onSourceClick }: So
   };
 
   return (
-    <div className="bg-[var(--bg-secondary)] rounded-lg p-4 border border-[var(--border-color)]">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="text-[var(--accent-blue)]"><FaFileAlt size={16} /></div>
-        <h3 className="text-sm font-semibold text-[var(--text-primary)]">Izvori</h3>
-        <span className="text-xs text-[var(--text-muted)]">({sources.length})</span>
-      </div>
+    <div className="relative group">
+      {/* Premium Glassmorphism Background */}
+      <div className="bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-2xl p-6 border border-white/10 shadow-2xl">
+        {/* Animated Background Pattern */}
+        <div className="absolute inset-0 opacity-5">
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse"></div>
+          <div className="absolute top-1/4 right-1/4 w-16 h-16 bg-blue-400/10 rounded-full blur-xl animate-bounce"></div>
+        </div>
 
-      {sources.length === 0 ? (
-        <div className="text-center text-[var(--text-muted)] text-sm py-4">
-          Nema dostupnih izvora
-        </div>
-      ) : (
-        <div className="space-y-2 max-h-48 overflow-y-auto">
-          {sources.map((source, index) => (
-            <div
-              key={index}
-              className="p-3 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)] hover:border-[var(--accent-blue)] transition-colors"
-            >
-              <div className="flex items-start justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  {getFileIconForSource(source.filename)}
-                  <span className="text-sm font-medium text-[var(--text-primary)] truncate">
-                    {source.filename}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    source.score >= 0.8 ? 'bg-[var(--accent-green)]/20 text-[var(--accent-green)]' :
-                    source.score >= 0.6 ? 'bg-[var(--accent-yellow)]/20 text-[var(--accent-yellow)]' :
-                    'bg-[var(--accent-red)]/20 text-[var(--accent-red)]'
-                  }`}>
-                    {(source.score * 100).toFixed(0)}%
-                  </span>
-                  <button
-                    onClick={() => onSourceClick(source)}
-                    className="p-1 text-[var(--accent-blue)] hover:text-[var(--accent-blue)]/80 hover:bg-[var(--accent-blue)]/10 rounded transition-colors"
-                    title="Pogledaj izvor"
-                  >
-                    <FaEye size={12} />
-                  </button>
-                </div>
+        <div className="relative">
+          {/* Premium Header */}
+          <div className="flex items-center gap-3 mb-4">
+            <div className="relative">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
+                <FaFileAlt className="text-white" size={16} />
               </div>
-              
-              <div className="text-xs text-[var(--text-secondary)] mb-2">
-                Stranica {source.page_number} • {source.chunk_index} chunk
-              </div>
-              
-              <div className="text-sm text-[var(--text-primary)] line-clamp-2">
-                {source.content}
-              </div>
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
             </div>
-          ))}
+            <div>
+              <h3 className="text-lg font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                Izvori
+              </h3>
+              <p className="text-xs text-slate-400 font-medium">Dokumenti korišćeni za odgovor</p>
+            </div>
+            <span className="ml-auto text-xs text-slate-400 bg-slate-800/50 px-3 py-1 rounded-xl border border-white/10">
+              {sources.length}
+            </span>
+          </div>
+
+          {sources.length === 0 ? (
+            <div className="text-center text-slate-400 text-sm py-8 bg-slate-800/30 rounded-2xl border border-white/10">
+              Nema dostupnih izvora
+            </div>
+          ) : (
+            <div className="space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
+              {sources.map((source, index) => (
+                <div
+                  key={index}
+                  className="group/source relative p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 hover:border-blue-500/30 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+                  onClick={() => onSourceClick(source)}
+                >
+                  {/* Hover glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover/source:opacity-100 transition-opacity duration-300"></div>
+                  
+                  <div className="relative">
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-slate-700/50 rounded-xl border border-white/10">
+                          {getFileIconForSource(source.filename)}
+                        </div>
+                        <span className="text-sm font-medium text-white truncate max-w-32">
+                          {source.filename}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 text-xs font-bold rounded-xl border ${
+                          source.score >= 0.8 
+                            ? 'bg-green-500/20 text-green-400 border-green-500/30' :
+                          source.score >= 0.6 
+                            ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
+                            'bg-red-500/20 text-red-400 border-red-500/30'
+                        }`}>
+                          {(source.score * 100).toFixed(0)}%
+                        </span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onSourceClick(source);
+                          }}
+                          className="p-2 text-blue-400 hover:text-white hover:bg-blue-500/20 rounded-xl transition-all duration-300 group/eye"
+                          title="Pogledaj izvor"
+                        >
+                          <FaEye size={12} className="group-hover/eye:scale-110 transition-transform duration-300" />
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="text-xs text-slate-400 mb-3 bg-slate-800/30 px-3 py-2 rounded-xl border border-white/10">
+                      Stranica {source.page_number} • Chunk {source.chunk_index}
+                    </div>
+                    
+                    <div className="text-sm text-white leading-relaxed line-clamp-2 bg-slate-800/30 p-3 rounded-xl border border-white/10">
+                      {source.content}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 } 
