@@ -45,7 +45,14 @@ export default function Home() {
 
   // Health check
   useEffect(() => {
+    let isActive = true;
+    
     const checkHealth = async () => {
+      // Proveri da li je tab aktivan
+      if (!document.hasFocus()) {
+        return;
+      }
+      
       try {
         const response = await fetch(HEALTH_CHECK_ENDPOINT);
         if (!response.ok) {
@@ -56,10 +63,33 @@ export default function Home() {
       }
     };
 
-    checkHealth();
-    const interval = setInterval(checkHealth, 30000); // Check every 30 seconds
+    // Event listener za promenu fokusa
+    const handleVisibilityChange = () => {
+      isActive = !document.hidden;
+    };
 
-    return () => clearInterval(interval);
+    const handleFocusChange = () => {
+      isActive = document.hasFocus();
+    };
+
+    // Dodaj event listener-e
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocusChange);
+    window.addEventListener('blur', handleFocusChange);
+
+    checkHealth();
+    const interval = setInterval(() => {
+      if (isActive) {
+        checkHealth();
+      }
+    }, 60000); // Check every 60 seconds only when active
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocusChange);
+      window.removeEventListener('blur', handleFocusChange);
+    };
   }, [showError]);
 
   // Online/offline detection

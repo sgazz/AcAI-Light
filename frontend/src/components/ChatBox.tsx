@@ -72,8 +72,10 @@ export default function ChatBox() {
 
   // Kreiraj novu sesiju kada se komponenta učita
   useEffect(() => {
-    createNewSession();
-  }, []);
+    if (!sessionId) {
+      createNewSession();
+    }
+  }, [sessionId]);
 
   // Keyboard shortcuts
   useEffect(() => {
