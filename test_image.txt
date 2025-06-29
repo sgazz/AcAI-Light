@@ -1,2 +1,0 @@
-Test slika za File Handling
-Ovo je test slika za proveru Image Preview funkcionalnosti.
