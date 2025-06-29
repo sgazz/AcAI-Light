@@ -6,21 +6,70 @@ Ovaj dokument definiše plan za "popunjavanje" praznih Sidebar stavki sa funkcio
 
 ---
 
-## 🎯 **Trenutno Stanje Sidebar-a**
+## 🚦 **Status Implementacije Sidebar Stavki**
 
-### **✅ Implementirano (4/10):**
-1. **Active Recall** (case 0) - ChatBox ✅
-2. **Audio Mode** (case 2) - AudioMode komponenta ✅  
-3. **Dokumenti** (case 8) - File handling ✅
-4. **Performance Test** (case 9) - VirtualScrollTest ✅
+| #  | Stavka             | Status      | Komponenta/Fajl         | Napomena |
+|----|--------------------|-------------|-------------------------|----------|
+| 0  | Active Recall      | ✅ Završeno | ChatBox                 |          |
+| 1  | Mind Mapping       | ⏳ U toku   | MindMapping.tsx         | Osnovna struktura, UI, drag&drop u razvoju |
+| 2  | Audio Mode         | ✅ Završeno | AudioMode.tsx           |          |
+| 3  | Study Room         | ❌ Nije započeto | StudyRoom.tsx        |          |
+| 4  | Exam Simulation    | ❌ Nije započeto | ExamSimulation.tsx   |          |
+| 5  | Problem Generator  | ❌ Nije započeto | ProblemGenerator.tsx  |          |
+| 6  | Study Journal      | ❌ Nije započeto | StudyJournal.tsx      |          |
+| 7  | Career Guidance    | ❌ Nije započeto | CareerGuidance.tsx    |          |
+| 8  | Dokumenti          | ✅ Završeno | FileHandling            |          |
+| 9  | Performance Test   | ✅ Završeno | VirtualScrollTest.tsx   |          |
 
-### **❌ Prazne stavke (6/10):**
-1. **Mind Mapping** (case 1) - Samo placeholder
-2. **Study Room** (case 3) - Samo placeholder
-3. **Exam Simulation** (case 4) - Samo placeholder
-4. **Problem Generator** (case 5) - Samo placeholder
-5. **Study Journal** (case 6) - Samo placeholder
-6. **Career Guidance** (case 7) - Samo placeholder
+---
+
+## 📊 **Napredak po fazama**
+
+| Faza  | Stavke (ključne)                        | Status         |
+|-------|-----------------------------------------|----------------|
+| 1     | Mind Mapping, Study Journal, Exam Simulation | ⏳ Mind Mapping u toku, ostalo nije započeto |
+| 2     | Problem Generator, Study Room, Career Guidance | ❌ Nije započeto |
+
+---
+
+## 📝 **Šta je urađeno**
+- 4/10 sidebar stavki je potpuno funkcionalno (Active Recall, Audio Mode, Dokumenti, Performance Test)
+- Mind Mapping: započeta implementacija (osnovna struktura, UI, drag&drop logika)
+- Detaljan plan, tehnička specifikacija i arhitektura za sve preostale stavke
+
+## ⏳ **Šta je u toku**
+- Mind Mapping: razvoj osnovne funkcionalnosti (node creation, drag&drop, connections)
+
+## ❌ **Šta predstoji**
+- Study Journal: entry sistem, progress tracking, goal setting
+- Exam Simulation: question bank, timer, scoring, review
+- Problem Generator: template system, problem generation
+- Study Room: real-time collaboration, whiteboard
+- Career Guidance: skills assessment, career suggestions
+
+---
+
+## 🚀 **Sledeći koraci**
+
+1. **Završiti Mind Mapping (Faza 1, prioritet 1)**
+   - Finalizirati node creation/editing
+   - Implementirati connections i osnovni export
+   - Testirati osnovnu funkcionalnost
+2. **Pokrenuti Study Journal (Faza 1, prioritet 2)**
+   - Entry sistem, vizualizacija napretka
+3. **Pokrenuti Exam Simulation (Faza 1, prioritet 3)**
+   - Osnovni question bank, timer, scoring
+4. **Planirati i razbiti Fazu 2 na manje taskove**
+   - Problem Generator, Study Room, Career Guidance
+5. **Dodati status tracking sekciju u README i/ili dashboard**
+
+---
+
+## 🏁 **Trenutni status**
+- **Sidebar funkcionalnost: 40% kompletirano**
+- **Faza 1: 1/3 u toku**
+- **Faza 2: 0%**
+- **Naredni milestone:** Mind Mapping MVP
 
 ---
 
@@ -380,7 +429,7 @@ docs: update sidebar enhancements plan
 
 ---
 
-*Dokument kreiran: ${new Date().toLocaleDateString('sr-RS')}*  
+*Dokument ažuriran: 2025-01-27*  
 *Grana: advanced-ui-ux-improvements*  
-*Status: Plan definisan za MVP implementaciju*  
+*Status: Mind Mapping u razvoju, ostale napredne stavke čekaju implementaciju*  
 *Prioritet: Mind Mapping → Study Journal → Exam Simulation* 

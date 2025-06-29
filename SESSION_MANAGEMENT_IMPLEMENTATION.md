@@ -2,14 +2,33 @@
 
 ## 📋 Pregled
 
-Session Management funkcionalnost je potpuno implementirana u AcAIA aplikaciji, omogućavajući korisnicima da upravljaju svojim chat sesijama na napredan način.
+Session Management funkcionalnost je **delimično implementirana** u AcAIA aplikaciji. Frontend komponente su potpuno implementirane, ali backend podrška je ograničena na osnovne operacije. Supabase baza sadrži samo osnovne tabele.
+
+---
+
+## 🗄️ Stanje Supabase Baze
+
+### **Postojeće tabele:**
+- `chat_history` — čuva poruke i osnovne podatke o sesijama
+- `document_vectors` — vektori za pretragu
+- `documents` — dokumenti
+- `ocr_images` — OCR rezultati
+- `retrieval_sessions` — multi-step retrieval
+
+### **Nedostajuće tabele za napredni session management:**
+- **session_categories** — za čuvanje kategorija i tagova po sesiji
+- **session_archive** — za arhiviranje i vraćanje sesija
+- **session_sharing** — za deljenje sesija, linkove, dozvole, analitiku
+- **session_metadata** ili dodatna polja u `chat_history` — za naziv, boju, opis, status arhive, custom atribute
 
 ---
 
 ## 🎯 Implementirane Funkcionalnosti
 
-### **1. Session Renaming** ✅
-- **Komponenta**: `SessionRenameModal.tsx`
+### **1. Session Renaming** ✅ **FRONTEND IMPLEMENTIRANO**
+- **Komponenta**: `SessionRenameModal.tsx` ✅
+- **Backend**: ❌ Nema API endpoint
+- **Supabase**: ❌ Nema podršku
 - **Funkcionalnosti**:
   - Preimenovanje sesija sa validacijom
   - Prikaz trenutnog naziva sesije
@@ -17,8 +36,10 @@ Session Management funkcionalnost je potpuno implementirana u AcAIA aplikaciji, 
   - Keyboard shortcuts (Enter za sačuvaj, Escape za otkaži)
   - Error handling za sve greške
 
-### **2. Session Categories** ✅
-- **Komponenta**: `SessionCategories.tsx`
+### **2. Session Categories** ✅ **FRONTEND IMPLEMENTIRANO**
+- **Komponenta**: `SessionCategories.tsx` ✅
+- **Backend**: ❌ Nema API endpoint
+- **Supabase**: ❌ Nema podršku
 - **Funkcionalnosti**:
   - 8 predefinisanih kategorija (Posao, Učenje, Lično, itd.)
   - Custom kategorije sa bojama i opisima
@@ -26,8 +47,10 @@ Session Management funkcionalnost je potpuno implementirana u AcAIA aplikaciji, 
   - Bulk operations nad kategorijama
   - Visual feedback sa color coding
 
-### **3. Session Archiving** ✅
-- **Komponenta**: `SessionArchive.tsx`
+### **3. Session Archiving** ✅ **FRONTEND IMPLEMENTIRANO**
+- **Komponenta**: `SessionArchive.tsx` ✅
+- **Backend**: ❌ Nema API endpoint
+- **Supabase**: ❌ Nema podršku
 - **Funkcionalnosti**:
   - Arhiviranje sesija sa metadata
   - Vraćanje sesija iz arhive
@@ -36,8 +59,10 @@ Session Management funkcionalnost je potpuno implementirana u AcAIA aplikaciji, 
   - Bulk operations (select all, mass delete/restore)
   - Statistike arhive (ukupno, veličina, pristupi)
 
-### **4. Session Sharing** ✅
-- **Komponenta**: `SessionSharing.tsx`
+### **4. Session Sharing** ✅ **FRONTEND IMPLEMENTIRANO**
+- **Komponenta**: `SessionSharing.tsx` ✅
+- **Backend**: ❌ Nema API endpoint
+- **Supabase**: ❌ Nema podršku
 - **Funkcionalnosti**:
   - Kreiranje linkova za deljenje
   - Podešavanja dozvola (read, read_write, admin)
@@ -51,48 +76,40 @@ Session Management funkcionalnost je potpuno implementirana u AcAIA aplikaciji, 
 
 ## 🛠️ Tehnička Implementacija
 
-### **Komponente Struktura**
+### **Komponente Struktura** ✅ **IMPLEMENTIRANO**
 ```
 components/
 ├── SessionManagement/
-│   ├── SessionRenameModal.tsx
-│   ├── SessionCategories.tsx
-│   ├── SessionArchive.tsx
-│   └── SessionSharing.tsx
-└── ChatHistorySidebar.tsx (integrisano)
+│   ├── SessionRenameModal.tsx ✅ (208 linija)
+│   ├── SessionCategories.tsx ✅ (372 linije)
+│   ├── SessionArchive.tsx ✅ (494 linije)
+│   └── SessionSharing.tsx ✅ (611 linija)
+└── ChatHistorySidebar.tsx ✅ (integrisano)
 ```
 
-### **API Endpoints (Simulirani)**
+### **Postojeći API Endpoints** ✅ **OSNOVNI**
 ```typescript
-// Session Renaming
+// Osnovni session endpoints (postoje)
+GET /chat/sessions                    // Dohvata sesije (SQLite)
+DELETE /chat/session/{session_id}     // Briše sesiju (SQLite)
+
+// Supabase session endpoints (postoje)
+GET /supabase/chat/sessions           // Dohvata sesije iz Supabase
+DELETE /supabase/chat/session/{session_id} // Briše sesiju iz Supabase
+```
+
+### **Nedostajući API Endpoints** ❌ **NEMA**
+```typescript
+// Session Management endpoints (NEMA)
 PUT /api/sessions/{sessionId}/rename
-{
-  "name": "Novi naziv sesije"
-}
-
-// Session Categories
-PUT /api/sessions/{sessionId}/categories
-{
-  "categories": ["work", "project"]
-}
-
-// Session Archiving
+PUT /api/sessions/{sessionId}/categories  
 POST /api/sessions/{sessionId}/archive
 POST /api/sessions/{sessionId}/restore
-DELETE /api/sessions/{sessionId}
-
-// Session Sharing
 POST /api/sessions/{sessionId}/share
-{
-  "allowComments": true,
-  "allowExport": true,
-  "requirePassword": false,
-  "expiresIn": "7d"
-}
 DELETE /api/sessions/share/{linkId}
 ```
 
-### **State Management**
+### **State Management** ✅ **IMPLEMENTIRANO**
 ```typescript
 // Session Management state u ChatHistorySidebar
 const [showRenameModal, setShowRenameModal] = useState(false);
@@ -104,7 +121,7 @@ const [selectedSessionForManagement, setSelectedSessionForManagement] = useState
 
 ---
 
-## 🎨 UI/UX Features
+## 🎨 UI/UX Features ✅ **IMPLEMENTIRANO**
 
 ### **Premium Design**
 - **Glassmorphism efekti** - Transparentni modali sa blur efektima
@@ -128,7 +145,7 @@ const [selectedSessionForManagement, setSelectedSessionForManagement] = useState
 
 ## 🔧 Funkcionalnosti po Komponenti
 
-### **SessionRenameModal**
+### **SessionRenameModal** ✅ **IMPLEMENTIRANO**
 ```typescript
 interface SessionRenameModalProps {
   isOpen: boolean;
@@ -147,7 +164,7 @@ interface SessionRenameModalProps {
 - Delete confirmation
 - Keyboard shortcuts
 
-### **SessionCategories**
+### **SessionCategories** ✅ **IMPLEMENTIRANO**
 ```typescript
 interface SessionCategoriesProps {
   isOpen: boolean;
@@ -165,7 +182,7 @@ interface SessionCategoriesProps {
 - Bulk operations
 - Visual feedback
 
-### **SessionArchive**
+### **SessionArchive** ✅ **IMPLEMENTIRANO**
 ```typescript
 interface SessionArchiveProps {
   isOpen: boolean;
@@ -183,7 +200,7 @@ interface SessionArchiveProps {
 - Statistike
 - File size formatting
 
-### **SessionSharing**
+### **SessionSharing** ✅ **IMPLEMENTIRANO**
 ```typescript
 interface SessionSharingProps {
   isOpen: boolean;
@@ -204,7 +221,7 @@ interface SessionSharingProps {
 
 ---
 
-## 🚀 Integracija u ChatHistorySidebar
+## 🚀 Integracija u ChatHistorySidebar ✅ **IMPLEMENTIRANO**
 
 ### **Dodani Dugmad**
 ```typescript
@@ -238,7 +255,7 @@ const openSessionManagement = (modal: 'rename' | 'categories' | 'archive' | 'sha
 
 ---
 
-## 📊 Error Handling
+## 📊 Error Handling ✅ **IMPLEMENTIRANO**
 
 ### **Comprehensive Error Management**
 - **API greške** - Network, server, validation greške
@@ -254,7 +271,7 @@ const openSessionManagement = (modal: 'rename' | 'categories' | 'archive' | 'sha
 
 ---
 
-## 🧪 Testing Strategy
+## 🧪 Testing Strategy ❌ **NEMA**
 
 ### **Unit Tests**
 - [ ] SessionRenameModal validation
@@ -276,7 +293,7 @@ const openSessionManagement = (modal: 'rename' | 'categories' | 'archive' | 'sha
 
 ---
 
-## 📈 Performance Optimizations
+## 📈 Performance Optimizations ✅ **IMPLEMENTIRANO**
 
 ### **Lazy Loading**
 - Modali se učitavaju samo kada su potrebni
@@ -321,7 +338,7 @@ openSessionManagement('rename', session);
 
 // Modal će pozvati handleRenameSession
 const handleRenameSession = async (sessionId: string, newName: string) => {
-  // API poziv za preimenovanje
+  // API poziv za preimenovanje (SIMULIRANO)
   // Update local state
   // Show success toast
 };
@@ -334,7 +351,7 @@ openSessionManagement('categories', session);
 
 // Modal će pozvati handleUpdateCategories
 const handleUpdateCategories = async (sessionId: string, categories: string[]) => {
-  // API poziv za ažuriranje kategorija
+  // API poziv za ažuriranje kategorija (SIMULIRANO)
   // Update local state
   // Show success toast
 };
@@ -347,7 +364,7 @@ openSessionManagement('archive', session);
 
 // Modal će pozvati handleArchiveSession
 const handleArchiveSession = async (sessionId: string) => {
-  // API poziv za arhiviranje
+  // API poziv za arhiviranje (SIMULIRANO)
   // Remove from active sessions
   // Show success toast
 };
@@ -355,6 +372,49 @@ const handleArchiveSession = async (sessionId: string) => {
 
 ---
 
-*Dokument kreiran: ${new Date().toLocaleDateString('sr-RS')}*
-*Status: Session Management potpuno implementiran ✅*
+## 📊 Status Implementacije
+
+### **✅ Završeno (100%)**
+- **Frontend komponente** - Sve 4 SessionManagement komponente
+- **UI/UX design** - Premium glassmorphism design
+- **Integracija u ChatHistorySidebar** - Potpuno integrisano
+- **Error handling** - Comprehensive error management
+- **Performance optimizacije** - Lazy loading, state management
+- **Accessibility** - Keyboard navigation, screen reader support
+
+### **❌ Nedostaje (0%)**
+- **Backend API endpointovi** - Nema session management endpointove
+- **Supabase integracija** - Nema session management tabele
+- **Database schema** - Nema session metadata polja
+- **Real API pozivi** - Sve su simulirane
+- **Testiranje** - Nema unit/integration testova
+
+### **🔄 Delimično (50%)**
+- **Osnovni session operacije** - GET/DELETE postoje
+- **Supabase podrška** - Samo osnovne operacije
+- **Error handling** - Frontend implementiran, backend nema
+
+---
+
+## 🎯 Sledeći Koraci
+
+### **Visok Prioritet (1-2 nedelje)**
+1. **Backend API Endpoints** - Implementirati sve session management endpointove
+2. **Supabase Schema** - Dodati session management tabele
+3. **Real API Integration** - Zameniti simulirane pozive
+
+### **Srednji Prioritet (2-3 nedelje)**
+4. **Testiranje** - Unit i integration testovi
+5. **Error Handling** - Backend error handling
+6. **Performance** - Caching i optimizacije
+
+### **Nizak Prioritet (1 mesec)**
+7. **Advanced Features** - Real-time collaboration, analytics
+8. **PWA Features** - Offline support, push notifications
+9. **Security** - Advanced permission system
+
+---
+
+*Dokument ažuriran: 2025-01-27*  
+*Status: Frontend 100% implementiran, Backend 0% implementiran, Supabase sadrži samo osnovne tabele*  
 *Grana: advanced-ui-ux-improvements* 
