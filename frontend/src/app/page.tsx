@@ -16,7 +16,7 @@ import { HEALTH_CHECK_ENDPOINT } from '../utils/api';
 import { OfflineDetector } from '../components/OfflineDetector';
 import FileSharing from '../components/FileHandling/FileSharing';
 import VirtualScrollTest from '../components/Performance/VirtualScrollTest';
-import MindMapping from '../components/SidebarEnhancements/MindMapping/MindMapping';
+import MindMapping from '../components/MindMapping/MindMapping';
 
 export default function Home() {
   const [selectedMenu, setSelectedMenu] = useState(0);
