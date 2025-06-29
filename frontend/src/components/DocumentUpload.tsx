@@ -381,7 +381,7 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
         {/* Premium Drag & Drop Area */}
         <div
           ref={dropRef}
-          className={`group relative p-6 rounded-2xl border cursor-pointer card-hover-profi ${
+          className={`group relative flex flex-col items-center justify-center gap-6 p-6 rounded-2xl border cursor-pointer card-hover-profi ${
             isDragOver 
               ? 'border-blue-500/50 bg-gradient-to-r from-blue-500/10 to-purple-500/10 shadow-xl shadow-blue-500/20' 
               : 'border-white/20 hover-border-subtle hover-bg-subtle'
@@ -391,31 +391,40 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
           onDrop={handleDrop}
         >
           {/* Suptilni hover glow effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/3 to-purple-500/3 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-          
-          <div className="text-blue-400 mb-6 group-hover:scale-110 icon-hover-profi">
-            <FaCloudUploadAlt size={64} />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/3 to-purple-500/3 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"></div>
+          {/* Ikona */}
+          <div className="flex flex-col items-center justify-center min-w-[80px]">
+            <div className="text-blue-400 mb-2 group-hover:scale-110 icon-hover-profi">
+              <FaCloudUploadAlt size={64} />
+            </div>
           </div>
-          <p className="text-xl font-bold text-white mb-3">
-            Prevucite dokumente ovde ili kliknite da izaberete
-          </p>
-          <p className="text-sm text-slate-400 mb-6">
-            Podržani formati: PDF, DOCX, TXT, PNG, JPG, JPEG
-          </p>
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 btn-hover-profi font-semibold shadow-lg"
-          >
-            Izaberi fajlove
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            accept=".pdf,.docx,.txt,.png,.jpg,.jpeg"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
+          {/* Tekst i dugme */}
+          <div className="flex flex-col items-center justify-center gap-2 w-full">
+            <p className="text-xl font-bold text-white text-center mb-1">
+              Prevucite dokumente ovde ili kliknite da izaberete
+            </p>
+            <div className="flex flex-wrap gap-2 mb-2 justify-center">
+              {['PDF', 'DOCX', 'TXT', 'PNG', 'JPG', 'JPEG'].map(f => (
+                <span key={f} className="px-2 py-1 bg-slate-800/60 text-blue-300 text-xs rounded-lg border border-blue-500/20 font-mono">
+                  {f}
+                </span>
+              ))}
+            </div>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 btn-hover-profi font-semibold shadow-lg mt-2"
+            >
+              Izaberi fajlove
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.docx,.txt,.png,.jpg,.jpeg"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          </div>
         </div>
 
         {/* Premium Upload Progress */}
