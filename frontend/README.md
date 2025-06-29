@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🎨 AcAIA Frontend
 
-## Getting Started
-
-First, run the development server:
+## 🚀 Pokretanje
 
 ```bash
+# Instalacija dependencies
+npm install
+
+# Pokretanje development servera
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+
+# Build za produkciju
+npm run build
+
+# Pokretanje produkcije
+npm start
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 📁 Struktura Projekta
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+src/
+├── app/                    # Next.js App Router
+├── components/             # React komponente
+│   ├── ChatBox/           # Chat funkcionalnosti
+│   ├── ChatHistorySidebar/ # Sidebar komponente
+│   ├── Export/            # Export funkcionalnosti
+│   ├── Voice/             # Voice input/output
+│   ├── FileHandling/      # File handling
+│   ├── Performance/       # Performance optimizacije
+│   ├── ErrorHandling/     # Error handling
+│   ├── Theme/             # Theme management
+│   └── Accessibility/     # Accessibility komponente
+├── hooks/                 # Custom React hooks
+└── utils/                 # Utility funkcije
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🛠️ Tech Stack
 
-## Learn More
+- **Next.js 14** - React framework
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Styling
+- **Framer Motion** - Animacije
+- **Web Speech API** - Voice input/output
+- **React Virtualized** - Performance optimizacije
 
-To learn more about Next.js, take a look at the following resources:
+## 📖 Dokumentacija
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Detaljna dokumentacija se nalazi u glavnom `ACAI_COMPLETE_IMPLEMENTATION_GUIDE.md` fajlu.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*AcAIA Frontend - Advanced Context-Aware AI Assistant* 
