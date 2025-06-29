@@ -80,8 +80,8 @@ Session Mgmt      Performance Monitor  Multi-step RAG
 
 ## 📖 Dokumentacija
 
-### **📋 Implementation Roadmap:**
-- **[ACAI_IMPLEMENTATION_ROADMAP.md](ACAI_IMPLEMENTATION_ROADMAP.md)** - Jedinstveni roadmap sa detaljnim planom implementacije za 2025
+### **📋 Master Roadmap:**
+- **[ACAI_MASTER_ROADMAP.md](ACAI_MASTER_ROADMAP.md)** - Sveobuhvatni master roadmap sa detaljnim planom implementacije za 2025
 
 ### **📁 Struktura Projekta:**
 ```
@@ -174,7 +174,7 @@ Ovaj projekat je licenciran pod MIT licencom - pogledaj [LICENSE](LICENSE) fajl 
 ## 📞 Kontakt
 
 - **Projekat:** [AcAIA Repository](https://github.com/your-username/AcAIA)
-- **Dokumentacija:** [Implementation Roadmap](ACAI_IMPLEMENTATION_ROADMAP.md)
+- **Dokumentacija:** [Master Roadmap](ACAI_MASTER_ROADMAP.md)
 - **Issues:** [GitHub Issues](https://github.com/your-username/AcAIA/issues)
 
 ---

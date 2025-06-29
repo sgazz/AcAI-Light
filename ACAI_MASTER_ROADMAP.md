@@ -1,8 +1,8 @@
-# 🚀 AcAIA - Implementation Roadmap 2025
+# 🚀 AcAIA - Master Implementation Roadmap 2025
 
 ## 📋 Pregled Projekta
 
-**AcAIA** (Advanced Context-Aware AI Assistant) je napredna AI aplikacija sa 75% završenosti. Ovaj roadmap fokusira se na preostalih 25% funkcionalnosti koje treba implementirati do kraja 2025.
+**AcAIA** (Advanced Context-Aware AI Assistant) je napredna AI aplikacija sa 75% završenosti. Ovaj master roadmap konsoliduje sve informacije o projektu u jedan sveobuhvatni dokument.
 
 ### **🎯 Trenutni Status:**
 - **Završeno:** 75% (Faze 1-3)
@@ -119,6 +119,17 @@
 - **Retry Logic** - Automatski retry za greške
 - **Graceful Degradation** - Graceful handling grešaka
 - **Offline Detection** - Real-time network status monitoring
+
+#### **3.6 OCR System** ✅ **IMPLEMENTIRANO**
+- **Modularni OCR Service** - `backend/app/ocr_service.py`
+- **Tesseract OCR integracija** - Podrška za srpski i engleski jezik
+- **Napredni preprocessing** - Grayscale, noise reduction, adaptive thresholding
+- **Confidence scoring** - Prosečni confidence score za OCR
+- **Batch processing** - Paralelna obrada više slika
+- **Bounding box detection** - Detekcija pozicija teksta
+- **RAG integracija** - Automatska integracija OCR rezultata u RAG sistem
+- **Vizuelizacija rezultata** - Prikaz slika sa overlay bounding boxovima
+- **Eksport funkcionalnost** - TXT, JSON, CSV export
 
 ---
 
