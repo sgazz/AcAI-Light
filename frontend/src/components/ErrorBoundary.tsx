@@ -59,7 +59,7 @@ export default class ErrorBoundary extends Component<Props, State> {
               <div className="absolute inset-0 bg-gradient-to-r from-red-500/20 to-orange-500/20 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
               
               {/* Main container */}
-              <div className="relative bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-3xl border border-red-500/30 shadow-2xl p-8 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl">
+              <div className="relative bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-3xl border border-red-500/30 shadow-2xl p-8 card-hover-profi">
                 {/* Animated Background Pattern */}
                 <div className="absolute inset-0 opacity-5">
                   <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-red-500/20 via-orange-500/20 to-pink-500/20 animate-pulse"></div>
@@ -92,8 +92,8 @@ export default class ErrorBoundary extends Component<Props, State> {
                       Osveži stranicu
                     </button>
                     <button
-                      onClick={() => this.setState({ hasError: false, error: undefined })}
-                      className="w-full px-6 py-3 bg-gradient-to-r from-slate-700/50 to-slate-600/50 text-white border border-white/20 rounded-2xl hover:from-slate-600/50 hover:to-slate-500/50 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105 transform"
+                      onClick={this.handleRetry}
+                      className="w-full px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl hover:from-blue-600 hover:to-purple-700 btn-hover-profi font-semibold shadow-lg"
                     >
                       Pokušaj ponovo
                     </button>

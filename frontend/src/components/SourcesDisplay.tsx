@@ -74,11 +74,11 @@ export default function SourcesDisplay({ sources, isVisible, onSourceClick }: So
               {sources.map((source, index) => (
                 <div
                   key={index}
-                  className="group/source relative p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 hover:border-blue-500/30 transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+                  className="group/source relative p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 hover-border-subtle card-hover-profi cursor-pointer"
                   onClick={() => onSourceClick(source)}
                 >
-                  {/* Hover glow effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover/source:opacity-100 transition-opacity duration-300"></div>
+                  {/* Suptilni hover glow effect */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/3 to-purple-500/3 rounded-2xl opacity-0 group-hover/source:opacity-100 transition-opacity duration-300"></div>
                   
                   <div className="relative">
                     <div className="flex items-start justify-between mb-3">
@@ -105,7 +105,7 @@ export default function SourcesDisplay({ sources, isVisible, onSourceClick }: So
                             e.stopPropagation();
                             onSourceClick(source);
                           }}
-                          className="p-2 text-blue-400 hover:text-white hover:bg-blue-500/20 rounded-xl transition-all duration-300 group/eye"
+                          className="p-2 text-blue-400 hover:text-white hover:bg-blue-500/20 rounded-xl icon-hover-profi group/eye"
                           title="Pogledaj izvor"
                         >
                           <FaEye size={12} className="group-hover/eye:scale-110 transition-transform duration-300" />

@@ -8,9 +8,9 @@ interface TypingIndicatorProps {
 
 export default function TypingIndicator({ message = "AI piše..." }: TypingIndicatorProps) {
   return (
-    <div className="group relative p-6 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 shadow-lg backdrop-blur-sm">
-      {/* Hover glow effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+    <div className="group relative p-6 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 shadow-lg backdrop-blur-sm card-hover-profi">
+      {/* Suptilni hover glow effect */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/3 to-purple-500/3 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       
       <div className="relative flex items-center gap-4">
         {/* Premium AI Icon */}

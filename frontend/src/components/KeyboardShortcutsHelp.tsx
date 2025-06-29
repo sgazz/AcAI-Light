@@ -84,7 +84,7 @@ export default function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShort
             </div>
             <button
               onClick={onClose}
-              className="p-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 group"
+              className="p-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl icon-hover-profi"
               title="Zatvori"
             >
               <FaTimes size={20} className="group-hover:rotate-90 transition-transform duration-300" />
@@ -117,7 +117,7 @@ export default function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShort
                     </kbd>
                   </div>
                 </div>
-                <div className="group relative p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 hover:border-blue-500/30 transition-all duration-300 hover:scale-[1.02]">
+                <div className="group relative p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 hover-border-subtle card-hover-profi">
                   <div className="flex items-center justify-between">
                     <span className="text-white font-medium">Fokus na input</span>
                     <kbd className="px-3 py-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-white rounded-xl text-sm border border-blue-500/30 font-mono shadow-lg">
@@ -125,7 +125,7 @@ export default function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShort
                     </kbd>
                   </div>
                 </div>
-                <div className="group relative p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 hover:border-blue-500/30 transition-all duration-300 hover:scale-[1.02]">
+                <div className="group relative p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 hover-border-subtle card-hover-profi">
                   <div className="flex items-center justify-between">
                     <span className="text-white font-medium">Istorija razgovora</span>
                     <kbd className="px-3 py-2 bg-gradient-to-r from-blue-500/20 to-purple-500/20 text-white rounded-xl text-sm border border-blue-500/30 font-mono shadow-lg">

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   FaPlus, FaTrash, FaDownload, FaUndo, FaRedo, FaLightbulb, 
   FaLink, FaSearch, FaSearchMinus, 
-  FaExpand, FaImage, FaFilePdf, FaSave, FaMousePointer, FaHandPaper
+  FaExpand, FaImage, FaFilePdf, FaSave, FaMousePointer, FaHandPaper, FaSearchPlus, FaUpload
 } from 'react-icons/fa';
 import { useErrorToast } from '../../ErrorToastProvider';
 import html2canvas from 'html2canvas';
@@ -475,7 +475,7 @@ export default function MindMapping({ className = '' }: MindMappingProps) {
           <div className="flex bg-slate-700 rounded-lg p-1 mr-2">
             <button
               onClick={() => setToolMode('select')}
-              className={`p-2 rounded-md transition-colors ${
+              className={`p-2 rounded-md icon-hover-profi ${
                 toolMode === 'select'
                   ? 'bg-blue-500 text-white'
                   : 'text-slate-300 hover:text-white hover:bg-slate-600'
@@ -486,7 +486,7 @@ export default function MindMapping({ className = '' }: MindMappingProps) {
             </button>
             <button
               onClick={() => setToolMode('pan')}
-              className={`p-2 rounded-md transition-colors ${
+              className={`p-2 rounded-md icon-hover-profi ${
                 toolMode === 'pan'
                   ? 'bg-blue-500 text-white'
                   : 'text-slate-300 hover:text-white hover:bg-slate-600'
@@ -497,7 +497,7 @@ export default function MindMapping({ className = '' }: MindMappingProps) {
             </button>
             <button
               onClick={() => setToolMode('connect')}
-              className={`p-2 rounded-md transition-colors ${
+              className={`p-2 rounded-md icon-hover-profi ${
                 toolMode === 'connect'
                   ? 'bg-blue-500 text-white'
                   : 'text-slate-300 hover:text-white hover:bg-slate-600'
@@ -511,26 +511,26 @@ export default function MindMapping({ className = '' }: MindMappingProps) {
           {/* Zoom Controls */}
           <div className="flex bg-slate-700 rounded-lg p-1 mr-2">
             <button
-              onClick={zoomOut}
-              className="p-2 text-slate-300 hover:text-white hover:bg-slate-600 rounded-md transition-colors"
-              title="Zoom Out"
+              onClick={() => setScale(scale * 1.2)}
+              className="p-2 text-slate-300 hover:text-white hover:bg-slate-600 rounded-md icon-hover-profi"
+              title="Zoom In"
             >
-              <FaSearchMinus size={16} />
+              <FaSearchPlus size={16} />
             </button>
             <span className="px-2 py-2 text-slate-300 text-sm font-medium">
               {Math.round(scale * 100)}%
             </span>
             <button
-              onClick={zoomIn}
-              className="p-2 text-slate-300 hover:text-white hover:bg-slate-600 rounded-md transition-colors"
-              title="Zoom In"
+              onClick={() => setScale(scale / 1.2)}
+              className="p-2 text-slate-300 hover:text-white hover:bg-slate-600 rounded-md icon-hover-profi"
+              title="Zoom Out"
             >
-              <FaSearch size={16} />
+              <FaSearchMinus size={16} />
             </button>
             <button
-              onClick={fitToScreen}
-              className="p-2 text-slate-300 hover:text-white hover:bg-slate-600 rounded-md transition-colors"
-              title="Fit to Screen"
+              onClick={() => setScale(1)}
+              className="p-2 text-slate-300 hover:text-white hover:bg-slate-600 rounded-md icon-hover-profi"
+              title="Reset Zoom"
             >
               <FaExpand size={16} />
             </button>
@@ -539,7 +539,7 @@ export default function MindMapping({ className = '' }: MindMappingProps) {
           {/* Action Buttons */}
           <button
             onClick={() => addNode()}
-            className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors"
+            className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg btn-hover-profi"
             title="Add Node"
           >
             <FaPlus size={16} />
@@ -548,7 +548,7 @@ export default function MindMapping({ className = '' }: MindMappingProps) {
           <button
             onClick={handleUndo}
             disabled={historyIndex <= 0}
-            className="p-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white rounded-lg transition-colors"
+            className="p-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white rounded-lg btn-hover-profi"
             title="Undo"
           >
             <FaUndo size={16} />
@@ -557,7 +557,7 @@ export default function MindMapping({ className = '' }: MindMappingProps) {
           <button
             onClick={handleRedo}
             disabled={historyIndex >= history.length - 1}
-            className="p-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white rounded-lg transition-colors"
+            className="p-2 bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white rounded-lg btn-hover-profi"
             title="Redo"
           >
             <FaRedo size={16} />
@@ -566,7 +566,7 @@ export default function MindMapping({ className = '' }: MindMappingProps) {
           <button
             onClick={generateAiSuggestions}
             disabled={isLoading}
-            className="p-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg transition-colors"
+            className="p-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg btn-hover-profi"
             title="AI Suggestions"
           >
             <FaLightbulb size={16} />
@@ -574,27 +574,27 @@ export default function MindMapping({ className = '' }: MindMappingProps) {
 
           {/* Export Menu */}
           <div className="relative group">
-            <button className="p-2 bg-green-500 hover:bg-green-600 text-white rounded-lg transition-colors">
+            <button className="p-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg btn-hover-profi">
               <FaDownload size={16} />
             </button>
-            <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+            <div className="absolute top-full left-0 mt-1 bg-slate-800 border border-slate-600 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
               <button
                 onClick={() => exportMindMap('png')}
-                className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 flex items-center gap-2"
+                className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 flex items-center gap-2 icon-hover-profi"
               >
                 <FaImage size={14} />
                 Export as PNG
               </button>
               <button
                 onClick={() => exportMindMap('pdf')}
-                className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 flex items-center gap-2"
+                className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 flex items-center gap-2 icon-hover-profi"
               >
                 <FaFilePdf size={14} />
                 Export as PDF
               </button>
               <button
                 onClick={() => exportMindMap('json')}
-                className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 flex items-center gap-2"
+                className="w-full px-4 py-2 text-left text-white hover:bg-slate-700 flex items-center gap-2 icon-hover-profi"
               >
                 <FaSave size={14} />
                 Export as JSON
@@ -684,10 +684,10 @@ export default function MindMapping({ className = '' }: MindMappingProps) {
                   }}
                 >
                   <div
-                    className={`w-full h-full rounded-2xl border-2 backdrop-blur-sm transition-all duration-200 ${
+                    className={`w-full h-full rounded-2xl border-2 backdrop-blur-sm hover-border-subtle ${
                       selectedNode === node.id
                         ? 'border-blue-400 shadow-lg shadow-blue-500/50'
-                        : 'border-white/20 hover:border-white/40'
+                        : 'border-white/20'
                     } ${isConnecting && connectionStart === node.id ? 'ring-2 ring-purple-400' : ''}`}
                     style={{
                       backgroundColor: `${node.color}20`,
@@ -739,10 +739,10 @@ export default function MindMapping({ className = '' }: MindMappingProps) {
                       <button
                         key={color}
                         onClick={() => updateNodeColor(selectedNode, color)}
-                        className={`w-8 h-8 rounded-lg border-2 transition-all ${
+                        className={`w-8 h-8 rounded-lg border-2 hover-scale-subtle ${
                           nodes.find(n => n.id === selectedNode)?.color === color
                             ? 'border-white scale-110'
-                            : 'border-slate-600 hover:border-white/50'
+                            : 'border-slate-600 hover-border-subtle'
                         }`}
                         style={{ backgroundColor: color }}
                       />
@@ -753,13 +753,13 @@ export default function MindMapping({ className = '' }: MindMappingProps) {
                 <div className="flex gap-2">
                   <button
                     onClick={() => addNode(selectedNode)}
-                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors"
+                    className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-2 px-3 rounded-lg text-sm font-medium btn-hover-profi"
                   >
                     Add Child
                   </button>
                   <button
                     onClick={() => deleteNode(selectedNode)}
-                    className="bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors"
+                    className="bg-red-500 hover:bg-red-600 text-white py-2 px-3 rounded-lg text-sm font-medium btn-hover-profi"
                   >
                     <FaTrash size={14} />
                   </button>
@@ -777,7 +777,7 @@ export default function MindMapping({ className = '' }: MindMappingProps) {
                   <button
                     key={index}
                     onClick={() => addNode()}
-                    className="w-full text-left p-2 bg-slate-600 hover:bg-slate-500 rounded-lg text-sm text-white transition-colors"
+                    className="w-full text-left p-2 bg-slate-600 hover:bg-slate-500 rounded-lg text-sm text-white icon-hover-profi"
                   >
                     {suggestion}
                   </button>

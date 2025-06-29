@@ -153,12 +153,12 @@ export default function MindMapNode({
     >
       {/* Node Background */}
       <div
-        className={`w-full h-full rounded-2xl border-2 backdrop-blur-sm transition-all duration-200 ${
+        className={`w-full h-full rounded-2xl border-2 backdrop-blur-sm hover-border-subtle ${
           isSelected
             ? 'border-blue-400 shadow-lg shadow-blue-500/50'
             : isConnectionStart
             ? 'border-purple-400 shadow-lg shadow-purple-500/50'
-            : 'border-white/20 hover:border-white/40'
+            : 'border-white/20'
         } ${isConnecting && isConnectionStart ? 'ring-2 ring-purple-400' : ''}`}
         style={{
           backgroundColor: `${color}20`,
@@ -213,7 +213,7 @@ export default function MindMapNode({
                 e.stopPropagation();
                 onAddChild();
               }}
-              className="p-1 bg-green-500 hover:bg-green-600 text-white rounded-full transition-colors"
+              className="p-1 bg-green-500 hover:bg-green-600 text-white rounded-full btn-hover-profi"
               title="Add Child Node"
             >
               <FaPlus size={10} />
@@ -223,7 +223,7 @@ export default function MindMapNode({
                 e.stopPropagation();
                 onAddConnection();
               }}
-              className="p-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full transition-colors"
+              className="p-1 bg-blue-500 hover:bg-blue-600 text-white rounded-full btn-hover-profi"
               title="Add Connection"
             >
               <FaLink size={10} />
@@ -233,7 +233,7 @@ export default function MindMapNode({
                 e.stopPropagation();
                 setIsEditing(true);
               }}
-              className="p-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full transition-colors"
+              className="p-1 bg-yellow-500 hover:bg-yellow-600 text-white rounded-full btn-hover-profi"
               title="Edit"
             >
               <FaEdit size={10} />
@@ -243,7 +243,7 @@ export default function MindMapNode({
                 e.stopPropagation();
                 onDelete();
               }}
-              className="p-1 bg-red-500 hover:bg-red-600 text-white rounded-full transition-colors"
+              className="p-1 bg-red-500 hover:bg-red-600 text-white rounded-full btn-hover-profi"
               title="Delete"
             >
               <FaTrash size={10} />

@@ -58,24 +58,24 @@ export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
             <button
               key={item.label}
               onClick={() => onMenuSelect(idx)}
-              className={`group relative p-4 rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
+              className={`group relative p-4 rounded-2xl card-hover-profi ${
                 idx === selectedMenu 
                   ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 shadow-xl shadow-blue-500/20' 
-                  : 'hover:bg-slate-800/50 border border-white/10 hover:border-blue-500/30'
+                  : 'hover-border-subtle hover-bg-subtle border border-white/10'
               }`}
             >
-              {/* Hover glow effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              {/* Suptilni hover glow effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/3 to-purple-500/3 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
               
               <div className="relative flex items-center gap-3">
-                <div className={`p-2 rounded-xl transition-all duration-300 ${
+                <div className={`p-2 rounded-xl icon-hover-profi ${
                   idx === selectedMenu 
                     ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg' 
                     : 'text-slate-400 group-hover:text-white group-hover:bg-slate-700/50'
                 }`}>
                   {item.icon}
                 </div>
-                <span className={`font-medium transition-colors duration-300 ${
+                <span className={`font-medium link-hover-profi ${
                   idx === selectedMenu 
                     ? 'text-white font-semibold' 
                     : 'text-slate-300 group-hover:text-white'

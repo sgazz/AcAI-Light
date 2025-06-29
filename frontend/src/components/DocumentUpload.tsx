@@ -381,43 +381,41 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
         {/* Premium Drag & Drop Area */}
         <div
           ref={dropRef}
-          className={`relative group border-2 border-dashed rounded-2xl p-12 text-center transition-all duration-500 ${
-            isDragOver
-              ? 'border-blue-500/50 bg-gradient-to-r from-blue-500/10 to-purple-500/10 scale-105'
-              : 'border-white/20 hover:border-blue-500/30 hover:bg-slate-800/30'
+          className={`group relative p-6 rounded-2xl border cursor-pointer card-hover-profi ${
+            isDragOver 
+              ? 'border-blue-500/50 bg-gradient-to-r from-blue-500/10 to-purple-500/10 shadow-xl shadow-blue-500/20' 
+              : 'border-white/20 hover-border-subtle hover-bg-subtle'
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          {/* Glow effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          {/* Suptilni hover glow effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/3 to-purple-500/3 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
           
-          <div className="relative">
-            <div className="text-blue-400 mb-6 group-hover:scale-110 transition-transform duration-300">
-              <FaCloudUploadAlt size={64} />
-            </div>
-            <p className="text-xl font-bold text-white mb-3">
-              Prevucite dokumente ovde ili kliknite da izaberete
-            </p>
-            <p className="text-sm text-slate-400 mb-6">
-              Podržani formati: PDF, DOCX, TXT, PNG, JPG, JPEG
-            </p>
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
-            >
-              Izaberi fajlove
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              accept=".pdf,.docx,.txt,.png,.jpg,.jpeg"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
+          <div className="text-blue-400 mb-6 group-hover:scale-110 icon-hover-profi">
+            <FaCloudUploadAlt size={64} />
           </div>
+          <p className="text-xl font-bold text-white mb-3">
+            Prevucite dokumente ovde ili kliknite da izaberete
+          </p>
+          <p className="text-sm text-slate-400 mb-6">
+            Podržani formati: PDF, DOCX, TXT, PNG, JPG, JPEG
+          </p>
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 btn-hover-profi font-semibold shadow-lg"
+          >
+            Izaberi fajlove
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            multiple
+            accept=".pdf,.docx,.txt,.png,.jpg,.jpeg"
+            onChange={handleFileSelect}
+            className="hidden"
+          />
         </div>
 
         {/* Premium Upload Progress */}
@@ -466,7 +464,7 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
                     )}
                     <button
                       onClick={() => removeUpload(upload.id)}
-                      className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-all duration-200"
+                      className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/20 rounded-lg icon-hover-profi"
                     >
                       <FaTimes size={16} />
                     </button>
@@ -502,10 +500,10 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
         <div className="space-y-4">
           <button
             onClick={() => setShowOCROptions(!showOCROptions)}
-            className="flex items-center gap-3 text-slate-400 hover:text-blue-400 transition-all duration-300 text-sm font-semibold group"
+            className="flex items-center gap-3 text-slate-400 hover:text-blue-400 link-hover-profi text-sm font-semibold group"
           >
-            <div className="p-2 bg-slate-700/50 rounded-lg group-hover:bg-blue-500/20 transition-all duration-300">
-              <FaCogs size={16} className="group-hover:text-blue-400" />
+            <div className="p-2 bg-slate-700/50 rounded-lg group-hover:bg-blue-500/20 hover-bg-subtle">
+              <FaCogs size={16} className="group-hover:text-blue-400 icon-hover-profi" />
             </div>
             <span>Napredne OCR Opcije</span>
             <div className={`transition-transform duration-300 ${showOCROptions ? 'rotate-180' : ''}`}>
@@ -577,7 +575,7 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
                             className="w-5 h-5 rounded border-white/20 bg-slate-700/50 text-blue-500 focus:ring-blue-500/50 focus:ring-2 transition-all duration-200"
                           />
                         </div>
-                        <span className="text-slate-300 group-hover:text-white transition-colors duration-200">
+                        <span className="text-slate-300 group-hover:text-white link-hover-profi">
                           {lang === 'srp' ? 'Srpski' : 'Engleski'}
                         </span>
                       </label>
@@ -604,7 +602,7 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
                           className="w-5 h-5 rounded border-white/20 bg-slate-700/50 text-blue-500 focus:ring-blue-500/50 focus:ring-2 transition-all duration-200"
                         />
                       </div>
-                      <span className="text-slate-300 group-hover:text-white transition-colors duration-200">Deskew (rotacija)</span>
+                      <span className="text-slate-300 group-hover:text-white link-hover-profi">Deskew (rotacija)</span>
                     </label>
                     <label className="flex items-center gap-3 text-sm group cursor-pointer">
                       <div className="relative">
@@ -618,7 +616,7 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
                           className="w-5 h-5 rounded border-white/20 bg-slate-700/50 text-blue-500 focus:ring-blue-500/50 focus:ring-2 transition-all duration-200"
                         />
                       </div>
-                      <span className="text-slate-300 group-hover:text-white transition-colors duration-200">Resize (promena veličine)</span>
+                      <span className="text-slate-300 group-hover:text-white link-hover-profi">Resize (promena veličine)</span>
                     </label>
                   </div>
                 </div>
@@ -642,7 +640,7 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
             <button
               onClick={startUpload}
               disabled={isUploading}
-              className="flex-1 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 font-semibold shadow-lg hover:shadow-xl"
+              className="flex-1 px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 disabled:opacity-50 disabled:cursor-not-allowed btn-hover-profi font-semibold shadow-lg"
             >
               {isUploading ? (
                 <div className="flex items-center justify-center gap-3">
@@ -655,7 +653,7 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
             </button>
             <button
               onClick={clearUploads}
-              className="px-8 py-4 bg-slate-700/50 text-white border border-white/10 rounded-xl hover:bg-slate-600/50 transition-all duration-300 font-semibold"
+              className="px-8 py-4 bg-slate-700/50 text-white border border-white/10 rounded-xl hover:bg-slate-600/50 btn-hover-profi font-semibold"
             >
               Obriši sve
             </button>

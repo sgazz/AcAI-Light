@@ -146,3 +146,133 @@ body {
 .typing-dot:nth-child(1) { animation-delay: 0s; }
 .typing-dot:nth-child(2) { animation-delay: 0.2s; }
 .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+/* Diskretni hover efekti - zadržavaju profi look */
+.hover-subtle {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-subtle:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.hover-border-subtle {
+  transition: border-color 0.2s ease;
+}
+
+.hover-border-subtle:hover {
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.hover-bg-subtle {
+  transition: background-color 0.2s ease;
+}
+
+.hover-bg-subtle:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.hover-text-subtle {
+  transition: color 0.2s ease;
+}
+
+.hover-text-subtle:hover {
+  color: rgba(59, 130, 246, 0.8);
+}
+
+/* Profi hover efekti za dark theme */
+[data-theme="dark"] .hover-subtle:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .hover-border-subtle:hover {
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+[data-theme="dark"] .hover-bg-subtle:hover {
+  background-color: rgba(59, 130, 246, 0.08);
+}
+
+/* Suptilni glow efekti */
+.hover-glow-subtle {
+  transition: all 0.2s ease;
+}
+
+.hover-glow-subtle:hover {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
+}
+
+[data-theme="dark"] .hover-glow-subtle:hover {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+/* Diskretni scale efekti */
+.hover-scale-subtle {
+  transition: transform 0.2s ease;
+}
+
+.hover-scale-subtle:hover {
+  transform: scale(1.01);
+}
+
+/* Profi button hover efekti */
+.btn-hover-profi {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-hover-profi:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .btn-hover-profi:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* Card hover efekti */
+.card-hover-profi {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.card-hover-profi:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
+
+[data-theme="dark"] .card-hover-profi:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+}
+
+/* Link hover efekti */
+.link-hover-profi {
+  transition: color 0.2s ease;
+}
+
+.link-hover-profi:hover {
+  color: var(--accent-blue);
+}
+
+/* Icon hover efekti */
+.icon-hover-profi {
+  transition: all 0.2s ease;
+}
+
+.icon-hover-profi:hover {
+  transform: scale(1.05);
+  color: var(--accent-blue);
+}
+
+/* Form element hover efekti */
+.form-hover-profi {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-hover-profi:hover {
+  border-color: var(--accent-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+[data-theme="dark"] .form-hover-profi:hover {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}

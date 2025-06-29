@@ -437,7 +437,7 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
             </div>
             <button
               onClick={onClose}
-              className="p-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-300 group"
+              className="p-3 text-slate-400 hover:text-white hover:bg-white/10 rounded-xl icon-hover-profi"
               title="Zatvori"
             >
               <FaTimes size={20} className="group-hover:rotate-90 transition-transform duration-300" />
@@ -592,16 +592,16 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
                   filteredAndSortedSessions.map((session, index) => (
                     <div
                       key={session.session_id}
-                      className={`group relative p-6 rounded-2xl border cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
+                      className={`group relative p-6 rounded-2xl border cursor-pointer card-hover-profi ${
                         selectedSession === session.session_id
                           ? 'border-blue-500/50 bg-gradient-to-r from-blue-500/10 to-purple-500/10 shadow-xl shadow-blue-500/20'
-                          : 'border-white/10 hover:border-blue-500/30 hover:bg-slate-800/50'
+                          : 'border-white/10 hover-border-subtle hover-bg-subtle'
                       }`}
                       onClick={() => loadSessionMessages(session.session_id)}
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
-                      {/* Hover glow effect */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                      {/* Suptilni hover glow effect */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-blue-500/3 to-purple-500/3 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                       
                       <div className="relative flex justify-between items-start">
                         <div className="flex-1">
@@ -632,7 +632,7 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
                               e.stopPropagation();
                               loadSessionMessages(session.session_id);
                             }}
-                            className="p-3 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-xl transition-all duration-200"
+                            className="p-3 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-xl icon-hover-profi"
                             title="Pogledaj poruke"
                           >
                             <FaEye size={16} />
@@ -642,7 +642,7 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
                               e.stopPropagation();
                               openSessionManagement('rename', session);
                             }}
-                            className="p-3 text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/20 rounded-xl transition-all duration-200"
+                            className="p-3 text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/20 rounded-xl icon-hover-profi"
                             title="Preimenuj sesiju"
                           >
                             <FaEdit size={16} />
@@ -652,7 +652,7 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
                               e.stopPropagation();
                               openSessionManagement('categories', session);
                             }}
-                            className="p-3 text-purple-400 hover:text-purple-300 hover:bg-purple-500/20 rounded-xl transition-all duration-200"
+                            className="p-3 text-purple-400 hover:text-purple-300 hover:bg-purple-500/20 rounded-xl icon-hover-profi"
                             title="Kategorije"
                           >
                             <FaTags size={16} />
@@ -662,7 +662,7 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
                               e.stopPropagation();
                               openSessionManagement('sharing', session);
                             }}
-                            className="p-3 text-green-400 hover:text-green-300 hover:bg-green-500/20 rounded-xl transition-all duration-200"
+                            className="p-3 text-green-400 hover:text-green-300 hover:bg-green-500/20 rounded-xl icon-hover-profi"
                             title="Podeli sesiju"
                           >
                             <FaShare size={16} />
@@ -672,7 +672,7 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
                               e.stopPropagation();
                               openSessionManagement('archive', session);
                             }}
-                            className="p-3 text-orange-400 hover:text-orange-300 hover:bg-orange-500/20 rounded-xl transition-all duration-200"
+                            className="p-3 text-orange-400 hover:text-orange-300 hover:bg-orange-500/20 rounded-xl icon-hover-profi"
                             title="Arhiviraj sesiju"
                           >
                             <FaArchive size={16} />
@@ -682,7 +682,7 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
                               e.stopPropagation();
                               deleteSession(session.session_id);
                             }}
-                            className="p-3 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-xl transition-all duration-200"
+                            className="p-3 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-xl icon-hover-profi"
                             title="Obriši sesiju"
                           >
                             <FaTrash size={16} />

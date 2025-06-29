@@ -93,7 +93,7 @@ export default function ErrorToast({
         <div className={`absolute inset-0 bg-gradient-to-r ${config.glowColor} rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300`}></div>
         
         {/* Main toast container */}
-        <div className={`relative bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-2xl border ${config.borderColor} shadow-2xl p-6 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl`}>
+        <div className={`relative bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-2xl border ${config.borderColor} shadow-2xl p-6 card-hover-profi`}>
           {/* Animated Background Pattern */}
           <div className="absolute inset-0 opacity-5">
             <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse"></div>

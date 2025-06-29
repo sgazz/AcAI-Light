@@ -105,16 +105,16 @@ export default function MessageRenderer({
   };
 
   return (
-    <div className={`group relative p-6 rounded-2xl transition-all duration-300 hover:scale-[1.02] ${
+    <div className={`group relative p-6 rounded-2xl card-hover-profi ${
       sender === 'user' 
         ? 'bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 ml-8 shadow-lg shadow-blue-500/20' 
-        : 'bg-gradient-to-r from-slate-800/50 to-slate-700/50 border border-white/10 mr-8 shadow-lg hover:shadow-xl'
+        : 'bg-gradient-to-r from-slate-800/50 to-slate-700/50 border border-white/10 mr-8 shadow-lg hover-glow-subtle'
     }`}>
-      {/* Hover glow effect */}
+      {/* Suptilni hover glow effect */}
       <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
         sender === 'user' 
-          ? 'bg-gradient-to-r from-blue-500/5 to-purple-500/5' 
-          : 'bg-gradient-to-r from-slate-700/20 to-slate-600/20'
+          ? 'bg-gradient-to-r from-blue-500/3 to-purple-500/3' 
+          : 'bg-gradient-to-r from-slate-700/10 to-slate-600/10'
       }`}></div>
 
       <div className="relative">

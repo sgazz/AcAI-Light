@@ -376,11 +376,11 @@ export default function ChatBox() {
             <div className="flex items-center gap-3">
               {/* Query Rewriting Toggle */}
               <div className="group relative">
-                <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover:border-blue-500/30 transition-all duration-300">
-                  <span className="text-xs text-slate-400 group-hover:text-white transition-colors">Query Rewriting</span>
+                <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
+                  <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Query Rewriting</span>
                   <button
                     onClick={() => setUseQueryRewriting(!useQueryRewriting)}
-                    className="flex items-center gap-1 text-sm transition-all duration-300 hover:scale-110"
+                    className="flex items-center gap-1 text-sm icon-hover-profi"
                   >
                     {useQueryRewriting ? (
                       <>
@@ -399,11 +399,11 @@ export default function ChatBox() {
               
               {/* Fact Checking Toggle */}
               <div className="group relative">
-                <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover:border-yellow-500/30 transition-all duration-300">
-                  <span className="text-xs text-slate-400 group-hover:text-white transition-colors">Fact Checking</span>
+                <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
+                  <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Fact Checking</span>
                   <button
                     onClick={() => setUseFactChecking(!useFactChecking)}
-                    className="flex items-center gap-1 text-sm transition-all duration-300 hover:scale-110"
+                    className="flex items-center gap-1 text-sm icon-hover-profi"
                   >
                     {useFactChecking ? (
                       <>
@@ -422,11 +422,11 @@ export default function ChatBox() {
               
               {/* Enhanced Context Toggle */}
               <div className="group relative">
-                <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover:border-cyan-500/30 transition-all duration-300">
-                  <span className="text-xs text-slate-400 group-hover:text-white transition-colors">Enhanced Context</span>
+                <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
+                  <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Enhanced Context</span>
                   <button
                     onClick={() => setUseEnhancedContext(!useEnhancedContext)}
-                    className="flex items-center gap-1 text-sm transition-all duration-300 hover:scale-110"
+                    className="flex items-center gap-1 text-sm icon-hover-profi"
                   >
                     {useEnhancedContext ? (
                       <>
@@ -446,11 +446,11 @@ export default function ChatBox() {
               {/* Re-ranking Toggle */}
               {useRAG && (
                 <div className="group relative">
-                  <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover:border-purple-500/30 transition-all duration-300">
-                    <span className="text-xs text-slate-400 group-hover:text-white transition-colors">Re-ranking</span>
+                  <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
+                    <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Re-ranking</span>
                     <button
                       onClick={() => setUseRerank(!useRerank)}
-                      className="flex items-center gap-1 text-sm transition-all duration-300 hover:scale-110"
+                      className="flex items-center gap-1 text-sm icon-hover-profi"
                     >
                       {useRerank ? (
                         <>
@@ -470,11 +470,11 @@ export default function ChatBox() {
 
               {/* RAG Toggle */}
               <div className="group relative">
-                <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover:border-green-500/30 transition-all duration-300">
-                  <span className="text-xs text-slate-400 group-hover:text-white transition-colors">RAG Mode</span>
+                <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
+                  <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">RAG Mode</span>
                   <button
                     onClick={() => setUseRAG(!useRAG)}
-                    className="flex items-center gap-1 text-sm transition-all duration-300 hover:scale-110"
+                    className="flex items-center gap-1 text-sm icon-hover-profi"
                   >
                     {useRAG ? (
                       <>
@@ -663,10 +663,10 @@ export default function ChatBox() {
           </div>
           <button 
             type="submit" 
-            className={`group relative p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105 ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            className={`group relative p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl hover:from-blue-600 hover:to-purple-700 btn-hover-profi shadow-lg ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={isLoading}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 transform rotate-180 group-hover:scale-110 transition-transform duration-300">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 transform rotate-180 group-hover:scale-110 icon-hover-profi">
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l15.75-7.5-4.5 7.5 4.5 7.5L2.25 12z" />
             </svg>
           </button>

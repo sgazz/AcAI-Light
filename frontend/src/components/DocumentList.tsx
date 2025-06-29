@@ -243,16 +243,16 @@ export default function DocumentList() {
             filteredDocuments.map((doc, index) => (
               <div
                 key={doc.id}
-                className={`group relative p-6 rounded-2xl border cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
+                className={`group relative p-6 rounded-2xl border cursor-pointer card-hover-profi ${
                   selectedDocument?.id === doc.id
                     ? 'border-blue-500/50 bg-gradient-to-r from-blue-500/10 to-purple-500/10 shadow-xl shadow-blue-500/20'
-                    : 'border-white/10 hover:border-blue-500/30 hover:bg-slate-800/50'
+                    : 'border-white/10 hover-border-subtle hover-bg-subtle'
                 }`}
                 onClick={() => setSelectedDocument(doc)}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                {/* Hover glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 to-purple-500/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                {/* Suptilni hover glow effect */}
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/3 to-purple-500/3 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                 
                 <div className="relative flex items-start justify-between">
                   <div className="flex items-start gap-4 flex-1">
@@ -287,14 +287,14 @@ export default function DocumentList() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="flex gap-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setPreviewDocument(doc);
+                        setSelectedDocument(doc);
                       }}
-                      className="p-3 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-xl transition-all duration-200"
-                      title="Pregledaj dokument"
+                      className="p-3 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-xl icon-hover-profi"
+                      title="Pogledaj dokument"
                     >
                       <FaEye size={16} />
                     </button>
@@ -303,7 +303,7 @@ export default function DocumentList() {
                         e.stopPropagation();
                         deleteDocument(doc.id);
                       }}
-                      className="p-3 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-xl transition-all duration-200"
+                      className="p-3 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-xl icon-hover-profi"
                       title="Obriši dokument"
                     >
                       <FaTrash size={16} />
