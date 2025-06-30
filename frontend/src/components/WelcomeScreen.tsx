@@ -17,10 +17,12 @@ import {
   FaChartLine,
   FaHistory,
   FaComment,
-  FaSignInAlt
+  FaSignInAlt,
+  FaPlus
 } from 'react-icons/fa';
 import { MdQuiz } from 'react-icons/md';
 import LoginModal from './LoginModal';
+import SessionSetupModal from './SessionSetupModal';
 
 interface WelcomeScreenProps {
   onStartChat: () => void;
@@ -58,6 +60,18 @@ const mockRecentSessions = [
     timestamp: '2024-01-13T10:20:00Z', 
     messageCount: 15
   }
+];
+
+// Predmeti za SessionSetupModal
+const subjects = [
+  { id: 'matematika', name: 'Matematika' },
+  { id: 'fizika', name: 'Fizika' },
+  { id: 'hemija', name: 'Hemija' },
+  { id: 'programiranje', name: 'Programiranje' },
+  { id: 'jezik', name: 'Jezik' },
+  { id: 'istorija', name: 'Istorija' },
+  { id: 'geografija', name: 'Geografija' },
+  { id: 'umetnost', name: 'Umetnost' },
 ];
 
 const features = [
@@ -112,6 +126,7 @@ const features = [
 ];
 
 const quickActions = [
+  { icon: <FaPlus size={20} />, label: 'Nova Sesija', action: 'session-setup' },
   { icon: <FaRocket size={20} />, label: 'Započni Chat', action: 'chat' },
   { icon: <FaFileAlt size={20} />, label: 'Upload Dokument', action: 'upload' },
   { icon: <FaPlay size={20} />, label: 'Audio Mode', action: 'audio' },
@@ -127,6 +142,7 @@ export default function WelcomeScreen({
   const [currentFeature, setCurrentFeature] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [showSessionSetup, setShowSessionSetup] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
@@ -153,6 +169,9 @@ export default function WelcomeScreen({
       case 'mindmap':
         onSelectFeature(1); // Mind Mapping
         break;
+      case 'session-setup':
+        setShowSessionSetup(true);
+        break;
     }
   };
 
@@ -160,12 +179,28 @@ export default function WelcomeScreen({
     console.log('Login attempt:', { email, password });
     // Implementacija login-a
     setShowLoginModal(false);
+    setShowSessionSetup(true);
   };
 
   const handleRegister = (email: string, password: string, name: string) => {
     console.log('Register attempt:', { email, password, name });
     // Implementacija registracije
     setShowLoginModal(false);
+  };
+
+  const handleStartSession = (subject: string, topic: string, sessionType: 'subject' | 'general') => {
+    console.log('Starting session:', { subject, topic, sessionType });
+    
+    // Kreiraj naslov sesije
+    const sessionTitle = sessionType === 'general' 
+      ? 'General Chat' 
+      : `${subjects.find(s => s.id === subject)?.name} - ${topic}`;
+    
+    // Možeš ovde dodati logiku za kreiranje sesije u bazi
+    console.log('Session created:', { title: sessionTitle, subject, topic, sessionType });
+    
+    // Prebaci na chat
+    onStartChat();
   };
 
   return (
@@ -204,7 +239,7 @@ export default function WelcomeScreen({
           {/* CTA Button */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button
-              onClick={onStartChat}
+              onClick={() => setShowSessionSetup(true)}
               className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl text-white font-semibold text-lg shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:scale-105"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-700 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -367,6 +402,13 @@ export default function WelcomeScreen({
         onClose={() => setShowLoginModal(false)}
         onLogin={handleLogin}
         onRegister={handleRegister}
+      />
+
+      {/* Session Setup Modal */}
+      <SessionSetupModal
+        isOpen={showSessionSetup}
+        onClose={() => setShowSessionSetup(false)}
+        onStartSession={handleStartSession}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import WelcomeScreen from '../components/WelcomeScreen';
-
 import Sidebar from '../components/Sidebar';
 import ChatBox from '../components/ChatBox';
 import DocumentUpload from '../components/DocumentUpload';
@@ -12,7 +12,6 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import KeyboardShortcutsHelp from '../components/KeyboardShortcutsHelp';
 import { useToast } from '../components/ErrorToast';
 import { useKeyboardShortcuts, SHORTCUTS } from '../hooks/useKeyboardShortcuts';
-import { useEffect, useState } from 'react';
 import ErrorToast from '../components/ErrorToast';
 import { HEALTH_CHECK_ENDPOINT } from '../utils/api';
 import { OfflineDetector } from '../components/OfflineDetector';
