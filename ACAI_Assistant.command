@@ -29,7 +29,18 @@ cd backend
 # Učitavanje .env fajla za Supabase kredencijale
 if [ -f ".env" ]; then
     echo "Učitavam .env fajl sa Supabase kredencijalima..."
-    export $(cat .env | grep -v '^#' | xargs)
+    # Učitavanje .env fajla bez komentara i pravilno obrađivanje vrednosti
+    while IFS= read -r line; do
+        # Preskači prazne linije i komentare
+        if [[ ! -z "$line" && ! "$line" =~ ^[[:space:]]*# ]]; then
+            # Ukloni komentare sa kraja linije
+            line=$(echo "$line" | sed 's/[[:space:]]*#.*$//')
+            # Exportuj varijablu samo ako nije prazna
+            if [[ ! -z "$line" ]]; then
+                export "$line"
+            fi
+        fi
+    done < .env
 else
     echo "Upozorenje: .env fajl nije pronađen. Supabase možda neće raditi."
 fi
@@ -50,7 +61,8 @@ FRONTEND_PID=$!
 # Čekanje 5 sekundi pa otvaranje Safari-a
 echo "Otvaram Safari browser..."
 sleep 5
-open -a Safari http://localhost:3000
+# Pokušaj da otvoriš na različitim portovima
+open -a Safari http://localhost:3000 || open -a Safari http://localhost:3001 || open -a Safari http://localhost:3002
 
 # Čekanje da se procesi završe
 echo "Servisi su pokrenuti. Pritisnite Ctrl+C za zaustavljanje."
