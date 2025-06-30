@@ -6,6 +6,9 @@ Samo Supabase endpoint-i bez lokalne SQLite baze
 import os
 import uuid
 import time
+import json
+import logging
+import time
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, WebSocket, WebSocketDisconnect, Request
@@ -13,13 +16,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from ollama import Client
 import sys
+import functools
+import asyncio
+import hashlib
+import aiohttp
+from contextlib import asynccontextmanager
+
+# Konfiguracija logging-a
+logger = logging.getLogger(__name__)
 
 # Dodaj backend direktorijum u path za import supabase_client
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # Import Supabase klijenta
 try:
-    from supabase_client import get_supabase_manager
+    from supabase_client import get_supabase_manager, get_async_supabase_manager
     SUPABASE_AVAILABLE = True
 except ImportError as e:
     print(f"Supabase nije dostupan: {e}")
@@ -30,7 +41,7 @@ from .prompts import SYSTEM_PROMPT, CONTEXT_PROMPT
 from .rag_service import RAGService
 from .ocr_service import OCRService
 from .config import Config
-from .cache_manager import cache_manager
+from .cache_manager import cache_manager, get_cached_ai_response, set_cached_ai_response, get_semantic_cached_response, get_cache_analytics
 from .background_tasks import task_manager, add_background_task, get_task_status, cancel_task, get_all_tasks, get_task_stats, TaskPriority, TaskStatus
 from .websocket import websocket_manager, WebSocketMessage, MessageType, get_websocket_manager
 from .error_handler import (
@@ -57,17 +68,106 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Globalni keš za preload-ovane modele
+preloaded_models = {}
+model_loading_status = {"mistral": False, "llama2": False}
+
+# Connection Pooling za HTTP klijente
+http_session = None
+connection_pool_stats = {
+    "total_requests": 0,
+    "active_connections": 0,
+    "pool_size": 10,
+    "created_at": datetime.now()
+}
+
+async def get_http_session():
+    """Dohvati ili kreira HTTP session sa connection pooling"""
+    global http_session
+    if http_session is None:
+        connector = aiohttp.TCPConnector(
+            limit=100,  # Ukupan broj konekcija
+            limit_per_host=30,  # Konekcije po hostu
+            ttl_dns_cache=300,  # DNS cache TTL
+            use_dns_cache=True,
+            keepalive_timeout=30,
+            enable_cleanup_closed=True
+        )
+        timeout = aiohttp.ClientTimeout(total=30, connect=10)
+        http_session = aiohttp.ClientSession(
+            connector=connector,
+            timeout=timeout,
+            headers={"User-Agent": "AcAIA-Backend/2.0.0"}
+        )
+    return http_session
+
 # Inicijalizuj servise
 rag_service = RAGService(use_supabase=True)
 ocr_service = OCRService()
 ollama_client = Client(host="http://localhost:11434")
 
+# Globalni keš za preload-ovane modele
+preloaded_models = {}
+model_loading_status = {"mistral": False, "llama2": False}
+
+async def preload_ollama_models():
+    """Preload-uje Ollama modele na startup-u za brže response time"""
+    global model_loading_status
+    
+    models_to_preload = ["mistral:latest", "llama3.2:latest"]
+    
+    for model in models_to_preload:
+        try:
+            print(f"🔄 Preload-ujem model: {model}")
+            start_time = time.time()
+            
+            # Pozovi model da se učita u memoriju
+            response = ollama_client.chat(
+                model=model,
+                messages=[{"role": "user", "content": "test"}],
+                stream=False
+            )
+            
+            load_time = time.time() - start_time
+            model_loading_status[model] = True
+            preloaded_models[model] = {
+                "loaded_at": datetime.now(),
+                "load_time": load_time,
+                "status": "ready"
+            }
+            
+            print(f"✅ Model {model} uspešno preload-ovan za {load_time:.2f}s")
+            
+        except Exception as e:
+            print(f"❌ Greška pri preload-ovanju modela {model}: {e}")
+            model_loading_status[model] = False
+            preloaded_models[model] = {
+                "status": "error",
+                "error": str(e)
+            }
+
+def get_model_status(model: str = "mistral") -> Dict[str, Any]:
+    """Dohvati status preload-ovanog modela"""
+    if model not in preloaded_models:
+        return {"status": "not_loaded", "available": False}
+    
+    model_info = preloaded_models[model]
+    return {
+        "status": model_info.get('status', 'unknown'),
+        "loaded_at": model_info.get('loaded_at').isoformat() if model_info.get('loaded_at') else None,
+        "load_time": model_info.get('load_time', 0),
+        "available": model_loading_status.get(model, False)
+    }
+
 # Supabase manager
 supabase_manager = None
+async_supabase_manager = None
 if SUPABASE_AVAILABLE:
     try:
         supabase_manager = get_supabase_manager()
+        async_supabase_manager = get_async_supabase_manager()
         print("✅ Supabase manager uspešno inicijalizovan")
+        print("✅ Async Supabase manager uspešno inicijalizovan")
     except Exception as e:
         print(f"❌ Greška pri inicijalizaciji Supabase: {e}")
 
@@ -115,6 +215,31 @@ def get_conversation_context(session_id: str, max_messages: int = 5) -> str:
         print(f"Greška pri dohvatanju konteksta iz Supabase: {e}")
         return ""
 
+async def get_conversation_context_async(session_id: str, max_messages: int = 5) -> str:
+    """Dohvati prethodne poruke za kontekst iz Supabase asinhrono"""
+    try:
+        if not async_supabase_manager:
+            return ""
+        
+        history = await async_supabase_manager.get_chat_history(session_id, max_messages)
+        
+        if not history:
+            return ""
+        
+        # Obrni redosled da bude hronološki
+        history.reverse()
+        
+        context = []
+        for msg in history:
+            role = "korisnik" if msg.get('user_message') else "AI"
+            content = msg.get('user_message') or msg.get('assistant_message', '')
+            context.append(f"{role}: {content}")
+        
+        return "\n".join(context)
+    except Exception as e:
+        print(f"Greška pri async dohvatanju konteksta iz Supabase: {e}")
+        return ""
+
 def create_enhanced_prompt(user_message: str, context: str = "") -> str:
     """Kreira poboljšani prompt sa sistem instrukcijama i kontekstom"""
     prompt_parts = [SYSTEM_PROMPT]
@@ -128,6 +253,13 @@ def create_enhanced_prompt(user_message: str, context: str = "") -> str:
     
     return "\n\n".join(prompt_parts)
 
+async def ollama_chat_async(*args, **kwargs):
+    loop = asyncio.get_event_loop()
+    func = functools.partial(ollama_client.chat, *args, **kwargs)
+    return await loop.run_in_executor(None, func)
+
+
+
 # Osnovni endpoint-i
 @app.get("/")
 def read_root():
@@ -140,7 +272,23 @@ async def health_check():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "supabase_available": SUPABASE_AVAILABLE,
-        "supabase_connected": supabase_manager.test_connection() if supabase_manager else False
+        "supabase_connected": supabase_manager.test_connection() if supabase_manager else False,
+        "ollama_models": {
+            model: get_model_status(model) 
+            for model in ["mistral", "llama2"]
+        }
+    }
+
+@app.get("/models/status")
+async def get_models_status():
+    """Dohvati status preload-ovanih modela"""
+    return {
+        "status": "success",
+        "models": {
+            model: get_model_status(model) 
+            for model in ["mistral", "llama2"]
+        },
+        "preload_cache": preloaded_models
     }
 
 @app.post("/chat/new-session")
@@ -152,44 +300,152 @@ async def create_new_session():
 # Supabase Chat Endpoint-i
 @app.post("/chat")
 async def chat_endpoint(message: dict):
-    """Chat endpoint koji koristi Supabase"""
+    """Chat endpoint koji koristi Supabase sa optimizacijama"""
     try:
         if not supabase_manager:
             raise HTTPException(status_code=503, detail="Supabase nije dostupan")
         
         user_message = message.get("message", "")
         session_id = message.get("session_id", str(uuid.uuid4()))
-        
+        model_name = message.get("model", "mistral:latest")
+
         if not user_message.strip():
             raise HTTPException(status_code=400, detail="Poruka ne može biti prazna")
         
-        # Dohvati kontekst prethodnih poruka
-        context = get_conversation_context(session_id)
+        # Ažuriraj connection pool statistike
+        connection_pool_stats["total_requests"] += 1
+        
+        # Dohvati kontekst prethodnih poruka asinhrono
+        context = await get_conversation_context_async(session_id)
+        
+        # Proveri cache prvo
+        cached_response = await get_cached_ai_response(user_message, model_name, context)
+        if cached_response:
+            print(f"🎯 Cache hit za upit: {user_message[:50]}...")
+            return {
+                "status": "success",
+                "response": cached_response["response"],
+                "session_id": session_id,
+                "model": model_name,
+                "response_time": cached_response["response_time"],
+                "model_status": get_model_status(model_name),
+                "cached": True,
+                "cache_info": {
+                    "cached_at": cached_response["cached_at"],
+                    "original_response_time": cached_response["response_time"]
+                },
+                "optimizations": {
+                    "connection_pool": True,
+                    "background_save": True,
+                    "model_preloaded": True,
+                    "cache_hit": True
+                }
+            }
+        
+        # Ako nema u cache-u, proveri semantic cache
+        semantic_response = await get_semantic_cached_response(user_message, 0.8)
+        if semantic_response:
+            print(f"🧠 Semantic cache hit za upit: {user_message[:50]}... (similarity: {semantic_response.get('similarity_score', 0):.2f})")
+            return {
+                "status": "success",
+                "response": semantic_response["response"],
+                "session_id": session_id,
+                "model": model_name,
+                "response_time": semantic_response["response_time"],
+                "model_status": get_model_status(model_name),
+                "cached": True,
+                "cache_info": {
+                    "cached_at": semantic_response["cached_at"],
+                    "original_response_time": semantic_response["response_time"],
+                    "semantic_match": True,
+                    "similarity_score": semantic_response.get("similarity_score", 0)
+                },
+                "optimizations": {
+                    "connection_pool": True,
+                    "background_save": True,
+                    "model_preloaded": True,
+                    "semantic_cache_hit": True
+                }
+            }
+        
+        print(f"❌ Cache miss za upit: {user_message[:50]}...")
+        
+        # Proveri da li je model preload-ovan
+        model_status = get_model_status(model_name)
+        if not model_status["available"]:
+            print(f"⚠️ Model {model_name} nije preload-ovan, učitavam...")
+            try:
+                await preload_ollama_models()
+            except Exception as e:
+                print(f"❌ Greška pri učitavanju modela: {e}")
         
         # Kreiraj poboljšani prompt
         enhanced_prompt = create_enhanced_prompt(user_message, context)
         
-        # Pozovi Ollama API
-        response = ollama_client.chat(model='mistral', 
+        # Meri vreme odgovora
+        start_time = time.time()
+        
+        # Pozovi Ollama API asinkrono
+        response = await ollama_chat_async(
+            model=model_name,
             messages=[{
                 'role': 'user',
                 'content': enhanced_prompt
-            }]
+            }],
+            stream=False
         )
         
+        response_time = time.time() - start_time
         ai_response = response['message']['content']
         
-        # Sačuvaj poruke u Supabase
-        supabase_manager.save_chat_message(
-            session_id=session_id,
-            user_message=user_message,
-            assistant_message=ai_response
+        # Sačuvaj AI odgovor u cache
+        await set_cached_ai_response(
+            query=user_message,
+            response=ai_response,
+            model=model_name,
+            context=context,
+            response_time=response_time,
+            ttl=3600  # 1 sat
         )
+        
+        # Dodaj background task za čuvanje poruka (ne blokira response)
+        # Umesto background task-a, koristimo direktno async poziv
+        try:
+            await async_supabase_manager.save_chat_message(
+                session_id=session_id,
+                user_message=user_message,
+                assistant_message=ai_response
+            )
+        except Exception as e:
+            print(f"Greška pri async čuvanju poruke: {e}")
+            # Fallback na background task ako async ne radi
+            await add_background_task(
+                func=lambda: None,  # Dummy funkcija
+                task_type="save_chat_message",
+                priority=TaskPriority.LOW,
+                data={
+                    "session_id": session_id,
+                    "user_message": user_message,
+                    "assistant_message": ai_response,
+                    "model": model_name,
+                    "response_time": response_time
+                }
+            )
         
         return {
             "status": "success",
             "response": ai_response,
-            "session_id": session_id
+            "session_id": session_id,
+            "model": model_name,
+            "response_time": response_time,
+            "model_status": model_status,
+            "cached": False,
+            "optimizations": {
+                "connection_pool": True,
+                "background_save": True,
+                "model_preloaded": model_status["available"],
+                "cache_miss": True
+            }
         }
         
     except Exception as e:
@@ -311,6 +567,9 @@ async def rag_chat_endpoint(message: dict):
         # Dohvati kontekst prethodnih poruka
         context = get_conversation_context(session_id)
         
+        # Meri vreme odgovora
+        start_time = time.time()
+        
         # Generiši RAG odgovor
         rag_response = await rag_service.generate_rag_response(
             query=user_message,
@@ -319,6 +578,8 @@ async def rag_chat_endpoint(message: dict):
             use_rerank=use_rerank,
             session_id=session_id
         )
+        
+        response_time = time.time() - start_time
         
         # Sačuvaj poruke u Supabase
         supabase_manager.save_chat_message(
@@ -334,7 +595,8 @@ async def rag_chat_endpoint(message: dict):
             "session_id": session_id,
             "model": rag_response.get('model', 'mistral'),
             "context_length": rag_response.get('context_length', 0),
-            "cached": rag_response.get('cached', False)
+            "cached": rag_response.get('cached', False),
+            "response_time": response_time
         }
         
     except Exception as e:
@@ -448,34 +710,58 @@ async def extract_text_from_image(file: UploadFile = File(...)):
 # Supabase Health i Stats Endpoint-i
 @app.get("/supabase/health")
 async def check_supabase_health():
-    """Proverava zdravlje Supabase konekcije"""
+    """Proveri zdravlje Supabase konekcije"""
     try:
         if not supabase_manager:
             return {
-                "status": "disabled",
-                "message": "Supabase nije omogućen"
+                "status": "error",
+                "message": "Supabase manager nije dostupan"
             }
         
-        # Test konekcije
+        # Testiraj konekciju
         is_connected = supabase_manager.test_connection()
         
-        if is_connected:
-            return {
-                "status": "healthy",
-                "message": "Supabase konekcija je u redu",
-                "supabase_enabled": True
+        return {
+            "status": "success",
+            "health": {
+                "status": "healthy" if is_connected else "unhealthy",
+                "connected": is_connected,
+                "timestamp": datetime.now().isoformat()
             }
-        else:
-            return {
-                "status": "unhealthy",
-                "message": "Supabase konekcija nije uspešna",
-                "supabase_enabled": True
-            }
+        }
     except Exception as e:
         return {
             "status": "error",
-            "message": str(e),
-            "supabase_enabled": bool(supabase_manager)
+            "message": str(e)
+        }
+
+@app.get("/supabase/health/async")
+async def check_async_supabase_health():
+    """Proveri zdravlje async Supabase konekcije"""
+    try:
+        if not async_supabase_manager:
+            return {
+                "status": "error",
+                "message": "Async Supabase manager nije dostupan"
+            }
+        
+        # Testiraj async konekciju
+        is_connected = await async_supabase_manager.test_connection()
+        connection_stats = await async_supabase_manager.get_connection_stats()
+        
+        return {
+            "status": "success",
+            "health": {
+                "status": "healthy" if is_connected else "unhealthy",
+                "connected": is_connected,
+                "async_stats": connection_stats,
+                "timestamp": datetime.now().isoformat()
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e)
         }
 
 @app.get("/supabase/stats")
@@ -667,15 +953,474 @@ async def get_all_sessions_metadata():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+# WebSocket Chat Endpoints
+
+@app.websocket("/ws/chat")
+async def websocket_chat_endpoint(websocket: WebSocket, user_id: str = None, session_id: str = None):
+    """WebSocket endpoint za real-time chat"""
+    try:
+        # Prihvati konekciju
+        connection = await websocket_manager.connect(websocket, user_id, session_id)
+        
+        try:
+            while True:
+                # Čekaj poruku od klijenta
+                data = await websocket.receive_text()
+                
+                try:
+                    # Parsiraj JSON poruku
+                    message_data = json.loads(data)
+                    message = WebSocketMessage.from_dict(message_data)
+                    
+                    # Ažuriraj statistike
+                    websocket_manager.stats["total_messages"] += 1
+                    websocket_manager.stats["messages_received"] += 1
+                    
+                    # Obradi poruku na osnovu tipa
+                    if message.message_type == MessageType.CHAT:
+                        await handle_chat_message(connection, message)
+                    elif message.message_type == MessageType.TYPING:
+                        await handle_typing_message(connection, message)
+                    elif message.message_type == MessageType.STATUS:
+                        await handle_status_message(connection, message)
+                    else:
+                        # Broadcast poruku u sesiju
+                        await websocket_manager.broadcast_to_session(message, connection.session_id)
+                        
+                except json.JSONDecodeError:
+                    # Ako nije validan JSON, pošalji error poruku
+                    error_message = WebSocketMessage(
+                        message_type=MessageType.SYSTEM,
+                        content={"error": "Nevažeći JSON format"},
+                        sender="system"
+                    )
+                    await connection.send_message(error_message)
+                    
+        except WebSocketDisconnect:
+            # Klijent se odjavio
+            websocket_manager.disconnect(connection)
+            
+            # Objavi da se korisnik odjavio
+            leave_message = WebSocketMessage(
+                message_type=MessageType.LEAVE,
+                content={
+                    "user_id": connection.user_id,
+                    "session_id": connection.session_id
+                },
+                sender=connection.user_id
+            )
+            
+            await websocket_manager.broadcast_to_session(leave_message, connection.session_id)
+            
+    except Exception as e:
+        logger.error(f"WebSocket greška: {e}")
+        try:
+            await websocket.close()
+        except:
+            pass
+
+async def handle_chat_message(connection, message: WebSocketMessage):
+    """Obradi chat poruku"""
+    try:
+        # Broadcast poruku u sesiju
+        await websocket_manager.broadcast_to_session(message, connection.session_id)
+        
+        # Ako je poruka ka AI-u, generiši odgovor
+        if message.content.get("to_ai", False):
+            await generate_ai_response(connection, message)
+            
+    except Exception as e:
+        logger.error(f"Greška pri obradi chat poruke: {e}")
+
+async def handle_typing_message(connection, message: WebSocketMessage):
+    """Obradi typing indicator poruku"""
+    try:
+        is_typing = message.content.get("is_typing", False)
+        connection.is_typing = is_typing
+        
+        # Broadcast typing indicator u sesiju
+        await websocket_manager.broadcast_to_session(message, connection.session_id)
+        
+    except Exception as e:
+        logger.error(f"Greška pri obradi typing poruke: {e}")
+
+async def handle_status_message(connection, message: WebSocketMessage):
+    """Obradi status poruku"""
+    try:
+        # Broadcast status update u sesiju
+        await websocket_manager.broadcast_to_session(message, connection.session_id)
+        
+    except Exception as e:
+        logger.error(f"Greška pri obradi status poruke: {e}")
+
+async def generate_ai_response(connection, user_message: WebSocketMessage):
+    """Generiši AI odgovor na chat poruku"""
+    try:
+        # Pošalji typing indicator da AI kuca
+        await websocket_manager.send_typing_indicator(connection.session_id, "ai", True)
+        
+        # Generiši odgovor koristeći postojeći RAG servis
+        user_text = user_message.content.get("text", "")
+        
+        # Koristi postojeći RAG endpoint logiku
+        rag_response = await rag_service.generate_rag_response(
+            query=user_text,
+            context="",
+            max_results=3,
+            use_rerank=True,
+            session_id=connection.session_id
+        )
+        
+        # Kreiraj AI odgovor
+        ai_message = WebSocketMessage(
+            message_type=MessageType.CHAT,
+            content={
+                "text": rag_response['response'],
+                "sources": rag_response.get('sources', []),
+                "from_ai": True,
+                "model": rag_response.get('model', 'mistral')
+            },
+            sender="ai",
+            session_id=connection.session_id
+        )
+        
+        # Pošalji AI odgovor u sesiju
+        await websocket_manager.broadcast_to_session(ai_message, connection.session_id)
+        
+        # Zaustavi typing indicator
+        await websocket_manager.send_typing_indicator(connection.session_id, "ai", False)
+        
+    except Exception as e:
+        logger.error(f"Greška pri generisanju AI odgovora: {e}")
+        
+        # Pošalji error poruku
+        error_message = WebSocketMessage(
+            message_type=MessageType.SYSTEM,
+            content={"error": "Greška pri generisanju AI odgovora"},
+            sender="system"
+        )
+        await connection.send_message(error_message)
+        
+        # Zaustavi typing indicator
+        await websocket_manager.send_typing_indicator(connection.session_id, "ai", False)
+
+# WebSocket Management Endpoints
+
+@app.get("/websocket/stats")
+async def get_websocket_stats():
+    """Dohvati statistike WebSocket konekcija"""
+    try:
+        stats = websocket_manager.get_connection_stats()
+        return {
+            "status": "success",
+            "stats": stats
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/websocket/sessions")
+async def get_websocket_sessions():
+    """Dohvati listu aktivnih WebSocket sesija"""
+    try:
+        sessions = {}
+        for session_id in websocket_manager.session_connections:
+            sessions[session_id] = websocket_manager.get_session_info(session_id)
+        
+        return {
+            "status": "success",
+            "sessions": sessions
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/websocket/session/{session_id}")
+async def get_websocket_session_info(session_id: str):
+    """Dohvati informacije o WebSocket sesiji"""
+    try:
+        session_info = websocket_manager.get_session_info(session_id)
+        return {
+            "status": "success",
+            "session_id": session_id,
+            "info": session_info
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Connection Pooling Endpointi
+@app.get("/connections/health")
+async def check_connection_pool_health():
+    """Proveri zdravlje connection pool-a"""
+    try:
+        session = await get_http_session()
+        connector = session.connector
+        
+        return {
+            "status": "healthy",
+            "pool_stats": {
+                "total_connections": connector.limit,
+                "connections_per_host": connector.limit_per_host,
+                "active_connections": connection_pool_stats["active_connections"],
+                "total_requests": connection_pool_stats["total_requests"],
+                "created_at": connection_pool_stats["created_at"].isoformat()
+            },
+            "connector_stats": {
+                "dns_cache_size": len(connector._resolver_cache) if hasattr(connector, '_resolver_cache') else 0,
+                "keepalive_timeout": connector._keepalive_timeout,
+                "enable_cleanup_closed": connector._enable_cleanup_closed
+            }
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/connections/stats")
+async def get_connection_pool_stats():
+    """Dohvati statistike connection pool-a"""
+    try:
+        session = await get_http_session()
+        connector = session.connector
+        
+        return {
+            "status": "success",
+            "stats": {
+                "total_requests": connection_pool_stats["total_requests"],
+                "active_connections": connection_pool_stats["active_connections"],
+                "pool_size": connection_pool_stats["pool_size"],
+                "uptime": (datetime.now() - connection_pool_stats["created_at"]).total_seconds(),
+                "requests_per_second": connection_pool_stats["total_requests"] / max(1, (datetime.now() - connection_pool_stats["created_at"]).total_seconds())
+            }
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Background Tasks Endpointi
+@app.post("/tasks/add")
+async def add_background_task_endpoint(task_data: dict):
+    """Dodaj background task"""
+    try:
+        task_type = task_data.get("type", "general")
+        priority = task_data.get("priority", "normal")
+        data = task_data.get("data", {})
+        
+        task_id = await add_background_task(
+            task_type=task_type,
+            priority=TaskPriority(priority),
+            data=data
+        )
+        
+        return {
+            "status": "success",
+            "data": {
+                "task_id": task_id,
+                "message": f"Task {task_type} dodat sa prioritetom {priority}"
+            }
+        }
+    except Exception as e:
+        return {
+            "status": "error",
+            "data": None,
+            "message": str(e)
+        }
+
+@app.get("/tasks")
+async def get_all_background_tasks():
+    """Dohvati sve background taskove"""
+    try:
+        tasks = await get_all_tasks()
+        return {
+            "status": "success",
+            "tasks": tasks,
+            "total": len(tasks)
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/tasks/{task_id}")
+async def get_background_task_status(task_id: str):
+    """Dohvati status background taska"""
+    try:
+        status = await get_task_status(task_id)
+        return {
+            "status": "success",
+            "task_id": task_id,
+            "task_status": status
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.delete("/tasks/{task_id}")
+async def cancel_background_task(task_id: str):
+    """Otkaži background task"""
+    try:
+        success = await cancel_task(task_id)
+        return {
+            "status": "success" if success else "error",
+            "task_id": task_id,
+            "cancelled": success
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/tasks/stats")
+async def get_background_tasks_stats():
+    """Dohvati statistike background taskova"""
+    try:
+        stats = await get_task_stats()
+        return {
+            "status": "success",
+            "stats": stats
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Cache Endpointi
+@app.get("/cache/health")
+async def check_cache_health():
+    """Proveri zdravlje cache-a"""
+    try:
+        health = await cache_manager.health_check()
+        return {
+            "status": "success",
+            "cache_health": health
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/cache/stats")
+async def get_cache_stats():
+    """Dohvati statistike cache-a"""
+    try:
+        stats = await cache_manager.get_stats()
+        return {
+            "status": "success",
+            "cache_stats": stats
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/cache/analytics")
+async def get_cache_analytics():
+    """Dohvati analitiku cache-a"""
+    try:
+        analytics = await cache_manager.get_cache_analytics()
+        return {
+            "status": "success",
+            "analytics": analytics
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/cache/test")
+async def test_cache():
+    """Test cache funkcionalnosti"""
+    try:
+        test_key = "test_cache_key"
+        test_value = {"test": "data", "timestamp": datetime.now().isoformat()}
+        
+        # Test set
+        await cache_manager.set(test_key, test_value, 60)
+        
+        # Test get
+        retrieved = await cache_manager.get(test_key)
+        
+        # Test delete
+        await cache_manager.delete(test_key)
+        
+        return {
+            "status": "success",
+            "test_results": {
+                "set_success": True,
+                "get_success": retrieved == test_value,
+                "delete_success": True
+            }
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Performance Monitoring Endpointi
+@app.get("/performance/overview")
+async def get_performance_overview():
+    """Dohvati pregled performansi sistema"""
+    try:
+        # Dohvati statistike iz različitih servisa
+        cache_stats = await cache_manager.get_stats() if cache_manager else {}
+        task_stats = await get_task_stats() if task_manager else {}
+        
+        return {
+            "status": "success",
+            "performance_overview": {
+                "cache": cache_stats,
+                "background_tasks": task_stats,
+                "connection_pool": connection_pool_stats,
+                "models": {
+                    model: get_model_status(model) 
+                    for model in ["mistral:latest", "llama3.2:latest"]
+                },
+                "system": {
+                    "uptime": (datetime.now() - connection_pool_stats["created_at"]).total_seconds(),
+                    "timestamp": datetime.now().isoformat()
+                }
+            }
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 # Startup i shutdown eventi
 @app.on_event("startup")
 async def startup_event():
     """Startup event"""
     print("🚀 AcAIA Backend - Supabase verzija pokrenut")
+    
+    # Inicijalizuj connection pool
+    await get_http_session()
+    print("✅ Connection pool inicijalizovan")
+    
+    # Pokreni background task manager
+    await task_manager.start()
+    print("✅ Background task manager pokrenut")
+    
+    # Inicijalizuj async Supabase konekciju
+    if async_supabase_manager:
+        try:
+            is_connected = await async_supabase_manager.test_connection()
+            if is_connected:
+                print("✅ Async Supabase konekcija uspostavljena")
+            else:
+                print("⚠️ Async Supabase konekcija nije uspešna")
+        except Exception as e:
+            print(f"❌ Greška pri async Supabase konekciji: {e}")
+    
+    # Preload Ollama modele
+    await preload_ollama_models()
+    
     if supabase_manager:
         print("✅ Supabase konekcija uspostavljena")
+    
+    print("🎯 Backend spreman za zahteve!")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Shutdown event"""
-    print("🛑 AcAIA Backend zaustavljen") 
+    print("🛑 Zatvaranje AcAIA Backend-a...")
+    
+    # Zaustavi background task manager
+    await task_manager.stop()
+    print("✅ Background task manager zaustavljen")
+    
+    # Zatvori async Supabase konekciju
+    if async_supabase_manager:
+        await async_supabase_manager.close()
+        print("✅ Async Supabase konekcija zatvorena")
+    
+    # Zatvori connection pool
+    global http_session
+    if http_session:
+        await http_session.close()
+        print("✅ Connection pool zatvoren")
+    
+    # Zatvori WebSocket konekcije
+    await websocket_manager.close_all_connections()
+    print("✅ WebSocket konekcije zatvorene")
+    
+    print("👋 AcAIA Backend zatvoren!")
+    # Očisti keš
+    preloaded_models.clear() 

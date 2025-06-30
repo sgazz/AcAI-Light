@@ -95,17 +95,21 @@ class AsyncPerformanceTester:
         """Test background tasks funkcionalnosti"""
         print("🔧 Testiranje Background Tasks...")
         
-        # 1. Dodaj test task
+        # 1. Kreiraj test task
         task_data = {
-            "function": "test_task",
-            "priority": 2,
-            "description": "Test task za performance testiranje"
+            "type": "test",
+            "priority": "normal",
+            "data": {
+                "function": "test_task",
+                "priority": 2,
+                "description": "Test task za performance testiranje"
+            }
         }
         
         result = await self.make_request("POST", "/tasks/add", task_data)
         self.results["background_tasks"].append(result)
         
-        if result["success"]:
+        if result.get("status") == "success" and result.get("data") and result["data"].get("task_id"):
             task_id = result["data"]["task_id"]
             print(f"✅ Task kreiran: {task_id}")
             
@@ -123,11 +127,11 @@ class AsyncPerformanceTester:
             self.results["background_tasks"].append(all_tasks_result)
             
             # 5. Otkaži task (ako još uvek radi)
-            if status_result["data"]["task"]["status"] in ["pending", "running"]:
+            if status_result.get("status") == "success" and status_result["data"]["task_status"]["status"] in ["pending", "running"]:
                 cancel_result = await self.make_request("DELETE", f"/tasks/{task_id}")
                 self.results["background_tasks"].append(cancel_result)
         else:
-            print(f"❌ Greška pri kreiranju taska: {result.get('error', 'Nepoznata greška')}")
+            print(f"❌ Greška pri kreiranju taska: {result.get('message', 'Nepoznata greška')}")
     
     async def test_connection_pool(self):
         """Test connection pooling funkcionalnosti"""

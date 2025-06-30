@@ -210,67 +210,110 @@ class BackgroundTaskManager:
     async def _execute_task(self, task: BackgroundTask):
         """Izvrši task"""
         try:
+            task.status = TaskStatus.RUNNING
+            task.started_at = datetime.utcnow()
+            self.running_tasks[task.task_id] = task
+            
             logger.info(f"Pokretanje taska: {task.task_id} - {task.description}")
             
-            # Izvrši task u thread pool-u
-            loop = asyncio.get_event_loop()
-            result = await loop.run_in_executor(
-                self.executor, 
-                self._execute_sync_task, 
-                task
-            )
+            # Proveri da li je task otkazan
+            if task.status == TaskStatus.CANCELLED:
+                logger.info(f"Task otkazan pre izvršavanja: {task.task_id}")
+                return
             
-            # Ažuriraj task
-            async with self._lock:
-                task.status = TaskStatus.COMPLETED
-                task.completed_at = datetime.utcnow()
-                task.result = result
-                task.progress = 100.0
-                
-                if task.task_id in self.running_tasks:
-                    del self.running_tasks[task.task_id]
-                
-                self.stats['completed_tasks'] += 1
-                
-                # Ažuriraj prosečno vreme izvršavanja
-                execution_time = (task.completed_at - task.started_at).total_seconds()
-                self._update_avg_execution_time(execution_time)
+            # Izvrši task
+            if asyncio.iscoroutinefunction(task.func):
+                # Async funkcija
+                task.result = await task.func(*task.args, **task.kwargs)
+            else:
+                # Sync funkcija - koristi executor
+                loop = asyncio.get_event_loop()
+                task.result = await loop.run_in_executor(
+                    self.executor, 
+                    self._execute_sync_task, 
+                    task
+                )
             
-            logger.info(f"Task završen: {task.task_id}")
+            # Ažuriraj statistike
+            execution_time = (datetime.utcnow() - task.started_at).total_seconds()
+            self._update_avg_execution_time(execution_time)
+            
+            task.status = TaskStatus.COMPLETED
+            task.completed_at = datetime.utcnow()
+            task.progress = 100.0
+            
+            self.stats['completed_tasks'] += 1
+            logger.info(f"Task završen: {task.task_id} - {execution_time:.2f}s")
             
         except Exception as e:
-            # Ažuriraj task sa greškom
-            async with self._lock:
-                task.status = TaskStatus.FAILED
-                task.completed_at = datetime.utcnow()
-                task.error = str(e)
-                
-                if task.task_id in self.running_tasks:
-                    del self.running_tasks[task.task_id]
-                
-                self.stats['failed_tasks'] += 1
+            task.status = TaskStatus.FAILED
+            task.error = str(e)
+            task.completed_at = datetime.utcnow()
             
+            self.stats['failed_tasks'] += 1
             logger.error(f"Task greška: {task.task_id} - {e}")
             logger.error(traceback.format_exc())
+        
+        finally:
+            # Ukloni iz running tasks
+            if task.task_id in self.running_tasks:
+                del self.running_tasks[task.task_id]
     
     def _execute_sync_task(self, task: BackgroundTask) -> Any:
-        """Izvrši sync task sa progress tracking-om"""
+        """Izvrši sync task u executor-u"""
         try:
-            # Ako je task async funkcija, pokreni je
-            if asyncio.iscoroutinefunction(task.func):
-                # Kreiraj novi event loop za thread
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                try:
-                    result = loop.run_until_complete(task.func(*task.args, **task.kwargs))
-                finally:
-                    loop.close()
-                return result
-            else:
-                # Obična sync funkcija
-                return task.func(*task.args, **task.kwargs)
+            # Specijalni handler za save_chat_message task
+            if task.description == "save_chat_message":
+                return self._handle_save_chat_message(task.kwargs)
+            
+            # Standardni sync task
+            return task.func(*task.args, **task.kwargs)
         except Exception as e:
-            raise e
+            logger.error(f"Sync task greška: {e}")
+            raise
+
+    def _handle_save_chat_message(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Handler za čuvanje chat poruka u Supabase"""
+        try:
+            # Import async Supabase manager
+            from supabase_client import get_async_supabase_manager
+            async_supabase_manager = get_async_supabase_manager()
+            
+            if not async_supabase_manager:
+                raise Exception("Async Supabase manager nije dostupan")
+            
+            # Kreiraj novi event loop za async operaciju
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
+            
+            try:
+                # Sačuvaj poruku asinhrono
+                result = loop.run_until_complete(
+                    async_supabase_manager.save_chat_message(
+                        session_id=data["session_id"],
+                        user_message=data["user_message"],
+                        assistant_message=data["assistant_message"]
+                    )
+                )
+                
+                return {
+                    "status": "success",
+                    "message": "Poruka sačuvana asinhrono",
+                    "session_id": data["session_id"],
+                    "response_time": data.get("response_time", 0),
+                    "message_id": result
+                }
+                
+            finally:
+                loop.close()
+            
+        except Exception as e:
+            logger.error(f"Greška pri async čuvanju poruke: {e}")
+            return {
+                "status": "error",
+                "message": str(e)
+            }
     
     def _update_avg_execution_time(self, new_time: float):
         """Ažuriraj prosečno vreme izvršavanja"""
