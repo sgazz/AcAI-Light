@@ -1,12 +1,12 @@
 import os
 import sys
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request, WebSocket, WebSocketDisconnect, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from ollama import Client
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional, Dict, Any
 import uuid
 import tempfile
 from PIL import Image, ImageDraw, ImageFont
@@ -17,6 +17,9 @@ import json
 from fastapi import WebSocket
 from fastapi import WebSocketDisconnect
 from sqlalchemy import text
+import time
+import asyncio
+import logging
 
 # Učitaj environment varijable
 load_dotenv()
@@ -2238,5 +2241,179 @@ async def test_context_selector():
             "total_queries": len(test_queries)
         }
         
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Session Management Endpoints
+@app.post("/session/metadata")
+async def create_session_metadata(session_id: str, name: str = None, description: str = None):
+    """Kreira session metadata u Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        # Koristi RPC funkciju za kreiranje session metadata
+        result = rag_service.supabase_manager.client.rpc('ensure_session_metadata', {
+            'session_id_param': session_id
+        }).execute()
+        
+        # Ako je prosleđen name, ažuriraj ga
+        if name:
+            rag_service.supabase_manager.client.table('session_metadata').update({
+                'name': name,
+                'description': description
+            }).eq('session_id', session_id).execute()
+        
+        return {"status": "success", "message": "Session metadata kreiran"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/session/metadata/{session_id}")
+async def get_session_metadata(session_id: str):
+    """Dohvata session metadata iz Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        result = rag_service.supabase_manager.client.table('session_metadata').select('*').eq('session_id', session_id).execute()
+        
+        if result.data:
+            return {"status": "success", "metadata": result.data[0]}
+        else:
+            return {"status": "not_found", "message": "Session metadata nije pronađen"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.put("/session/metadata/{session_id}")
+async def update_session_metadata(session_id: str, name: str = None, description: str = None, is_archived: bool = None):
+    """Ažurira session metadata u Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        update_data = {}
+        if name is not None:
+            update_data['name'] = name
+        if description is not None:
+            update_data['description'] = description
+        if is_archived is not None:
+            update_data['is_archived'] = is_archived
+            if is_archived:
+                update_data['archived_at'] = datetime.now().isoformat()
+        
+        result = rag_service.supabase_manager.client.table('session_metadata').update(update_data).eq('session_id', session_id).execute()
+        
+        return {"status": "success", "message": "Session metadata ažuriran"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/session/categories/{session_id}")
+async def add_session_categories(session_id: str, categories: List[str]):
+    """Dodaje kategorije za sesiju u Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        # Prvo obriši postojeće kategorije
+        rag_service.supabase_manager.client.table('session_categories').delete().eq('session_id', session_id).execute()
+        
+        # Dodaj nove kategorije
+        for category_name in categories:
+            rag_service.supabase_manager.client.table('session_categories').insert({
+                'session_id': session_id,
+                'category_name': category_name,
+                'color': '#3B82F6'  # Default boja
+            }).execute()
+        
+        return {"status": "success", "message": "Kategorije dodane"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/session/categories/{session_id}")
+async def get_session_categories(session_id: str):
+    """Dohvata kategorije za sesiju iz Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        result = rag_service.supabase_manager.client.table('session_categories').select('*').eq('session_id', session_id).execute()
+        
+        return {"status": "success", "categories": result.data}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/session/sharing/{session_id}")
+async def create_share_link(session_id: str, permissions: str = 'read', expires_in: str = '7d'):
+    """Kreira share link za sesiju u Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        # Generiši unique share link
+        share_link = f"share_{session_id}_{int(time.time())}"
+        
+        # Izračunaj expiry date
+        expires_at = None
+        if expires_in != 'never':
+            from datetime import timedelta
+            if expires_in == '1h':
+                expires_at = (datetime.now() + timedelta(hours=1)).isoformat()
+            elif expires_in == '24h':
+                expires_at = (datetime.now() + timedelta(days=1)).isoformat()
+            elif expires_in == '7d':
+                expires_at = (datetime.now() + timedelta(days=7)).isoformat()
+            elif expires_in == '30d':
+                expires_at = (datetime.now() + timedelta(days=30)).isoformat()
+        
+        result = rag_service.supabase_manager.client.table('session_sharing').insert({
+            'session_id': session_id,
+            'share_link': share_link,
+            'permissions': permissions,
+            'expires_at': expires_at,
+            'is_active': True
+        }).execute()
+        
+        return {"status": "success", "share_link": share_link, "data": result.data[0]}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/session/sharing/{session_id}")
+async def get_share_links(session_id: str):
+    """Dohvata share linkove za sesiju iz Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        result = rag_service.supabase_manager.client.table('session_sharing').select('*').eq('session_id', session_id).eq('is_active', True).execute()
+        
+        return {"status": "success", "share_links": result.data}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.delete("/session/sharing/{share_link_id}")
+async def revoke_share_link(share_link_id: str):
+    """Opoziva share link u Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        rag_service.supabase_manager.client.table('session_sharing').update({
+            'is_active': False
+        }).eq('id', share_link_id).execute()
+        
+        return {"status": "success", "message": "Share link opozvan"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/sessions/metadata")
+async def get_all_sessions_metadata():
+    """Dohvata sve session metadata iz Supabase"""
+    try:
+        if not rag_service.use_supabase:
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        result = rag_service.supabase_manager.client.table('session_metadata').select('*').order('created_at', desc=True).execute()
+        
+        return {"status": "success", "sessions": result.data}
     except Exception as e:
         return {"status": "error", "message": str(e)}

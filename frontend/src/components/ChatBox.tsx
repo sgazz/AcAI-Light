@@ -7,7 +7,7 @@ import ChatHistorySidebar from './ChatHistorySidebar';
 import MessageRenderer from './MessageRenderer';
 import TypingIndicator from './TypingIndicator';
 import ThemeToggle from './ThemeToggle';
-import { CHAT_NEW_SESSION_ENDPOINT, CHAT_RAG_ENDPOINT, CHAT_RAG_ENHANCED_CONTEXT_ENDPOINT, QUERY_ENHANCE_ENDPOINT, FACT_CHECK_VERIFY_ENDPOINT, apiRequest } from '../utils/api';
+import { CHAT_NEW_SESSION_ENDPOINT, CHAT_RAG_ENDPOINT, CHAT_RAG_ENHANCED_CONTEXT_ENDPOINT, QUERY_ENHANCE_ENDPOINT, FACT_CHECK_VERIFY_ENDPOINT, createSessionMetadata, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
 
 interface Message {
@@ -120,6 +120,15 @@ export default function ChatBox() {
       if (data.session_id) {
         setSessionId(data.session_id);
         setMessages([]); // Resetuj poruke za novu sesiju
+        
+        // Automatski kreiraj session metadata u Supabase
+        try {
+          await createSessionMetadata(data.session_id, `Sesija ${new Date().toLocaleString('sr-RS')}`, 'Automatski kreirana sesija');
+        } catch (metadataError) {
+          console.warn('Greška pri kreiranju session metadata:', metadataError);
+          // Ne prikazuj grešku korisniku jer je ovo opciono
+        }
+        
         showSuccess('Nova sesija kreirana', 'Sesija');
       }
     } catch (error: any) {

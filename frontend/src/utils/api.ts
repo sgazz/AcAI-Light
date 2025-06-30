@@ -52,6 +52,14 @@ export const FACT_CHECK_VERIFY_ENDPOINT = `${API_BASE}/fact-check/verify`;
 export const FACT_CHECK_VERIFY_MULTIPLE_ENDPOINT = `${API_BASE}/fact-check/verify-multiple`;
 
 /**
+ * Session Management Endpoints
+ */
+export const SESSION_METADATA_ENDPOINT = `${API_BASE}/session/metadata`;
+export const SESSION_CATEGORIES_ENDPOINT = `${API_BASE}/session/categories`;
+export const SESSION_SHARING_ENDPOINT = `${API_BASE}/session/sharing`;
+export const SESSIONS_METADATA_ENDPOINT = `${API_BASE}/sessions/metadata`;
+
+/**
  * Centralizovani API request helper sa error handling-om
  */
 export async function apiRequest<T = any>(
@@ -98,4 +106,55 @@ export async function apiRequest<T = any>(
     }
     throw err;
   }
-} 
+}
+
+// Session Management API functions
+export const createSessionMetadata = async (sessionId: string, name?: string, description?: string) => {
+  return apiRequest(SESSION_METADATA_ENDPOINT, {
+    method: 'POST',
+    body: JSON.stringify({ session_id: sessionId, name, description }),
+  });
+};
+
+export const getSessionMetadata = async (sessionId: string) => {
+  return apiRequest(`${SESSION_METADATA_ENDPOINT}/${sessionId}`);
+};
+
+export const updateSessionMetadata = async (sessionId: string, data: { name?: string; description?: string; is_archived?: boolean }) => {
+  return apiRequest(`${SESSION_METADATA_ENDPOINT}/${sessionId}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+};
+
+export const addSessionCategories = async (sessionId: string, categories: string[]) => {
+  return apiRequest(`${SESSION_CATEGORIES_ENDPOINT}/${sessionId}`, {
+    method: 'POST',
+    body: JSON.stringify({ categories }),
+  });
+};
+
+export const getSessionCategories = async (sessionId: string) => {
+  return apiRequest(`${SESSION_CATEGORIES_ENDPOINT}/${sessionId}`);
+};
+
+export const createShareLink = async (sessionId: string, permissions: string = 'read', expiresIn: string = '7d') => {
+  return apiRequest(`${SESSION_SHARING_ENDPOINT}/${sessionId}`, {
+    method: 'POST',
+    body: JSON.stringify({ permissions, expires_in: expiresIn }),
+  });
+};
+
+export const getShareLinks = async (sessionId: string) => {
+  return apiRequest(`${SESSION_SHARING_ENDPOINT}/${sessionId}`);
+};
+
+export const revokeShareLink = async (shareLinkId: string) => {
+  return apiRequest(`${SESSION_SHARING_ENDPOINT}/${shareLinkId}`, {
+    method: 'DELETE',
+  });
+};
+
+export const getAllSessionsMetadata = async () => {
+  return apiRequest(SESSIONS_METADATA_ENDPOINT);
+}; 

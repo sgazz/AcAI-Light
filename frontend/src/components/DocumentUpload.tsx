@@ -85,14 +85,14 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
     }
   }, [showError]);
 
-  const uploadDocument = useCallback(async (file: File): Promise<void> => {
+  const uploadDocument = useCallback(async (file: File) => {
     const tempDocId = Math.random().toString(36).substr(2, 9);
     
     // Dodaj dokument u listu sa statusom 'uploading'
     const newDoc: Document = {
       id: tempDocId,
       filename: file.name,
-      file_type: '.' + file.name.split('.').pop()?.toLowerCase() || '',
+      file_type: file.type || 'application/octet-stream',
       total_pages: 0,
       file_size: file.size,
       status: 'uploading',
@@ -122,7 +122,16 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
         });
         
         if (result.status === 'success') {
+          // Ažuriraj status na 'uploaded'
+          setDocuments(prev => prev.map(doc => 
+            doc.id === tempDocId 
+              ? { ...doc, status: 'uploaded' as const }
+              : doc
+          ));
+          
+          // Automatski refresh liste dokumenata
           await loadDocuments();
+          
           if (onDocumentUploaded) {
             onDocumentUploaded();
           }
@@ -157,7 +166,16 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
         });
         
         if (result.status === 'success') {
+          // Ažuriraj status na 'uploaded'
+          setDocuments(prev => prev.map(doc => 
+            doc.id === tempDocId 
+              ? { ...doc, status: 'uploaded' as const }
+              : doc
+          ));
+          
+          // Automatski refresh liste dokumenata
           await loadDocuments();
+          
           if (onDocumentUploaded) {
             onDocumentUploaded();
           }
