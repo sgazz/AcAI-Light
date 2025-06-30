@@ -1,5 +1,7 @@
 'use client';
 
+import WelcomeScreen from '../components/WelcomeScreen';
+
 import Sidebar from '../components/Sidebar';
 import ChatBox from '../components/ChatBox';
 import DocumentUpload from '../components/DocumentUpload';
@@ -19,7 +21,7 @@ import VirtualScrollTest from '../components/Performance/VirtualScrollTest';
 import MindMapping from '../components/MindMapping/MindMapping';
 
 export default function Home() {
-  const [selectedMenu, setSelectedMenu] = useState(0);
+  const [selectedMenu, setSelectedMenu] = useState(-1);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const { toasts, showError, showSuccess, showInfo } = useToast();
   const [isOnline, setIsOnline] = useState(true);
@@ -116,6 +118,37 @@ export default function Home() {
   }, [showSuccess, showError]);
 
   const renderContent = () => {
+    if (selectedMenu === -1) {
+      return <WelcomeScreen 
+        onStartChat={() => setSelectedMenu(0)}
+        onSelectFeature={(index) => setSelectedMenu(index)}
+        hasRecentSessions={true}
+        recentSessions={[
+          {
+            id: '1',
+            title: 'Matematika - Diferencijalni račun',
+            lastMessage: 'Možete li mi objasniti pravilo lanca?',
+            timestamp: '2024-01-15T14:30:00Z',
+            messageCount: 12
+          },
+          {
+            id: '2', 
+            title: 'Fizika - Mehanika',
+            lastMessage: 'Kako se rešava problem sa silama?',
+            timestamp: '2024-01-14T16:45:00Z',
+            messageCount: 8
+          },
+          {
+            id: '3',
+            title: 'Programiranje - React Hooks',
+            lastMessage: 'Kada koristiti useEffect vs useState?',
+            timestamp: '2024-01-13T10:20:00Z', 
+            messageCount: 15
+          }
+        ]}
+      />;
+    }
+    
     switch (selectedMenu) {
       case 0:
         return <ChatBox />;

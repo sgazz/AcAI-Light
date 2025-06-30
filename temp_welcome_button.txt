@@ -1,0 +1,33 @@
+          <button
+            onClick={() => onMenuSelect(-1)}
+            className={`group relative p-4 rounded-2xl card-hover-profi ${
+              -1 === selectedMenu 
+                ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 shadow-xl shadow-blue-500/20' 
+                : 'hover-border-subtle hover-bg-subtle border border-white/10'
+            }`}
+          >
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500/3 to-purple-500/3 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            
+            <div className="relative flex items-center gap-3">
+              <div className={`p-2 rounded-xl icon-hover-profi ${
+                -1 === selectedMenu 
+                  ? 'bg-gradient-to-br from-blue-500 to-purple-600 text-white shadow-lg' 
+                  : 'text-slate-400 group-hover:text-white group-hover:bg-slate-700/50'
+              }`}>
+                <FaHome size={20} />
+              </div>
+              <span className={`font-medium link-hover-profi ${
+                -1 === selectedMenu 
+                  ? 'text-white font-semibold' 
+                  : 'text-slate-300 group-hover:text-white'
+              }`}>
+                Welcome
+              </span>
+            </div>
+            
+            { -1 === selectedMenu && (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+            )}
+          </button>
+          
+          <div className="border-t border-white/10 my-2"></div>
