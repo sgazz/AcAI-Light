@@ -1,8 +1,21 @@
 import os
 from typing import List
 
+# Učitaj .env fajl za environment varijable
+try:
+    from dotenv import load_dotenv
+    # Pokušaj da učitaš .env iz backend direktorijuma
+    backend_env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+    if os.path.exists(backend_env_path):
+        load_dotenv(backend_env_path)
+    else:
+        # Ako ne postoji u backend, pokušaj u root direktorijumu
+        load_dotenv()
+except ImportError:
+    print("python-dotenv nije instaliran. Environment varijable možda neće biti učitate.")
+
 class Config:
-    """Centralizovana konfiguracija za backend aplikaciju"""
+    """Centralizovana konfiguracija za backend aplikaciju (samo Supabase)"""
     
     # API konfiguracija
     API_HOST = os.getenv("API_HOST", "0.0.0.0")
@@ -17,13 +30,11 @@ class Config:
     OCR_MIN_CONFIDENCE = float(os.getenv("OCR_MIN_CONFIDENCE", "50.0"))
     OCR_BATCH_SIZE = int(os.getenv("OCR_BATCH_SIZE", "5"))
     
-    # Database konfiguracija
-    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./test.db")
-    
     # Supabase konfiguracija
     SUPABASE_URL = os.getenv("SUPABASE_URL")
-    SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-    USE_SUPABASE = bool(os.getenv("USE_SUPABASE", "false").lower() == "true")
+    SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")  # Koristi SUPABASE_ANON_KEY iz .env
+    SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
+    USE_SUPABASE = True  # Uvek koristi Supabase
     
     # RAG konfiguracija
     RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "500"))

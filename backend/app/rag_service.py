@@ -9,7 +9,7 @@ from .multi_step_retrieval import MultiStepRetrieval
 from .reranker import Reranker
 from .ocr_service import OCRService
 from .context_selector import ContextSelector
-from .models import Document
+# from .models import Document  # Uklonjeno - koristimo samo Supabase
 from .cache_manager import cache_manager, get_cached_rag_result, set_cached_rag_result
 from .error_handler import RAGError, ExternalServiceError, ValidationError, ErrorCategory, ErrorSeverity
 from sqlalchemy.orm import Session
@@ -51,182 +51,110 @@ class RAGService:
                 print(f"Greška pri inicijalizaciji Supabase: {e}")
                 self.use_supabase = False
     
-    def upload_document(self, file_content: bytes, filename: str, db: Session, 
-                       original_filename: str = None, ocr_metadata: dict = None) -> Dict[str, Any]:
-        """Upload i procesiranje dokumenta sa OCR podrškom za slike i Supabase integracijom"""
+    def upload_document(self, file_content: bytes, filename: str, 
+                       use_ocr: bool = True, languages: List[str] = None) -> Dict[str, Any]:
+        """Upload dokumenta sa OCR podrškom (bez lokalne baze)"""
         try:
-            # Validacija input-a
-            if not file_content:
-                raise ValidationError("Fajl sadržaj ne može biti prazan", "RAG_UPLOAD_EMPTY_FILE")
-            
-            if not filename:
-                raise ValidationError("Ime fajla ne može biti prazno", "RAG_UPLOAD_NO_FILENAME")
-            
-            # Koristi original_filename ako je prosleđen
-            display_filename = original_filename if original_filename else filename
-            
-            # Sačuvaj fajl privremeno
+            # Kreiraj privremeni fajl
             with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as temp_file:
                 temp_file.write(file_content)
                 temp_file_path = temp_file.name
             
-            # Ako je OCR metadata prosleđena, koristi je
-            if ocr_metadata and ocr_metadata.get('status') == 'success':
-                # Koristi već ekstraktovani tekst iz OCR-a
-                ocr_text = ocr_metadata['text']
-                
-                if ocr_text.strip():
-                    # Kreiraj privremeni tekst fajl sa OCR rezultatima
-                    ocr_temp_path = temp_file_path + '_ocr.txt'
-                    with open(ocr_temp_path, 'w', encoding='utf-8') as f:
-                        f.write(f"OCR rezultat za {display_filename}\n")
-                        f.write(f"Confidence: {ocr_metadata.get('confidence', 0):.2f}%\n")
-                        f.write(f"Jezici: {', '.join(ocr_metadata.get('languages', []))}\n")
-                        f.write("-" * 50 + "\n")
-                        f.write(ocr_text)
+            try:
+                # Pokušaj OCR ako je omogućen i ako je slika
+                if use_ocr and self.ocr_service.is_supported_format(filename):
+                    ocr_result = self.ocr_service.extract_text_advanced(
+                        file_content, 
+                        languages=languages or ['srp+eng']
+                    )
                     
-                    # Procesiraj OCR tekst kao dokument
-                    document_data = self.document_processor.process_document(ocr_temp_path)
-                    
-                    # Dodaj OCR metapodatke
-                    document_data['ocr_info'] = {
-                        'confidence': ocr_metadata.get('confidence', 0),
-                        'languages': ocr_metadata.get('languages', []),
-                        'image_size': ocr_metadata.get('image_size'),
-                        'original_filename': display_filename,
-                        'text': ocr_text
-                    }
-                    
-                    # Sačuvaj OCR sliku u Supabase ako je omogućen
-                    if self.use_supabase:
-                        self._save_ocr_to_supabase(display_filename, temp_file_path, ocr_text, ocr_metadata)
-                    
-                    # Obriši OCR temp fajl
-                    os.unlink(ocr_temp_path)
-                else:
-                    # Ako OCR nije uspešan, koristi običan document processor
-                    document_data = self.document_processor.process_document(temp_file_path)
-                    document_data['ocr_info'] = {
-                        'status': 'no_text_found',
-                        'message': 'OCR nije pronašao tekst u slici'
-                    }
-            else:
-                # Proveri da li je slika i primeni OCR ako je potrebno
-                if self.ocr_service.is_supported_format(filename):
-                    # Ekstraktuj tekst iz slike
-                    ocr_result = self.ocr_service.extract_text(temp_file_path)
-                    
-                    if ocr_result['status'] == 'success':
-                        # Kreiraj tekstualni dokument iz OCR rezultata
-                        ocr_text = ocr_result['text']
-                        if ocr_text.strip():  # Ako je OCR uspešan i ima teksta
-                            # Kreiraj privremeni tekst fajl sa OCR rezultatima
-                            ocr_temp_path = temp_file_path + '_ocr.txt'
-                            with open(ocr_temp_path, 'w', encoding='utf-8') as f:
-                                f.write(f"OCR rezultat za {display_filename}\n")
-                                f.write(f"Confidence: {ocr_result['confidence']:.2f}%\n")
-                                f.write(f"Jezici: {', '.join(ocr_result['languages'])}\n")
-                                f.write("-" * 50 + "\n")
-                                f.write(ocr_text)
-                            
-                            # Procesiraj OCR tekst kao dokument
-                            document_data = self.document_processor.process_document(ocr_temp_path)
-                            
-                            # Dodaj OCR metapodatke
-                            document_data['ocr_info'] = {
-                                'confidence': ocr_result['confidence'],
-                                'languages': ocr_result['languages'],
-                                'image_size': ocr_result['image_size'],
-                                'original_filename': display_filename,
-                                'text': ocr_text
-                            }
-                            
-                            # Sačuvaj OCR sliku u Supabase ako je omogućen
-                            if self.use_supabase:
-                                self._save_ocr_to_supabase(display_filename, temp_file_path, ocr_text, ocr_result)
-                            
-                            # Obriši OCR temp fajl
-                            os.unlink(ocr_temp_path)
-                        else:
-                            # Ako OCR nije uspešan, koristi običan document processor
-                            document_data = self.document_processor.process_document(temp_file_path)
-                            document_data['ocr_info'] = {
-                                'status': 'no_text_found',
-                                'message': 'OCR nije pronašao tekst u slici'
-                            }
+                    if ocr_result and ocr_result.get('text'):
+                        # Sačuvaj OCR rezultat u Supabase
+                        self._save_ocr_to_supabase(filename, temp_file_path, ocr_result['text'], ocr_result)
+                        
+                        # Kreiraj privremeni fajl sa OCR tekstom
+                        with tempfile.NamedTemporaryFile(delete=False, suffix='.txt') as ocr_temp_file:
+                            ocr_temp_file.write(ocr_result['text'].encode('utf-8'))
+                            ocr_temp_path = ocr_temp_file.name
+                        
+                        # Procesiraj dokument sa OCR tekstom
+                        document_data = self.document_processor.process_document(ocr_temp_path)
+                        document_data['ocr_info'] = {
+                            'text': ocr_result['text'],
+                            'confidence': ocr_result.get('confidence', 0),
+                            'languages': ocr_result.get('languages', ['srp+eng']),
+                            'processing_time': ocr_result.get('processing_time', 0)
+                        }
+                        
+                        # Obriši privremene fajlove
+                        os.unlink(ocr_temp_path)
                     else:
-                        # Ako OCR ne uspe, koristi običan document processor
+                        # Ako OCR nije uspešan, koristi običan document processor
                         document_data = self.document_processor.process_document(temp_file_path)
                         document_data['ocr_info'] = {
-                            'status': 'error',
-                            'message': ocr_result['message']
+                            'text': '',
+                            'confidence': 0,
+                            'languages': ['srp+eng'],
+                            'processing_time': 0
                         }
                 else:
-                    # Običan dokument (nije slika)
+                    # Procesiraj dokument bez OCR-a
                     document_data = self.document_processor.process_document(temp_file_path)
-            
-            # Dodaj u vector store (već integrisan sa Supabase)
-            doc_id = self.vector_store.add_document(document_data)
-            
-            # Sačuvaj u SQL bazu
-            db_document = Document(
-                id=doc_id,
-                filename=display_filename,  # Koristi display_filename
-                file_type=document_data['file_type'],
-                total_pages=document_data['total_pages'],
-                file_size=len(file_content),
-                status='uploaded',
-                chunks_count=sum(len(page['chunks']) for page in document_data['pages'])
-            )
-            
-            db.add(db_document)
-            db.commit()
-            
-            # Obriši privremeni fajl
-            os.unlink(temp_file_path)
-            
-            # Pripremi response
-            response = {
-                'status': 'success',
-                'document_id': doc_id,  # Dodaj document_id
-                'filename': display_filename,
-                'file_type': document_data['file_type'],
-                'total_pages': document_data['total_pages'],
-                'chunks_created': sum(len(page['chunks']) for page in document_data['pages'])
-            }
-            
-            # Dodaj OCR informacije ako postoje
-            if 'ocr_info' in document_data:
-                response['ocr_info'] = document_data['ocr_info']
-            
-            return response
-            
-        except ValidationError:
-            # Re-raise validation greške
-            raise
-        except Exception as e:
-            # Ako je dokument već kreiran u vector store-u, obriši ga
-            if 'doc_id' in locals():
-                try:
+                    document_data['ocr_info'] = {
+                        'text': '',
+                        'confidence': 0,
+                        'languages': ['srp+eng'],
+                        'processing_time': 0
+                    }
+                
+                # Dodaj dokument u vector store
+                doc_id = self.vector_store.add_document(document_data)
+                
+                # Sačuvaj u Supabase
+                if self.use_supabase and self.supabase_manager:
+                    supabase_doc_id = self.supabase_manager.insert_document(
+                        filename=document_data['filename'],
+                        file_path=temp_file_path,
+                        file_type=document_data['file_type'],
+                        file_size=len(file_content),
+                        content=document_data.get('content', ''),
+                        metadata={
+                            'total_pages': document_data['total_pages'],
+                            'chunks': document_data.get('pages', []),
+                            'embedding_count': sum(len(page.get('chunks', [])) for page in document_data.get('pages', [])),
+                            'ocr_info': document_data.get('ocr_info', {})
+                        }
+                    )
+                
+                response = {
+                    'status': 'success',
+                    'message': 'Dokument uspešno uploadovan',
+                    'document_id': doc_id,  # Dodaj document_id
+                    'filename': document_data['filename'],
+                    'file_type': document_data['file_type'],
+                    'total_pages': document_data['total_pages'],
+                    'chunks_created': sum(len(page['chunks']) for page in document_data['pages'])
+                }
+                
+                # Dodaj OCR informacije ako postoje
+                if 'ocr_info' in document_data:
+                    response['ocr_info'] = document_data['ocr_info']
+                
+                return response
+                
+            except Exception as e:
+                # Ako dođe do greške, obriši dokument iz vector store-a
+                if 'doc_id' in locals():
                     self.vector_store.delete_document(doc_id)
-                except:
-                    pass
-            
-            # Obriši privremeni fajl ako postoji
-            if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
-                try:
+                raise e
+                
+            finally:
+                # Obriši privremeni fajl
+                if os.path.exists(temp_file_path):
                     os.unlink(temp_file_path)
-                except:
-                    pass
-            
-            # Rollback database transakcije
-            try:
-                db.rollback()
-            except:
-                pass
-            
-            # Podigni RAG grešku
-            raise RAGError(f"Greška pri upload-u dokumenta: {str(e)}", "RAG_UPLOAD_FAILED")
+                    
+        except Exception as e:
+            raise RAGError(f"Greška pri upload-u dokumenta: {str(e)}", ErrorCategory.DOCUMENT_PROCESSING)
     
     def _save_ocr_to_supabase(self, filename: str, file_path: str, ocr_text: str, ocr_metadata: dict):
         """Čuva OCR sliku u Supabase"""
@@ -245,59 +173,6 @@ class RAGService:
             
         except Exception as e:
             print(f"Greška pri čuvanju OCR slike u Supabase: {e}")
-    
-    def get_documents_from_db(self, db: Session) -> List[Dict[str, Any]]:
-        """Dohvata dokumente iz SQL baze sa OCR informacijama"""
-        try:
-            documents = db.query(Document).order_by(Document.created_at.desc()).all()
-            result = []
-            
-            for doc in documents:
-                doc_info = {
-                    'id': doc.id,
-                    'filename': doc.filename,
-                    'file_type': doc.file_type,
-                    'total_pages': doc.total_pages,
-                    'file_size': doc.file_size,
-                    'status': doc.status,
-                    'chunks_count': doc.chunks_count,
-                    'created_at': doc.created_at.isoformat() if doc.created_at else None,
-                    'error_message': doc.error_message
-                }
-                
-                # Dohvati dodatne informacije iz vector store-a
-                vector_doc = self.vector_store.get_document(doc.id)
-                if vector_doc:
-                    doc_info['metadata'] = vector_doc.get('metadata', {})
-                    if 'ocr_info' in vector_doc.get('metadata', {}):
-                        doc_info['ocr_info'] = vector_doc['metadata']['ocr_info']
-                
-                result.append(doc_info)
-            
-            return result
-            
-        except Exception as e:
-            print(f"Greška pri dohvatanju dokumenata: {e}")
-            return []
-    
-    def delete_document_from_db(self, doc_id: str, db: Session) -> bool:
-        """Briše dokument iz SQL baze i vector store-a"""
-        try:
-            # Obriši iz vector store-a
-            self.vector_store.delete_document(doc_id)
-            
-            # Obriši iz SQL baze
-            document = db.query(Document).filter(Document.id == doc_id).first()
-            if document:
-                db.delete(document)
-                db.commit()
-                return True
-            
-            return False
-            
-        except Exception as e:
-            print(f"Greška pri brisanju dokumenta: {e}")
-            return False
     
     def search_documents(self, query: str, top_k: int = 5, use_rerank: bool = True) -> List[Dict[str, Any]]:
         """Pretražuje dokumente sa reranking opcijom"""
