@@ -282,6 +282,32 @@ class SupabaseManager:
         result = self.client.table('documents').select('*').order('created_at', desc=True).execute()
         return result.data
     
+    def get_chat_history(self, session_id: str, limit: int = 50) -> List[Dict]:
+        """Dohvata chat istoriju za sesiju"""
+        try:
+            result = self.client.table('chat_history').select('*').eq('session_id', session_id).order('created_at', desc=True).limit(limit).execute()
+            return result.data
+        except Exception as e:
+            print(f"Greška pri dohvatanju chat istorije: {e}")
+            return []
+    
+    def save_chat_message(self, session_id: str, user_message: str, 
+                         assistant_message: str, sources: List[Dict] = None) -> str:
+        """Čuva chat poruku u istoriju"""
+        try:
+            chat_data = {
+                'session_id': session_id,
+                'user_message': user_message,
+                'assistant_message': assistant_message,
+                'sources': sources or []
+            }
+            
+            result = self.client.table('chat_history').insert(chat_data).execute()
+            return result.data[0]['id']
+        except Exception as e:
+            print(f"Greška pri čuvanju chat poruke: {e}")
+            raise
+    
     def delete_document(self, document_id: str) -> bool:
         """Briše dokument i sve povezane vektore"""
         try:

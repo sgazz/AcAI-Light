@@ -7,7 +7,7 @@ import ChatHistorySidebar from './ChatHistorySidebar';
 import MessageRenderer from './MessageRenderer';
 import TypingIndicator from './TypingIndicator';
 import ThemeToggle from './ThemeToggle';
-import { CHAT_NEW_SESSION_ENDPOINT, CHAT_RAG_ENDPOINT, CHAT_RAG_ENHANCED_CONTEXT_ENDPOINT, QUERY_ENHANCE_ENDPOINT, FACT_CHECK_VERIFY_ENDPOINT, createSessionMetadata, apiRequest } from '../utils/api';
+import { CHAT_NEW_SESSION_ENDPOINT, CHAT_ENDPOINT, CHAT_RAG_ENDPOINT, CHAT_RAG_ENHANCED_CONTEXT_ENDPOINT, QUERY_ENHANCE_ENDPOINT, FACT_CHECK_VERIFY_ENDPOINT, createSessionMetadata, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
 
 interface Message {
@@ -227,16 +227,22 @@ export default function ChatBox() {
     setMessages(prev => [...prev, newUserMessage]);
 
     try {
-      // Odaberi endpoint na osnovu Enhanced Context i RAG mode-a
-      let endpoint = CHAT_RAG_ENDPOINT;
+      // Odaberi endpoint na osnovu RAG mode-a
+      let endpoint = useRAG ? CHAT_RAG_ENDPOINT : CHAT_ENDPOINT;
       let body: any = {
         message: enhancedMessage, // Koristi poboljšani upit
         session_id: sessionId,
-        use_rerank: useRerank,
       };
-      if (useEnhancedContext) {
-        endpoint = CHAT_RAG_ENHANCED_CONTEXT_ENDPOINT;
-        // Enhanced context backend ignoriše use_rerank, ali šaljemo za kompatibilnost
+      
+      if (useRAG) {
+        body.use_rerank = useRerank;
+        if (useEnhancedContext) {
+          endpoint = CHAT_RAG_ENHANCED_CONTEXT_ENDPOINT;
+          // Enhanced context backend ignoriše use_rerank, ali šaljemo za kompatibilnost
+        }
+      } else {
+        // Za običan chat, dodaj model parametar
+        body.model = "mistral:latest";
       }
 
       const data = await apiRequest(endpoint, {
@@ -269,8 +275,10 @@ export default function ChatBox() {
         setLastContextAnalysis(data.context_analysis || null);
         
         // Prikaži success toast ako je RAG korišćen
-        if ((data.used_rag || data.context_selector_used) && data.sources && data.sources.length > 0) {
+        if (useRAG && (data.used_rag || data.context_selector_used) && data.sources && data.sources.length > 0) {
           showSuccess(`Pronađeno ${data.sources.length} relevantnih izvora`, 'RAG uspešan');
+        } else if (!useRAG) {
+          showSuccess('Odgovor uspešno generisan', 'Chat');
         }
       } else {
         // Dodaj error poruku

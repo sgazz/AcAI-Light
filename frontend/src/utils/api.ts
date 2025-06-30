@@ -15,6 +15,7 @@ export const UPLOAD_ENDPOINT = `${API_BASE}/documents/upload`;
 export const CHAT_SESSIONS_ENDPOINT = `${API_BASE}/chat/sessions`;
 export const CHAT_HISTORY_ENDPOINT = `${API_BASE}/chat/history`;
 export const CHAT_NEW_SESSION_ENDPOINT = `${API_BASE}/chat/new-session`;
+export const CHAT_ENDPOINT = `${API_BASE}/chat`;
 export const CHAT_RAG_ENDPOINT = `${API_BASE}/chat/rag`;
 export const CHAT_RAG_MULTISTEP_ENDPOINT = `${API_BASE}/chat/rag-multistep`;
 export const CHAT_RAG_ENHANCED_CONTEXT_ENDPOINT = `${API_BASE}/chat/rag-enhanced-context`;

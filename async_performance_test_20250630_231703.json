@@ -1,0 +1,84 @@
+{
+  "timestamp": "2025-06-30T23:17:03.220568",
+  "base_url": "http://localhost:8001",
+  "results": {
+    "background_tasks": [
+      {
+        "endpoint": "/tasks/add",
+        "method": "POST",
+        "status_code": 404,
+        "response_time": 0.006659269332885742,
+        "success": false,
+        "data": {
+          "detail": "Not Found"
+        }
+      }
+    ],
+    "connection_pool": [
+      {
+        "endpoint": "/connections/health",
+        "method": "GET",
+        "status_code": 404,
+        "response_time": 0.00430607795715332,
+        "success": false,
+        "data": {
+          "detail": "Not Found"
+        }
+      },
+      {
+        "endpoint": "/connections/stats",
+        "method": "GET",
+        "status_code": 404,
+        "response_time": 0.0007169246673583984,
+        "success": false,
+        "data": {
+          "detail": "Not Found"
+        }
+      }
+    ],
+    "cache": [
+      {
+        "endpoint": "/cache/health",
+        "method": "GET",
+        "status_code": 404,
+        "response_time": 0.0037178993225097656,
+        "success": false,
+        "data": {
+          "detail": "Not Found"
+        }
+      },
+      {
+        "endpoint": "/cache/test",
+        "method": "GET",
+        "status_code": 404,
+        "response_time": 0.0011229515075683594,
+        "success": false,
+        "data": {
+          "detail": "Not Found"
+        }
+      },
+      {
+        "endpoint": "/cache/stats",
+        "method": "GET",
+        "status_code": 404,
+        "response_time": 0.00039386749267578125,
+        "success": false,
+        "data": {
+          "detail": "Not Found"
+        }
+      }
+    ],
+    "performance": [
+      {
+        "endpoint": "/performance/overview",
+        "method": "GET",
+        "status_code": 404,
+        "response_time": 0.0044972896575927734,
+        "success": false,
+        "data": {
+          "detail": "Not Found"
+        }
+      }
+    ]
+  }
+}

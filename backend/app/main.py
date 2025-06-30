@@ -275,7 +275,7 @@ async def health_check():
         "supabase_connected": supabase_manager.test_connection() if supabase_manager else False,
         "ollama_models": {
             model: get_model_status(model) 
-            for model in ["mistral", "llama2"]
+            for model in ["mistral:latest", "llama3.2:latest"]
         }
     }
 
@@ -286,7 +286,7 @@ async def get_models_status():
         "status": "success",
         "models": {
             model: get_model_status(model) 
-            for model in ["mistral", "llama2"]
+            for model in ["mistral:latest", "llama3.2:latest"]
         },
         "preload_cache": preloaded_models
     }

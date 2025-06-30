@@ -1,0 +1,178 @@
+{
+  "timestamp": "2025-06-30T23:38:26.570725",
+  "base_url": "http://localhost:8001",
+  "results": {
+    "background_tasks": [
+      {
+        "endpoint": "/tasks/add",
+        "method": "POST",
+        "status_code": 200,
+        "response_time": 0.015065193176269531,
+        "success": true,
+        "data": {
+          "status": "error",
+          "data": null,
+          "message": "'normal' is not a valid TaskPriority"
+        }
+      }
+    ],
+    "connection_pool": [
+      {
+        "endpoint": "/connections/health",
+        "method": "GET",
+        "status_code": 200,
+        "response_time": 0.011966943740844727,
+        "success": true,
+        "data": {
+          "status": "error",
+          "message": "'TCPConnector' object has no attribute '_enable_cleanup_closed'"
+        }
+      },
+      {
+        "endpoint": "/connections/health/supabase",
+        "method": "GET",
+        "status_code": 404,
+        "response_time": 0.0011131763458251953,
+        "success": false,
+        "data": {
+          "detail": "Not Found"
+        }
+      },
+      {
+        "endpoint": "/connections/health/ollama",
+        "method": "GET",
+        "status_code": 404,
+        "response_time": 0.0008521080017089844,
+        "success": false,
+        "data": {
+          "detail": "Not Found"
+        }
+      },
+      {
+        "endpoint": "/connections/stats",
+        "method": "GET",
+        "status_code": 200,
+        "response_time": 0.0004379749298095703,
+        "success": true,
+        "data": {
+          "status": "success",
+          "stats": {
+            "total_requests": 3,
+            "active_connections": 0,
+            "pool_size": 10,
+            "uptime": 153.107272,
+            "requests_per_second": 0.019594104852300457
+          }
+        }
+      }
+    ],
+    "cache": [
+      {
+        "endpoint": "/cache/health",
+        "method": "GET",
+        "status_code": 200,
+        "response_time": 0.003464937210083008,
+        "success": true,
+        "data": {
+          "status": "success",
+          "cache_health": {
+            "status": "healthy",
+            "message": "Cache radi normalno",
+            "timestamp": "2025-06-30T23:38:26.559319"
+          }
+        }
+      },
+      {
+        "endpoint": "/cache/test",
+        "method": "GET",
+        "status_code": 200,
+        "response_time": 0.009202003479003906,
+        "success": true,
+        "data": {
+          "status": "success",
+          "test_results": {
+            "set_success": true,
+            "get_success": true,
+            "delete_success": true
+          }
+        }
+      },
+      {
+        "endpoint": "/cache/stats",
+        "method": "GET",
+        "status_code": 200,
+        "response_time": 0.0010640621185302734,
+        "success": true,
+        "data": {
+          "status": "success",
+          "cache_stats": {
+            "connected_clients": 1,
+            "used_memory_human": "1.00M",
+            "total_commands_processed": 456,
+            "keyspace_hits": 26,
+            "keyspace_misses": 18,
+            "uptime_in_seconds": 45580
+          }
+        }
+      }
+    ],
+    "performance": [
+      {
+        "endpoint": "/performance/overview",
+        "method": "GET",
+        "status_code": 200,
+        "response_time": 0.01239013671875,
+        "success": true,
+        "data": {
+          "status": "success",
+          "performance_overview": {
+            "cache": {
+              "connected_clients": 1,
+              "used_memory_human": "1.00M",
+              "total_commands_processed": 452,
+              "keyspace_hits": 25,
+              "keyspace_misses": 18,
+              "uptime_in_seconds": 45580
+            },
+            "background_tasks": {
+              "total_tasks": 2,
+              "pending_tasks": 0,
+              "running_tasks": 0,
+              "completed_tasks": 0,
+              "failed_tasks": 2,
+              "cancelled_tasks": 0,
+              "avg_execution_time": 0.0,
+              "queue_size": 0,
+              "max_workers": 4,
+              "max_queue_size": 100
+            },
+            "connection_pool": {
+              "total_requests": 3,
+              "active_connections": 0,
+              "pool_size": 10,
+              "created_at": "2025-06-30T23:35:53.463127"
+            },
+            "models": {
+              "mistral:latest": {
+                "status": "ready",
+                "loaded_at": "2025-06-30T23:36:02.274917",
+                "load_time": 3.0132832527160645,
+                "available": true
+              },
+              "llama3.2:latest": {
+                "status": "ready",
+                "loaded_at": "2025-06-30T23:36:04.189069",
+                "load_time": 1.9141340255737305,
+                "available": true
+              }
+            },
+            "system": {
+              "uptime": 153.104771,
+              "timestamp": "2025-06-30T23:38:26.567906"
+            }
+          }
+        }
+      }
+    ]
+  }
+}
