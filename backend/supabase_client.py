@@ -9,6 +9,21 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 import uuid
 
+# Učitaj .env fajl za environment varijable
+try:
+    from dotenv import load_dotenv
+    
+    # Pokušaj da učitaš .env iz backend direktorijuma
+    backend_env_path = os.path.join(os.path.dirname(__file__), '.env')
+    if os.path.exists(backend_env_path):
+        load_dotenv(backend_env_path)
+    else:
+        # Ako ne postoji u backend, pokušaj u root direktorijumu
+        load_dotenv()
+        
+except ImportError:
+    print("python-dotenv nije instaliran. Environment varijable možda neće biti učitate.")
+
 try:
     from supabase import create_client, Client
     from supabase.lib.client_options import ClientOptions

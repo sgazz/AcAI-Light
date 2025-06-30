@@ -25,6 +25,15 @@ echo "Pritisnite Ctrl+C za zaustavljanje."
 # Pokretanje backend-a u pozadini
 echo "Pokrećem backend server..."
 cd backend
+
+# Učitavanje .env fajla za Supabase kredencijale
+if [ -f ".env" ]; then
+    echo "Učitavam .env fajl sa Supabase kredencijalima..."
+    export $(cat .env | grep -v '^#' | xargs)
+else
+    echo "Upozorenje: .env fajl nije pronađen. Supabase možda neće raditi."
+fi
+
 source venv/bin/activate
 uvicorn app.main:app --reload --port 8001 &
 BACKEND_PID=$!
