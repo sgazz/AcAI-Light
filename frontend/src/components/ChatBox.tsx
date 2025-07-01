@@ -690,11 +690,20 @@ export default function ChatBox() {
         </form>
       </div>
       
-      {/* ChatHistory Sidebar */}
-      <ChatHistorySidebar 
-        isOpen={isHistorySidebarOpen}
-        onClose={() => setIsHistorySidebarOpen(false)}
-      />
+      {/* ChatHistory Modal */}
+      {isHistorySidebarOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          {/* Overlay */}
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setIsHistorySidebarOpen(false)} />
+          {/* Modal */}
+          <div className="relative w-full max-w-5xl mx-4 rounded-3xl shadow-2xl bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 border border-white/10 flex flex-col h-[90vh]">
+            <ChatHistorySidebar 
+              isOpen={isHistorySidebarOpen}
+              onClose={() => setIsHistorySidebarOpen(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
