@@ -229,13 +229,8 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
   // Session Management Functions
   const handleRenameSession = async (sessionId: string, newName: string) => {
     try {
-      // Simuliramo API poziv - u realnoj aplikaciji bi ovo bilo pravi API poziv
-      const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${sessionId}/rename`, {
+      const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${sessionId}/rename?name=${encodeURIComponent(newName)}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: newName }),
       });
       
       if (data.status === 'success') {
@@ -254,13 +249,12 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
 
   const handleUpdateCategories = async (sessionId: string, categories: string[]) => {
     try {
-      // Simuliramo API poziv - u realnoj aplikaciji bi ovo bilo pravi API poziv
       const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${sessionId}/categories`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ categories }),
+        body: JSON.stringify(categories),
       });
       
       if (data.status === 'success') {
@@ -279,7 +273,6 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
 
   const handleArchiveSession = async (sessionId: string) => {
     try {
-      // Simuliramo API poziv - u realnoj aplikaciji bi ovo bilo pravi API poziv
       const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${sessionId}/archive`, {
         method: 'POST',
       });
@@ -302,7 +295,6 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
 
   const handleRestoreSession = async (sessionId: string) => {
     try {
-      // Simuliramo API poziv - u realnoj aplikaciji bi ovo bilo pravi API poziv
       const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${sessionId}/restore`, {
         method: 'POST',
       });
@@ -322,18 +314,13 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
 
   const handleShareSession = async (settings: any) => {
     try {
-      // Simuliramo API poziv - u realnoj aplikaciji bi ovo bilo pravi API poziv
-      const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${selectedSession}/share`, {
+      const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${selectedSession}/share?permissions=${settings.permissions || 'read'}&expires_in=${settings.expires_in || '7d'}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(settings),
       });
       
       if (data.status === 'success') {
         showSuccess('Link za deljenje uspešno kreiran', 'Deljenje');
-        return data.share_link;
+        return data.share_token;
       } else {
         throw new Error(data.message || 'Greška pri kreiranju linka za deljenje');
       }
@@ -345,7 +332,6 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
 
   const handleRevokeShare = async (linkId: string) => {
     try {
-      // Simuliramo API poziv - u realnoj aplikaciji bi ovo bilo pravi API poziv
       const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/share/${linkId}`, {
         method: 'DELETE',
       });
@@ -363,7 +349,6 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
 
   const handleExportArchivedSession = async (sessionId: string) => {
     try {
-      // Simuliramo API poziv - u realnoj aplikaciji bi ovo bilo pravi API poziv
       const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${sessionId}/export`, {
         method: 'GET',
       });

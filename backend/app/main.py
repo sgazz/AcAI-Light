@@ -544,7 +544,191 @@ async def delete_session(session_id: str):
         # Obriši sve poruke za sesiju
         supabase_manager.client.table('chat_history').delete().eq('session_id', session_id).execute()
         
+        # Obriši session metadata ako postoji
+        try:
+            supabase_manager.client.table('session_metadata').delete().eq('session_id', session_id).execute()
+        except:
+            pass  # Ignoriši ako tabela ne postoji
+        
+        # Obriši share links ako postoje
+        try:
+            supabase_manager.client.table('session_share_links').delete().eq('session_id', session_id).execute()
+        except:
+            pass  # Ignoriši ako tabela ne postoji
+        
+        # Obriši kategorije ako postoje
+        try:
+            supabase_manager.client.table('session_categories').delete().eq('session_id', session_id).execute()
+        except:
+            pass  # Ignoriši ako tabela ne postoji
+        
         return {"status": "success", "message": "Sesija obrisana"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+# Session Management Endpoint-i
+@app.put("/chat/sessions/{session_id}/rename")
+async def rename_session(session_id: str, name: str):
+    """Preimenuje chat sesiju"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
+        
+        # Ažuriraj metadata u chat_history tabeli (koristi postojeću metadata kolonu)
+        supabase_manager.client.table('chat_history').update({
+            'metadata': {'session_name': name}
+        }).eq('session_id', session_id).execute()
+        
+        return {"status": "success", "message": "Sesija preimenovana", "name": name}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.put("/chat/sessions/{session_id}/categories")
+async def update_session_categories(session_id: str, categories: List[str]):
+    """Ažurira kategorije sesije"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
+        
+        # Ažuriraj kategorije u metadata koloni chat_history tabeli
+        supabase_manager.client.table('chat_history').update({
+            'metadata': {'categories': categories}
+        }).eq('session_id', session_id).execute()
+        
+        return {"status": "success", "message": "Kategorije ažurirane", "categories": categories}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/chat/sessions/{session_id}/archive")
+async def archive_session(session_id: str):
+    """Arhivira sesiju"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
+        
+        # Označi sesiju kao arhivirana u metadata koloni chat_history tabeli
+        supabase_manager.client.table('chat_history').update({
+            'metadata': {'is_archived': True}
+        }).eq('session_id', session_id).execute()
+        
+        return {"status": "success", "message": "Sesija arhivirana"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/chat/sessions/{session_id}/restore")
+async def restore_session(session_id: str):
+    """Vraća sesiju iz arhive"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
+        
+        # Ukloni arhiviranje iz metadata kolone chat_history tabeli
+        supabase_manager.client.table('chat_history').update({
+            'metadata': {'is_archived': False}
+        }).eq('session_id', session_id).execute()
+        
+        return {"status": "success", "message": "Sesija vraćena iz arhive"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/chat/sessions/{session_id}/share")
+async def create_session_share_link(session_id: str, permissions: str = 'read', expires_in: str = '7d'):
+    """Kreira share link za sesiju"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
+        
+        # Kreiraj share token
+        import secrets
+        share_token = secrets.token_hex(32)
+        
+        # Izračunaj expires_at
+        from datetime import datetime, timedelta
+        expires_at = datetime.now() + timedelta(days=int(expires_in.replace('d', '')))
+        
+        # Sačuvaj share link u metadata koloni
+        share_data = {
+            'share_token': share_token,
+            'permissions': {'read': True, 'write': permissions == 'write'},
+            'expires_at': expires_at.isoformat(),
+            'is_active': True,
+            'created_at': datetime.now().isoformat()
+        }
+        
+        # Dohvati postojeće share links iz metadata
+        existing_data = supabase_manager.client.table('chat_history').select('metadata').eq('session_id', session_id).limit(1).execute()
+        
+        if existing_data.data:
+            existing_metadata = existing_data.data[0].get('metadata', {})
+            existing_share_links = existing_metadata.get('share_links', [])
+            existing_share_links.append(share_data)
+            new_metadata = {**existing_metadata, 'share_links': existing_share_links}
+        else:
+            new_metadata = {'share_links': [share_data]}
+        
+        # Ažuriraj metadata
+        supabase_manager.client.table('chat_history').update({
+            'metadata': new_metadata
+        }).eq('session_id', session_id).execute()
+        
+        return {
+            "status": "success", 
+            "message": "Share link kreiran",
+            "share_token": share_token,
+            "expires_at": expires_at.isoformat()
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.delete("/chat/sessions/share/{share_token}")
+async def revoke_session_share_link(share_token: str):
+    """Opoziva share link"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
+        
+        # Deaktiviraj share link
+        try:
+            supabase_manager.client.table('session_share_links').update({
+                'is_active': False
+            }).eq('share_token', share_token).execute()
+        except:
+            # Ako tabela ne postoji, ukloni iz chat_history
+            pass
+        
+        return {"status": "success", "message": "Share link opozvan"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/chat/sessions/{session_id}/export")
+async def export_session(session_id: str):
+    """Export-uje sesiju u JSON formatu"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
+        
+        # Dohvati sve poruke za sesiju
+        messages = supabase_manager.client.table('chat_history').select('*').eq('session_id', session_id).execute()
+        
+        # Dohvati session metadata
+        try:
+            metadata = supabase_manager.client.table('session_metadata').select('*').eq('session_id', session_id).execute()
+            session_metadata = metadata.data[0] if metadata.data else {}
+        except:
+            session_metadata = {}
+        
+        export_data = {
+            'session_id': session_id,
+            'metadata': session_metadata,
+            'messages': messages.data,
+            'exported_at': datetime.now().isoformat(),
+            'total_messages': len(messages.data)
+        }
+        
+        return {
+            "status": "success",
+            "export_data": export_data
+        }
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
