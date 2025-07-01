@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { FaThumbsUp, FaThumbsDown } from 'react-icons/fa';
 
 type ReactionType = '👍' | '👎' | '❤️' | '🤔';
@@ -13,6 +13,18 @@ interface MessageReactionsProps {
 
 export default function MessageReactions({ messageId, initialReactions = [], onReactionChange }: MessageReactionsProps) {
   const [reactions, setReactions] = useState<ReactionType[]>(initialReactions);
+  const isInitialMount = useRef(true);
+
+  // Pratimo promene u reactions i pozivamo onReactionChange
+  useEffect(() => {
+    // Ne pozivamo onReactionChange na inicijalnom mount-u
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    
+    onReactionChange?.(messageId, reactions);
+  }, [reactions, messageId, onReactionChange]);
 
   const handleReaction = (reaction: ReactionType) => {
     setReactions(prev => {
@@ -20,7 +32,6 @@ export default function MessageReactions({ messageId, initialReactions = [], onR
         ? prev.filter(r => r !== reaction)
         : [...prev, reaction];
       
-      onReactionChange?.(messageId, newReactions);
       return newReactions;
     });
   };
