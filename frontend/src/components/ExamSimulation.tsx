@@ -107,7 +107,7 @@ export default function ExamSimulation() {
   const loadExams = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:8001/exam/list?user_id=${currentUserId}`);
+      const response = await fetch(`http://localhost:8001/exams?user_id=${currentUserId}`);
       const data = await response.json();
       
       if (data.status === 'success') {
