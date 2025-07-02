@@ -301,7 +301,7 @@ export default function StudyRoom() {
     if (!input.trim() || !currentRoom) return;
 
     try {
-      // Pokušaj da pošalješ kroz WebSocket ako je povezan
+      // Pošalji kroz WebSocket ako je povezan, inače kroz HTTP
       if (ws && ws.readyState === WebSocket.OPEN) {
         console.log('📤 Slanje poruke kroz WebSocket');
         ws.send(JSON.stringify({
@@ -310,22 +310,23 @@ export default function StudyRoom() {
         }));
       } else {
         console.log('📤 Slanje poruke kroz HTTP (WebSocket nije povezan)');
+        // Pošalji kroz HTTP endpoint samo ako WebSocket nije povezan
+        await sendStudyRoomMessage(currentRoom.room_id, {
+          user_id: currentUserId,
+          username: currentUsername,
+          content: input,
+          type: 'chat'
+        });
       }
-
-      // Uvek pošalji kroz HTTP endpoint
-      await sendStudyRoomMessage(currentRoom.room_id, {
-        user_id: currentUserId,
-        username: currentUsername,
-        content: input,
-        type: 'chat'
-      });
 
       setInput('');
       
-      // Osveži poruke nakon slanja
-      setTimeout(() => {
-        refreshMessages();
-      }, 1000);
+      // Osveži poruke nakon slanja (samo ako nismo povezani kroz WebSocket)
+      if (!ws || ws.readyState !== WebSocket.OPEN) {
+        setTimeout(() => {
+          refreshMessages();
+        }, 1000);
+      }
       
     } catch (error: any) {
       showError('Greška pri slanju poruke', 'Greška slanja');
