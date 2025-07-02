@@ -19,6 +19,7 @@ import FileSharing from '../components/FileHandling/FileSharing';
 import VirtualScrollTest from '../components/Performance/VirtualScrollTest';
 import MindMapping from '../components/MindMapping/MindMapping';
 import StudyRoom from '../components/StudyRoom';
+import ExamSimulation from '../components/ExamSimulation';
 
 export default function Home() {
   const [selectedMenu, setSelectedMenu] = useState(-1);
@@ -174,14 +175,7 @@ export default function Home() {
       case 3:
         return <StudyRoom />;
       case 4:
-        return (
-          <div className="h-full flex flex-col">
-            <div className="flex-1 p-6">
-              <h2 className="text-2xl font-bold mb-4">Exam Simulation</h2>
-              <p className="text-gray-300">Exam simulation funkcionalnost će biti implementirana ovde.</p>
-            </div>
-          </div>
-        );
+        return <ExamSimulation />;
       case 5:
         return (
           <div className="h-full flex flex-col">

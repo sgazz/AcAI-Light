@@ -44,6 +44,7 @@ from .config import Config
 from .cache_manager import cache_manager, get_cached_ai_response, set_cached_ai_response, get_semantic_cached_response, get_cache_analytics
 from .background_tasks import task_manager, add_background_task, get_task_status, cancel_task, get_all_tasks, get_task_stats, TaskPriority, TaskStatus
 from .websocket import websocket_manager, WebSocketMessage, MessageType, get_websocket_manager
+from .exam_service import get_exam_service
 from .error_handler import (
     error_handler, handle_api_error, ErrorCategory, ErrorSeverity,
     AcAIAException, ValidationError, ExternalServiceError, RAGError, OCRError,
@@ -2100,6 +2101,112 @@ async def handle_ai_assistant_response(room_id: str, user_message: str, username
             
     except Exception as e:
         logger.error(f"❌ Greška pri obradi AI asistenta: {e}")
+
+# Exam Simulation Endpoints
+@app.post("/exam/create")
+async def create_exam(exam_data: dict):
+    """Kreiraj novi ispit"""
+    try:
+        exam_service = await get_exam_service()
+        result = await exam_service.create_exam(exam_data)
+        return result
+    except Exception as e:
+        logger.error(f"❌ Greška pri kreiranju ispita: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/exam/{exam_id}")
+async def get_exam(exam_id: str):
+    """Dohvati ispit po ID-u"""
+    try:
+        exam_service = await get_exam_service()
+        result = await exam_service.get_exam(exam_id)
+        return result
+    except Exception as e:
+        logger.error(f"❌ Greška pri dohvatanju ispita: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/exams")
+async def list_exams(user_id: str = None, subject: str = None):
+    """Listaj sve ispite"""
+    try:
+        exam_service = await get_exam_service()
+        result = await exam_service.list_exams(user_id, subject)
+        return result
+    except Exception as e:
+        logger.error(f"❌ Greška pri listanju ispita: {e}")
+        return {"status": "error", "message": f"Greška pri listanju ispita: {str(e)}"}
+
+@app.post("/exam/{exam_id}/start")
+async def start_exam_attempt(exam_id: str, attempt_data: dict):
+    """Započni pokušaj polaganja ispita"""
+    try:
+        exam_service = await get_exam_service()
+        result = await exam_service.start_exam_attempt(
+            exam_id, 
+            attempt_data.get("user_id"), 
+            attempt_data.get("username")
+        )
+        return result
+    except Exception as e:
+        logger.error(f"❌ Greška pri započinjanju pokušaja: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.post("/exam/attempt/{attempt_id}/answer")
+async def submit_answer(attempt_id: str, answer_data: dict):
+    """Predaj odgovor na pitanje"""
+    try:
+        exam_service = await get_exam_service()
+        result = await exam_service.submit_answer(
+            attempt_id,
+            answer_data.get("question_id"),
+            answer_data.get("answer")
+        )
+        return result
+    except Exception as e:
+        logger.error(f"❌ Greška pri predaji odgovora: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.post("/exam/attempt/{attempt_id}/finish")
+async def finish_exam_attempt(attempt_id: str):
+    """Završi pokušaj polaganja ispita"""
+    try:
+        exam_service = await get_exam_service()
+        result = await exam_service.finish_exam_attempt(attempt_id)
+        return result
+    except Exception as e:
+        logger.error(f"❌ Greška pri završavanju pokušaja: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/exam/{exam_id}/attempts")
+async def get_exam_attempts(exam_id: str, user_id: str):
+    """Dohvati sve pokušaje korisnika za određeni ispit"""
+    try:
+        exam_service = await get_exam_service()
+        result = await exam_service.get_user_attempts(exam_id, user_id)
+        return result
+    except Exception as e:
+        logger.error(f"❌ Greška pri dohvatanju pokušaja: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.post("/exam/generate-questions")
+async def generate_ai_questions(generation_data: dict):
+    """Generiši pitanja pomoću AI-a"""
+    try:
+        exam_service = await get_exam_service()
+        questions = await exam_service.generate_ai_questions(
+            generation_data.get("subject"),
+            generation_data.get("topic"),
+            generation_data.get("count", 10),
+            generation_data.get("difficulty", "medium")
+        )
+        return {
+            "status": "success",
+            "questions": [q.to_dict() for q in questions],
+            "message": f"Generisano {len(questions)} pitanja"
+        }
+    except Exception as e:
+        logger.error(f"❌ Greška pri AI generisanju pitanja: {e}")
+        return {"status": "error", "message": str(e)}
 
 # Startup i shutdown eventi
 @app.on_event("startup")

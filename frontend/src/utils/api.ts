@@ -235,4 +235,100 @@ export const leaveStudyRoom = async (roomId: string, userId: string) => {
   return await apiRequest(`${STUDY_ROOM_LEAVE_ENDPOINT(roomId)}?user_id=${userId}`, {
     method: 'DELETE',
   });
+};
+
+// Exam Simulation API Endpoints
+export const EXAM_CREATE_ENDPOINT = `${API_BASE}/exam/create`;
+export const EXAM_GET_ENDPOINT = (examId: string) => `${API_BASE}/exam/${examId}`;
+export const EXAM_LIST_ENDPOINT = `${API_BASE}/exams`;
+export const EXAM_START_ENDPOINT = (examId: string) => `${API_BASE}/exam/${examId}/start`;
+export const EXAM_ANSWER_ENDPOINT = (attemptId: string) => `${API_BASE}/exam/attempt/${attemptId}/answer`;
+export const EXAM_FINISH_ENDPOINT = (attemptId: string) => `${API_BASE}/exam/attempt/${attemptId}/finish`;
+export const EXAM_ATTEMPTS_ENDPOINT = (examId: string) => `${API_BASE}/exam/${examId}/attempts`;
+export const EXAM_GENERATE_QUESTIONS_ENDPOINT = `${API_BASE}/exam/generate-questions`;
+
+// Exam Simulation API Functions
+export const createExam = async (examData: {
+  title: string;
+  description?: string;
+  subject?: string;
+  duration_minutes?: number;
+  total_points?: number;
+  passing_score?: number;
+  questions?: any[];
+  created_by: string;
+  is_public?: boolean;
+  allow_retakes?: boolean;
+  max_attempts?: number;
+}) => {
+  return await apiRequest(EXAM_CREATE_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(examData),
+  });
+};
+
+export const getExam = async (examId: string) => {
+  return await apiRequest(EXAM_GET_ENDPOINT(examId));
+};
+
+export const listExams = async (userId?: string, subject?: string) => {
+  const params = new URLSearchParams();
+  if (userId) params.append('user_id', userId);
+  if (subject) params.append('subject', subject);
+  
+  return await apiRequest(`${EXAM_LIST_ENDPOINT}?${params.toString()}`);
+};
+
+export const startExamAttempt = async (examId: string, attemptData: {
+  user_id: string;
+  username: string;
+}) => {
+  return await apiRequest(EXAM_START_ENDPOINT(examId), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(attemptData),
+  });
+};
+
+export const submitAnswer = async (attemptId: string, answerData: {
+  question_id: string;
+  answer: any;
+}) => {
+  return await apiRequest(EXAM_ANSWER_ENDPOINT(attemptId), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(answerData),
+  });
+};
+
+export const finishExamAttempt = async (attemptId: string) => {
+  return await apiRequest(EXAM_FINISH_ENDPOINT(attemptId), {
+    method: 'POST',
+  });
+};
+
+export const getExamAttempts = async (examId: string, userId: string) => {
+  return await apiRequest(`${EXAM_ATTEMPTS_ENDPOINT(examId)}?user_id=${userId}`);
+};
+
+export const generateAIQuestions = async (generationData: {
+  subject: string;
+  topic: string;
+  count?: number;
+  difficulty?: string;
+}) => {
+  return await apiRequest(EXAM_GENERATE_QUESTIONS_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(generationData),
+  });
 }; 
