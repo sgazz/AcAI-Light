@@ -277,18 +277,32 @@ class WebSocketManager:
         
         return {
             "session_id": session_id,
-            "participants": [
-                {
-                    "user_id": conn.user_id,
-                    "status": conn.status.value,
-                    "connected_at": conn.connected_at.isoformat(),
-                    "last_activity": conn.last_activity.isoformat(),
-                    "is_typing": conn.is_typing
-                }
-                for conn in connections
-            ],
-            "participant_count": len(connections)
+            "active_connections": len(connections),
+            "users": [conn.user_id for conn in connections],
+            "created_at": min([conn.connected_at for conn in connections]) if connections else None,
+            "last_activity": max([conn.last_activity for conn in connections]) if connections else None
         }
+    
+    async def close_all_connections(self):
+        """Zatvori sve aktivne WebSocket konekcije"""
+        logger.info(f"Zatvaram {len(self.active_connections)} aktivnih konekcija...")
+        
+        for connection in self.active_connections[:]:  # Kopija liste da izbegnemo RuntimeError
+            try:
+                await connection.websocket.close()
+                logger.info(f"Zatvorena konekcija za korisnika {connection.user_id}")
+            except Exception as e:
+                logger.error(f"Greška pri zatvaranju konekcije {connection.user_id}: {e}")
+        
+        # Očisti sve liste
+        self.active_connections.clear()
+        self.session_connections.clear()
+        self.user_connections.clear()
+        
+        # Resetuj statistike
+        self.stats["active_connections"] = 0
+        
+        logger.info("Sve WebSocket konekcije su zatvorene")
 
 # Globalna instanca WebSocket manager-a
 websocket_manager = WebSocketManager()
