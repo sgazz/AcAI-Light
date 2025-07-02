@@ -158,4 +158,81 @@ export const revokeShareLink = async (shareLinkId: string) => {
 
 export const getAllSessionsMetadata = async () => {
   return apiRequest(SESSIONS_METADATA_ENDPOINT);
+};
+
+// Study Room API Endpoints
+export const STUDY_ROOM_CREATE_ENDPOINT = `${API_BASE}/study-room/create`;
+export const STUDY_ROOM_LIST_ENDPOINT = `${API_BASE}/study-room/list`;
+export const STUDY_ROOM_JOIN_ENDPOINT = `${API_BASE}/study-room/join`;
+export const STUDY_ROOM_MEMBERS_ENDPOINT = (roomId: string) => `${API_BASE}/study-room/${roomId}/members`;
+export const STUDY_ROOM_MESSAGE_ENDPOINT = (roomId: string) => `${API_BASE}/study-room/${roomId}/message`;
+export const STUDY_ROOM_MESSAGES_ENDPOINT = (roomId: string) => `${API_BASE}/study-room/${roomId}/messages`;
+export const STUDY_ROOM_LEAVE_ENDPOINT = (roomId: string) => `${API_BASE}/study-room/${roomId}/leave`;
+
+// Study Room WebSocket URL
+export const STUDY_ROOM_WS_URL = (roomId: string, userId: string, username: string) => 
+  `ws://localhost:8001/ws/study-room/${roomId}`;
+
+// Study Room API Functions
+export const createStudyRoom = async (roomData: {
+  name: string;
+  description?: string;
+  subject?: string;
+  max_participants?: number;
+  admin_user_id?: string;
+}) => {
+  return await apiRequest(STUDY_ROOM_CREATE_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(roomData),
+  });
+};
+
+export const listStudyRooms = async (userId: string = 'default_admin') => {
+  return await apiRequest(`${STUDY_ROOM_LIST_ENDPOINT}?user_id=${userId}`);
+};
+
+export const joinStudyRoom = async (joinData: {
+  invite_code: string;
+  user_id: string;
+  username: string;
+}) => {
+  return await apiRequest(STUDY_ROOM_JOIN_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(joinData),
+  });
+};
+
+export const getStudyRoomMembers = async (roomId: string) => {
+  return await apiRequest(STUDY_ROOM_MEMBERS_ENDPOINT(roomId));
+};
+
+export const sendStudyRoomMessage = async (roomId: string, messageData: {
+  user_id: string;
+  username: string;
+  content: string;
+  type?: string;
+}) => {
+  return await apiRequest(STUDY_ROOM_MESSAGE_ENDPOINT(roomId), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(messageData),
+  });
+};
+
+export const getStudyRoomMessages = async (roomId: string, limit: number = 50, offset: number = 0) => {
+  return await apiRequest(`${STUDY_ROOM_MESSAGES_ENDPOINT(roomId)}?limit=${limit}&offset=${offset}`);
+};
+
+export const leaveStudyRoom = async (roomId: string, userId: string) => {
+  return await apiRequest(`${STUDY_ROOM_LEAVE_ENDPOINT(roomId)}?user_id=${userId}`, {
+    method: 'DELETE',
+  });
 }; 

@@ -636,7 +636,7 @@ async def create_session_share_link(session_id: str, permissions: str = 'read', 
     """Kreira share link za sesiju"""
     try:
         if not supabase_manager:
-            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
+            raise HTTPException(status_code=503, detail="Supabase nije omogućen")
         
         # Kreiraj share token
         import secrets
@@ -1547,6 +1547,559 @@ async def get_performance_overview():
         }
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+# Study Room Endpointi
+@app.post("/study-room/create")
+async def create_study_room(room_data: dict):
+    """Kreiraj novu Study Room sobu"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=500, detail="Supabase nije dostupan")
+        
+        room_id = str(uuid.uuid4())
+        name = room_data.get("name", f"Study Room {room_id[:8]}")
+        description = room_data.get("description", "")
+        subject = room_data.get("subject", "")
+        max_participants = room_data.get("max_participants", 10)
+        admin_user_id = room_data.get("admin_user_id", "default_admin")
+        
+        # Kreiraj sobu u Supabase
+        room_data_to_insert = {
+            "room_id": room_id,
+            "name": name,
+            "description": description,
+            "subject": subject,
+            "max_participants": max_participants,
+            "admin_user_id": admin_user_id,
+            "is_active": True,
+            "created_at": datetime.now().isoformat(),
+            "updated_at": datetime.now().isoformat()
+        }
+        
+        result = supabase_manager.client.table("study_rooms").insert(room_data_to_insert).execute()
+        
+        if result.data:
+            # Dodaj admin-a kao prvog člana
+            member_data = {
+                "room_id": room_id,
+                "user_id": admin_user_id,
+                "username": f"Admin_{admin_user_id[:8]}",
+                "role": "admin",
+                "joined_at": datetime.now().isoformat(),
+                "is_active": True
+            }
+            
+            supabase_manager.client.table("study_room_members").insert(member_data).execute()
+            
+            return {
+                "status": "success",
+                "room": {
+                    "room_id": room_id,
+                    "name": name,
+                    "description": description,
+                    "subject": subject,
+                    "admin_user_id": admin_user_id,
+                    "invite_code": room_id[:8].upper()  # Kratak kod za pozivnice
+                }
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Greška pri kreiranju sobe")
+            
+    except Exception as e:
+        logger.error(f"Greška pri kreiranju Study Room sobe: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/study-room/list")
+async def list_study_rooms(user_id: str = "default_admin"):
+    """Dohvati listu Study Room soba za korisnika"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=500, detail="Supabase nije dostupan")
+        
+        # Dohvati sobe gde je korisnik član
+        result = supabase_manager.client.table("study_room_members")\
+            .select("room_id, role, joined_at")\
+            .eq("user_id", user_id)\
+            .eq("is_active", True)\
+            .execute()
+        
+        if not result.data:
+            return {"status": "success", "rooms": []}
+        
+        # Dohvati detalje soba
+        room_ids = [member["room_id"] for member in result.data]
+        rooms_result = supabase_manager.client.table("study_rooms")\
+            .select("*")\
+            .in_("room_id", room_ids)\
+            .eq("is_active", True)\
+            .execute()
+        
+        # Spoji podatke
+        rooms = []
+        for room in rooms_result.data:
+            member_info = next((m for m in result.data if m["room_id"] == room["room_id"]), None)
+            rooms.append({
+                **room,
+                "user_role": member_info["role"] if member_info else "member",
+                "joined_at": member_info["joined_at"] if member_info else None,
+                "invite_code": room["room_id"][:8].upper()
+            })
+        
+        return {"status": "success", "rooms": rooms}
+        
+    except Exception as e:
+        logger.error(f"Greška pri dohvatanju Study Room soba: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.post("/study-room/join")
+async def join_study_room(join_data: dict):
+    """Pridruži se Study Room sobi"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=500, detail="Supabase nije dostupan")
+        
+        invite_code = join_data.get("invite_code", "").upper()
+        user_id = join_data.get("user_id", "default_user")
+        username = join_data.get("username", "Anonymous")
+        
+        # Pronađi sobu po invite kodu (prvi 8 karaktera room_id)
+        rooms_result = supabase_manager.client.table("study_rooms")\
+            .select("*")\
+            .eq("is_active", True)\
+            .execute()
+        
+        room = None
+        for r in rooms_result.data:
+            if r["room_id"][:8].upper() == invite_code:
+                room = r
+                break
+        
+        if not room:
+            return {"status": "error", "message": "Soba nije pronađena ili je neaktivna"}
+        
+        # Proveri da li je korisnik već član
+        existing_member = supabase_manager.client.table("study_room_members")\
+            .select("*")\
+            .eq("room_id", room["room_id"])\
+            .eq("user_id", user_id)\
+            .execute()
+        
+        if existing_member.data:
+            # Ako je korisnik već član, samo ga aktiviraj ako je neaktivan
+            member = existing_member.data[0]
+            if not member.get("is_active", True):
+                supabase_manager.client.table("study_room_members")\
+                    .update({"is_active": True})\
+                    .eq("room_id", room["room_id"])\
+                    .eq("user_id", user_id)\
+                    .execute()
+            
+            return {
+                "status": "success",
+                "message": "Već ste član ove sobe",
+                "room": {
+                    "room_id": room["room_id"],
+                    "name": room["name"],
+                    "description": room["description"],
+                    "subject": room["subject"]
+                }
+            }
+        
+        # Proveri broj članova
+        members_count = supabase_manager.client.table("study_room_members")\
+            .select("user_id")\
+            .eq("room_id", room["room_id"])\
+            .eq("is_active", True)\
+            .execute()
+        
+        if len(members_count.data) >= room["max_participants"]:
+            return {"status": "error", "message": "Soba je puna"}
+        
+        # Dodaj člana
+        member_data = {
+            "room_id": room["room_id"],
+            "user_id": user_id,
+            "username": username,
+            "role": "member",
+            "joined_at": datetime.now().isoformat(),
+            "is_active": True
+        }
+        
+        supabase_manager.client.table("study_room_members").insert(member_data).execute()
+        
+        return {
+            "status": "success",
+            "room": {
+                "room_id": room["room_id"],
+                "name": room["name"],
+                "description": room["description"],
+                "subject": room["subject"]
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Greška pri pridruživanju Study Room sobi: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/study-room/{room_id}/members")
+async def get_study_room_members(room_id: str):
+    """Dohvati članove Study Room sobe"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=500, detail="Supabase nije dostupan")
+        
+        result = supabase_manager.client.table("study_room_members")\
+            .select("*")\
+            .eq("room_id", room_id)\
+            .eq("is_active", True)\
+            .order("joined_at", desc=False)\
+            .execute()
+        
+        return {"status": "success", "members": result.data}
+        
+    except Exception as e:
+        logger.error(f"Greška pri dohvatanju članova sobe: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.post("/study-room/{room_id}/message")
+async def send_study_room_message(room_id: str, message_data: dict):
+    """Pošalji poruku u Study Room sobu"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=500, detail="Supabase nije dostupan")
+        
+        message_id = str(uuid.uuid4())
+        user_id = message_data.get("user_id", "default_user")
+        username = message_data.get("username", "Anonymous")
+        content = message_data.get("content", "")
+        message_type = message_data.get("type", "chat")  # chat, system, ai
+        
+        # Proveri da li je korisnik član sobe
+        member_result = supabase_manager.client.table("study_room_members")\
+            .select("*")\
+            .eq("room_id", room_id)\
+            .eq("user_id", user_id)\
+            .eq("is_active", True)\
+            .execute()
+        
+        if not member_result.data:
+            return {"status": "error", "message": "Niste član ove sobe"}
+        
+        # Sačuvaj poruku
+        message_data_to_insert = {
+            "message_id": message_id,
+            "room_id": room_id,
+            "user_id": user_id,
+            "username": username,
+            "content": content,
+            "message_type": message_type,
+            "timestamp": datetime.now().isoformat()
+        }
+        
+        result = supabase_manager.client.table("study_room_messages").insert(message_data_to_insert).execute()
+        
+        if result.data:
+            # AI asistent - proveri da li poruka sadrži @AI
+            if "@ai" in content.lower():
+                # Pozovi AI asistent u background task da ne blokira response
+                asyncio.create_task(handle_ai_assistant_response(room_id, content, username))
+            
+            return {
+                "status": "success",
+                "message": {
+                    "message_id": message_id,
+                    "room_id": room_id,
+                    "user_id": user_id,
+                    "username": username,
+                    "content": content,
+                    "message_type": message_type,
+                    "timestamp": message_data_to_insert["timestamp"]
+                }
+            }
+        else:
+            return {"status": "error", "message": "Greška pri slanju poruke"}
+            
+    except Exception as e:
+        logger.error(f"Greška pri slanju poruke u Study Room: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/study-room/{room_id}/messages")
+async def get_study_room_messages(room_id: str, limit: int = 50, offset: int = 0):
+    """Dohvati poruke iz Study Room sobe"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=500, detail="Supabase nije dostupan")
+        
+        result = supabase_manager.client.table("study_room_messages")\
+            .select("*")\
+            .eq("room_id", room_id)\
+            .order("timestamp", desc=True)\
+            .range(offset, offset + limit - 1)\
+            .execute()
+        
+        # Vrati poruke u hronološkom redosledu (najstarije prvo)
+        messages = list(reversed(result.data)) if result.data else []
+        
+        return {"status": "success", "messages": messages}
+        
+    except Exception as e:
+        logger.error(f"Greška pri dohvatanju poruka iz Study Room sobe: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.delete("/study-room/{room_id}/leave")
+async def leave_study_room(room_id: str, user_id: str):
+    """Napusti Study Room sobu"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=500, detail="Supabase nije dostupan")
+        
+        # Proveri da li je korisnik admin
+        member_result = supabase_manager.client.table("study_room_members")\
+            .select("*")\
+            .eq("room_id", room_id)\
+            .eq("user_id", user_id)\
+            .execute()
+        
+        if not member_result.data:
+            return {"status": "error", "message": "Niste član ove sobe"}
+        
+        member = member_result.data[0]
+        
+        # Ako je admin, ne može da napusti sobu dok ne prenese admin prava
+        if member["role"] == "admin":
+            # Proveri da li ima drugih članova
+            other_members = supabase_manager.client.table("study_room_members")\
+                .select("*")\
+                .eq("room_id", room_id)\
+                .eq("is_active", True)\
+                .neq("user_id", user_id)\
+                .execute()
+            
+            if other_members.data:
+                return {"status": "error", "message": "Admin ne može da napusti sobu dok ne prenese admin prava"}
+            
+            # Ako je jedini član, deaktiviraj sobu
+            supabase_manager.client.table("study_rooms")\
+                .update({"is_active": False, "updated_at": datetime.now().isoformat()})\
+                .eq("room_id", room_id)\
+                .execute()
+        
+        # Deaktiviraj članstvo
+        supabase_manager.client.table("study_room_members")\
+            .update({"is_active": False})\
+            .eq("room_id", room_id)\
+            .eq("user_id", user_id)\
+            .execute()
+        
+        return {"status": "success", "message": "Uspešno napustili sobu"}
+        
+    except Exception as e:
+        logger.error(f"Greška pri napuštanju Study Room sobe: {e}")
+        return {"status": "error", "message": str(e)}
+
+# Study Room WebSocket Endpoint
+@app.websocket("/ws/study-room/{room_id}")
+async def websocket_study_room_endpoint(websocket: WebSocket, room_id: str):
+    try:
+        # await websocket.accept()  # OVA LINIJA JE UKLONJENA
+        # Zatim primi query parametre kroz poruku
+        try:
+            logger.info(f"🔌 Čekam inicijalnu poruku za sobu {room_id}")
+            init_data = await websocket.receive_text()
+            logger.info(f"📨 Primljena inicijalna poruka: {init_data}")
+            init_message = json.loads(init_data)
+            user_id = init_message.get("user_id") or str(uuid.uuid4())
+            username = init_message.get("username") or f"User_{user_id[:8]}"
+            logger.info(f"✅ Korisnik identifikovan: {username} (ID: {user_id})")
+        except Exception as e:
+            # Fallback ako ne može da primi inicijalnu poruku
+            logger.warning(f"⚠️ Greška pri primanju inicijalne poruke: {e}")
+            user_id = str(uuid.uuid4())
+            username = f"User_{user_id[:8]}"
+            logger.info(f"🔄 Koristeći fallback korisnika: {username} (ID: {user_id})")
+        
+        logger.info(f"✅ WebSocket konekcija prihvaćena za korisnika {username} u sobi {room_id}")
+        
+        # Kreiraj konekciju
+        connection = await websocket_manager.connect(websocket, user_id, room_id)
+        
+        # Pošalji welcome poruku
+        welcome_message = WebSocketMessage(
+            message_type=MessageType.SYSTEM,
+            content={
+                "message": f"Dobrodošli u Study Room! Korisnik: {username}",
+                "room_id": room_id,
+                "user_id": user_id,
+                "username": username
+            },
+            sender="system",
+            session_id=room_id
+        )
+        
+        await connection.send_message(welcome_message)
+        logger.info(f"📨 Welcome poruka poslata korisniku {username}")
+        
+        try:
+            while True:
+                # Čekaj poruke
+                data = await websocket.receive_text()
+                message_data = json.loads(data)
+                logger.info(f"📨 Primljena poruka od {username}: {message_data}")
+                
+                # Kreiraj WebSocket poruku
+                message = WebSocketMessage(
+                    message_type=MessageType(message_data.get("type", "chat")),
+                    content=message_data.get("content", ""),
+                    sender=user_id,
+                    session_id=room_id
+                )
+                
+                # Obradi poruku
+                await handle_study_room_message(connection, message, room_id, username)
+                
+        except WebSocketDisconnect:
+            logger.info(f"👋 Korisnik {username} se odjavio iz sobe {room_id}")
+            
+        finally:
+            # Očisti konekciju
+            if 'connection' in locals():
+                websocket_manager.disconnect(connection)
+                logger.info(f"🧹 Konekcija očišćena za korisnika {username}")
+            
+    except Exception as e:
+        logger.error(f"❌ Greška u Study Room WebSocket: {e}")
+        try:
+            await websocket.close()
+        except:
+            pass
+
+async def handle_study_room_message(connection, message: WebSocketMessage, room_id: str, username: str):
+    """Obradi poruku iz Study Room sobe"""
+    try:
+        if message.message_type == MessageType.CHAT:
+            # Sačuvaj poruku u bazu
+            if supabase_manager:
+                message_data = {
+                    "message_id": str(uuid.uuid4()),
+                    "room_id": room_id,
+                    "user_id": message.sender,
+                    "username": username,
+                    "content": message.content,
+                    "message_type": "chat",
+                    "timestamp": datetime.now().isoformat()
+                }
+                supabase_manager.client.table("study_room_messages").insert(message_data).execute()
+            # Pošalji poruku svim članovima sobe
+            broadcast_message = WebSocketMessage(
+                message_type=MessageType.CHAT,
+                content={
+                    "user_id": message.sender,
+                    "username": username,
+                    "content": message.content,
+                    "timestamp": datetime.now().isoformat()
+                },
+                sender=message.sender,
+                session_id=room_id
+            )
+            await websocket_manager.broadcast_to_session(broadcast_message, room_id)
+            # AI asistent samo na eksplicitno @AI
+            if "@ai" in message.content.lower():
+                await handle_ai_assistant_response(room_id, message.content, username)
+        elif message.message_type == MessageType.TYPING:
+            # Pošalji typing indicator
+            typing_message = WebSocketMessage(
+                message_type=MessageType.TYPING,
+                content={
+                    "user_id": message.sender,
+                    "username": username,
+                    "is_typing": message.content.get("is_typing", True)
+                },
+                sender=message.sender,
+                session_id=room_id
+            )
+            await websocket_manager.broadcast_to_session(typing_message, room_id, exclude_user=message.sender)
+    except Exception as e:
+        logger.error(f"Greška pri obradi Study Room poruke: {e}")
+
+# Dodaj funkciju za AI odgovor
+async def handle_ai_assistant_response(room_id: str, user_message: str, username: str):
+    try:
+        logger.info(f"🎯 AI asistent aktiviran za sobu {room_id}, korisnik: {username}")
+        
+        room_info = supabase_manager.client.table("study_rooms").select("*").eq("room_id", room_id).execute()
+        if not room_info.data:
+            logger.error(f"❌ Soba {room_id} nije pronađena")
+            return
+        room = room_info.data[0]
+        subject = room.get("subject", "general")
+        
+        logger.info(f"📚 Predmet sobe: {subject}")
+        
+        recent_messages = supabase_manager.client.table("study_room_messages")\
+            .select("*")\
+            .eq("room_id", room_id)\
+            .order("timestamp", desc=True)\
+            .limit(10)\
+            .execute()
+        
+        context = f"Predmet: {subject}\n"
+        if recent_messages.data:
+            context += "Poslednje poruke:\n"
+            for msg in reversed(recent_messages.data[-5:]):
+                context += f"{msg['username']}: {msg['content']}\n"
+        
+        prompt = f"""Ti si AI asistent u Study Room sobi za predmet {subject}.\nStudent {username} je napisao: \"{user_message}\"\n\nKontekst razgovora:\n{context}\n\nOdgovori na pitanje ili daj korisnu sugestiju za učenje. Budi prijateljski i koristan. Ako je potrebno, daj konkretne primere."""
+        
+        logger.info(f"🤖 Generisanje AI odgovora...")
+        
+        try:
+            ai_response = await ollama_chat_async(
+                model="mistral:latest",
+                messages=[{"role": "user", "content": prompt}],
+                stream=False
+            )
+            
+            if ai_response and "message" in ai_response:
+                ai_content = ai_response["message"]["content"]
+                logger.info(f"✅ AI odgovor generisan: {ai_content[:100]}...")
+                
+                ai_message_data = {
+                    "message_id": str(uuid.uuid4()),
+                    "room_id": room_id,
+                    "user_id": "ai_assistant",
+                    "username": "AI Asistent",
+                    "content": ai_content,
+                    "message_type": "ai",
+                    "timestamp": datetime.now().isoformat()
+                }
+                
+                supabase_manager.client.table("study_room_messages").insert(ai_message_data).execute()
+                logger.info(f"💾 AI poruka sačuvana u bazu")
+                
+                ai_message = WebSocketMessage(
+                    message_type=MessageType.CHAT,
+                    content={
+                        "user_id": "ai_assistant",
+                        "username": "AI Asistent",
+                        "content": ai_content,
+                        "timestamp": datetime.now().isoformat(),
+                        "is_ai": True
+                    },
+                    sender="ai_assistant",
+                    session_id=room_id
+                )
+                
+                await websocket_manager.broadcast_to_session(ai_message, room_id)
+                logger.info(f"📡 AI poruka poslata kroz WebSocket")
+                
+            else:
+                logger.error(f"❌ AI odgovor nije generisan: {ai_response}")
+                
+        except Exception as ai_error:
+            logger.error(f"❌ Greška pri AI odgovoru: {ai_error}")
+            
+    except Exception as e:
+        logger.error(f"❌ Greška pri obradi AI asistenta: {e}")
 
 # Startup i shutdown eventi
 @app.on_event("startup")
