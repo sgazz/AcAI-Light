@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { FaPlay, FaStop, FaClock, FaCheck, FaTimes, FaList, FaPlus, FaEdit, FaTrash, FaEye, FaGraduationCap } from 'react-icons/fa';
+import { FaPlay, FaStop, FaClock, FaCheck, FaTimes, FaList, FaPlus, FaEdit, FaTrash, FaEye, FaGraduationCap, FaFilePdf } from 'react-icons/fa';
 import { useErrorToast } from './ErrorToastProvider';
 
 interface Exam {
@@ -74,7 +74,12 @@ export default function ExamSimulation() {
     passing_score: 70,
     is_public: false,
     allow_retakes: true,
-    max_attempts: 3
+    max_attempts: 3,
+    // PDF opcije
+    use_pdf_source: false,
+    pdf_document_id: '',
+    question_count: 10,
+    question_types: ['multiple_choice', 'true_false', 'short_answer']
   });
 
   const [physicsForm, setPhysicsForm] = useState({
@@ -84,6 +89,15 @@ export default function ExamSimulation() {
   
   const [currentUserId] = useState(`user_${Math.random().toString(36).substr(2, 9)}`);
   const [currentUsername] = useState(`Student_${Math.random().toString(36).substr(2, 4)}`);
+  
+  // Mock podaci za PDF dokumente (za MVP)
+  const [availableDocuments] = useState([
+    { id: 'doc1', title: 'Uvod u Fiziku', subject: 'Fizika', type: 'pdf' },
+    { id: 'doc2', title: 'Matematika za Inženjere', subject: 'Matematika', type: 'pdf' },
+    { id: 'doc3', title: 'Programiranje u Python-u', subject: 'Informatika', type: 'pdf' },
+    { id: 'doc4', title: 'Istorija Umjetnosti', subject: 'Istorija', type: 'pdf' },
+    { id: 'doc5', title: 'Engleski Jezik - Gramatika', subject: 'Engleski', type: 'pdf' }
+  ]);
   
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const { showError, showSuccess } = useErrorToast();
@@ -171,7 +185,11 @@ export default function ExamSimulation() {
           passing_score: 70,
           is_public: false,
           allow_retakes: true,
-          max_attempts: 3
+          max_attempts: 3,
+          use_pdf_source: false,
+          pdf_document_id: '',
+          question_count: 10,
+          question_types: ['multiple_choice', 'true_false', 'short_answer']
         });
         await loadExams();
       } else {
@@ -211,6 +229,49 @@ export default function ExamSimulation() {
       showError(error.message || 'Greška pri kreiranju ispita iz fizike', 'Greška kreiranja');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const createExamFromPDF = async () => {
+    try {
+      if (!createForm.title.trim()) {
+        showError('Naziv ispita je obavezan', 'Validacija');
+        return;
+      }
+
+      if (!createForm.pdf_document_id) {
+        showError('Izaberite PDF dokument', 'Validacija');
+        return;
+      }
+
+      // MVP: Prikaži "Coming Soon" poruku
+      showSuccess('Funkcionalnost kreiranja ispita iz PDF-a će biti dostupna uskoro!', 'Coming Soon');
+      
+      // TODO: Implementirati backend endpoint
+      // const examData = {
+      //   ...createForm,
+      //   created_by: currentUserId
+      // };
+      // 
+      // const response = await fetch('http://localhost:8001/exam/create-from-pdf', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify(examData),
+      // });
+      // 
+      // const data = await response.json();
+      // 
+      // if (data.status === 'success') {
+      //   showSuccess('Ispit uspešno kreiran iz PDF-a', 'Kreiranje ispita');
+      //   setShowCreateModal(false);
+      //   await loadExams();
+      // } else {
+      //   throw new Error(data.message || 'Greška pri kreiranju ispita iz PDF-a');
+      // }
+    } catch (error: any) {
+      showError(error.message || 'Greška pri kreiranju ispita iz PDF-a', 'Greška kreiranja');
     }
   };
 
@@ -758,7 +819,12 @@ export default function ExamSimulation() {
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-slate-800 border border-white/10 rounded-xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-bold text-white mb-4">Kreiraj novi ispit</h3>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-blue-500/20 rounded-xl">
+                <FaGraduationCap className="text-blue-400" size={20} />
+              </div>
+              <h3 className="text-xl font-bold text-white">Kreiraj novi ispit</h3>
+            </div>
             
             <div className="space-y-4">
               <div>
@@ -840,6 +906,106 @@ export default function ExamSimulation() {
                 />
                 <label htmlFor="is_public" className="text-sm text-slate-300">Javni ispit</label>
               </div>
+
+              {/* PDF Source Option */}
+              <div className="border-t border-white/10 pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      id="use_pdf_source"
+                      checked={createForm.use_pdf_source}
+                      onChange={(e) => setCreateForm(prev => ({ 
+                        ...prev, 
+                        use_pdf_source: e.target.checked 
+                      }))}
+                      className="w-4 h-4 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500"
+                    />
+                    <FaFilePdf className="text-green-400" size={16} />
+                    <label htmlFor="use_pdf_source" className="text-sm font-medium text-slate-300">
+                      Generiši pitanja iz PDF dokumenta
+                    </label>
+                  </div>
+                </div>
+                
+                {createForm.use_pdf_source && (
+                  <div className="space-y-3 bg-slate-700/30 border border-white/10 rounded-lg p-3">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-300 mb-2">
+                        Izaberi PDF dokument
+                      </label>
+                      <select
+                        value={createForm.pdf_document_id}
+                        onChange={(e) => setCreateForm(prev => ({ 
+                          ...prev, 
+                          pdf_document_id: e.target.value 
+                        }))}
+                        className="w-full px-3 py-2 bg-slate-700 border border-white/10 rounded-lg text-white focus:outline-none focus:border-green-500"
+                      >
+                        <option value="">Izaberi dokument...</option>
+                        {availableDocuments.map(doc => (
+                          <option key={doc.id} value={doc.id}>
+                            {doc.title} ({doc.subject})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                          Broj pitanja
+                        </label>
+                        <input
+                          type="number"
+                          value={createForm.question_count}
+                          onChange={(e) => setCreateForm(prev => ({ 
+                            ...prev, 
+                            question_count: parseInt(e.target.value) 
+                          }))}
+                          className="w-full px-3 py-2 bg-slate-700 border border-white/10 rounded-lg text-white focus:outline-none focus:border-green-500"
+                          min="1"
+                          max="50"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-slate-300 mb-2">
+                          Tipovi pitanja
+                        </label>
+                        <div className="space-y-1">
+                          {[
+                            { value: 'multiple_choice', label: 'Višestruki izbor' },
+                            { value: 'true_false', label: 'Tačno/Netačno' },
+                            { value: 'short_answer', label: 'Kratki odgovor' }
+                          ].map(type => (
+                            <label key={type.value} className="flex items-center gap-2">
+                              <input
+                                type="checkbox"
+                                checked={createForm.question_types.includes(type.value)}
+                                onChange={(e) => {
+                                  const newTypes = e.target.checked
+                                    ? [...createForm.question_types, type.value]
+                                    : createForm.question_types.filter(t => t !== type.value);
+                                  setCreateForm(prev => ({ ...prev, question_types: newTypes }));
+                                }}
+                                className="w-3 h-3 text-green-600 bg-gray-100 border-gray-300 focus:ring-green-500"
+                              />
+                              <span className="text-xs text-slate-300">{type.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-2">
+                      <p className="text-xs text-green-300">
+                        <strong>Info:</strong> AI će generisati pitanja na osnovu sadržaja izabranog PDF dokumenta.
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
             
             <div className="flex gap-3 mt-6">
@@ -850,10 +1016,10 @@ export default function ExamSimulation() {
                 Otkaži
               </button>
               <button
-                onClick={createExam}
+                onClick={createForm.use_pdf_source ? createExamFromPDF : createExam}
                 className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
               >
-                Kreiraj
+                {createForm.use_pdf_source ? 'Kreiraj iz PDF-a' : 'Kreiraj'}
               </button>
             </div>
           </div>

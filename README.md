@@ -103,6 +103,7 @@ AcAIA/
 ### **Funkcionalnosti:**
 - **Kreiranje ispita** - Ručno kreiranje ili AI generisanje
 - **Fizika ispiti** - Predefinisana pitanja iz fizike (20 pitanja)
+- **PDF integracija** - Kreiranje ispita iz PDF dokumenata (MVP)
 - **Brisanje ispita** - Sigurno brisanje sa potvrdom
 - **Real-time polaganje** - Timer, napredak, automatsko završavanje
 - **Rezultati** - Detaljni rezultati sa procentima i statusom
@@ -112,6 +113,7 @@ AcAIA/
 # Kreiranje ispita
 POST /exam/create
 POST /exam/physics/create
+POST /exam/create-from-pdf  # Coming Soon
 
 # Listanje ispita
 GET /exams
@@ -130,9 +132,10 @@ POST /exam/{exam_id}/finish
 
 ### **Frontend Komponente:**
 - `ExamSimulation.tsx` - Glavna komponenta za upravljanje ispitima
-- Modal za kreiranje ispita
+- Modal za kreiranje ispita sa PDF opcijama
 - Modal za potvrdu brisanja
 - Dugme za brisanje (crvena ikona kante)
+- PDF izbor dokumenta i konfiguracija
 - Real-time timer i napredak
 
 ## 🧪 Testiranje
@@ -151,6 +154,9 @@ python3 test_exam_delete.py
 
 # Test frontend funkcionalnosti
 python3 test_frontend_delete_display.py
+
+# Test PDF funkcionalnosti (MVP)
+python3 test_pdf_exam_creation.py
 ```
 
 ### **Frontend Testovi:**
