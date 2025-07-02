@@ -59,6 +59,9 @@ export default function ExamSimulation() {
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showPhysicsModal, setShowPhysicsModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [examToDelete, setExamToDelete] = useState<Exam | null>(null);
   const [showExamList, setShowExamList] = useState(true);
   const [examMode, setExamMode] = useState<'list' | 'exam' | 'results'>('list');
   
@@ -72,6 +75,11 @@ export default function ExamSimulation() {
     is_public: false,
     allow_retakes: true,
     max_attempts: 3
+  });
+
+  const [physicsForm, setPhysicsForm] = useState({
+    title: 'Ispit iz Fizike',
+    count: 10
   });
   
   const [currentUserId] = useState(`user_${Math.random().toString(36).substr(2, 9)}`);
@@ -107,11 +115,17 @@ export default function ExamSimulation() {
   const loadExams = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(`http://localhost:8001/exams?user_id=${currentUserId}`);
+      // Učitaj sve javne ispite i ispite koje je kreirao trenutni korisnik
+      const response = await fetch(`http://localhost:8001/exams`);
       const data = await response.json();
       
       if (data.status === 'success') {
-        setExams(data.exams || []);
+        // Filtriraj da prikažeš javne ispite i ispite koje je kreirao trenutni korisnik
+        const allExams = data.exams || [];
+        const filteredExams = allExams.filter((exam: Exam) => 
+          exam.is_public || exam.created_by === currentUserId
+        );
+        setExams(filteredExams);
       } else {
         throw new Error(data.message || 'Greška pri učitavanju ispita');
       }
@@ -166,6 +180,73 @@ export default function ExamSimulation() {
     } catch (error: any) {
       showError(error.message || 'Greška pri kreiranju ispita', 'Greška kreiranja');
     }
+  };
+
+  const createPhysicsExam = async () => {
+    try {
+      setIsLoading(true);
+      
+      const response = await fetch('http://localhost:8001/exam/physics/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(physicsForm),
+      });
+
+      const data = await response.json();
+
+      if (data.status === 'success') {
+        showSuccess('Ispit iz fizike uspešno kreiran', 'Kreiranje ispita iz fizike');
+        setShowPhysicsModal(false);
+        setPhysicsForm({
+          title: 'Ispit iz Fizike',
+          count: 10
+        });
+        await loadExams();
+      } else {
+        throw new Error(data.message || 'Greška pri kreiranju ispita iz fizike');
+      }
+    } catch (error: any) {
+      showError(error.message || 'Greška pri kreiranju ispita iz fizike', 'Greška kreiranja');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteExam = async () => {
+    if (!examToDelete) return;
+    
+    try {
+      setIsLoading(true);
+      
+      const response = await fetch(`http://localhost:8001/exam/${examToDelete.exam_id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const data = await response.json();
+
+      if (data.status === 'success') {
+        showSuccess('Ispit uspešno obrisan', 'Brisanje ispita');
+        setShowDeleteModal(false);
+        setExamToDelete(null);
+        await loadExams();
+      } else {
+        throw new Error(data.message || 'Greška pri brisanju ispita');
+      }
+    } catch (error: any) {
+      showError(error.message || 'Greška pri brisanju ispita', 'Greška brisanja');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const confirmDelete = (exam: Exam) => {
+    setExamToDelete(exam);
+    setShowDeleteModal(true);
   };
 
   const startExam = async (exam: Exam) => {
@@ -376,13 +457,22 @@ export default function ExamSimulation() {
           </div>
         </div>
         
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors"
-        >
-          <FaPlus size={14} />
-          <span>Kreiraj ispit</span>
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowPhysicsModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-green-500/20 text-green-300 rounded-lg hover:bg-green-500/30 transition-colors"
+          >
+            <FaGraduationCap size={14} />
+            <span>Fizika Ispit</span>
+          </button>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 text-blue-300 rounded-lg hover:bg-blue-500/30 transition-colors"
+          >
+            <FaPlus size={14} />
+            <span>Kreiraj ispit</span>
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">
@@ -438,6 +528,13 @@ export default function ExamSimulation() {
                   </button>
                   <button className="px-3 py-2 bg-slate-700/50 text-slate-300 rounded-lg hover:bg-slate-700/70 transition-colors">
                     <FaEye size={12} />
+                  </button>
+                  <button 
+                    onClick={() => confirmDelete(exam)}
+                    className="px-3 py-2 bg-red-500/20 text-red-300 rounded-lg hover:bg-red-500/30 transition-colors"
+                    title="Obriši ispit"
+                  >
+                    <FaTrash size={12} />
                   </button>
                 </div>
               </div>
@@ -757,6 +854,110 @@ export default function ExamSimulation() {
                 className="flex-1 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
               >
                 Kreiraj
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Physics Exam Modal */}
+      {showPhysicsModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 border border-white/10 rounded-xl p-6 w-full max-w-md">
+            <h3 className="text-xl font-bold text-white mb-4">Kreiraj ispit iz fizike</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Naziv ispita</label>
+                <input
+                  type="text"
+                  value={physicsForm.title}
+                  onChange={(e) => setPhysicsForm(prev => ({ ...prev, title: e.target.value }))}
+                  className="w-full px-3 py-2 bg-slate-700 border border-white/10 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                  placeholder="Unesite naziv ispita"
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Broj pitanja</label>
+                <input
+                  type="number"
+                  value={physicsForm.count}
+                  onChange={(e) => setPhysicsForm(prev => ({ ...prev, count: parseInt(e.target.value) }))}
+                  className="w-full px-3 py-2 bg-slate-700 border border-white/10 rounded-lg text-white focus:outline-none focus:border-blue-500"
+                  min="1"
+                  max="20"
+                />
+                <p className="text-xs text-slate-400 mt-1">Maksimalno 20 pitanja</p>
+              </div>
+              
+              <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-3">
+                <p className="text-sm text-green-300">
+                  <strong>Info:</strong> Ispit će biti kreiran sa nasumično odabranim pitanjem iz fizike.
+                  Pitanja uključuju multiple choice, true/false i short answer tipove.
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => setShowPhysicsModal(false)}
+                className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors"
+              >
+                Otkaži
+              </button>
+              <button
+                onClick={createPhysicsExam}
+                disabled={isLoading}
+                className="flex-1 px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Kreiranje...' : 'Kreiraj ispit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && examToDelete && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-slate-800 border border-white/10 rounded-xl p-6 w-full max-w-md">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-500/20 rounded-xl">
+                <FaTrash className="text-red-400" size={20} />
+              </div>
+              <h3 className="text-xl font-bold text-white">Obriši ispit</h3>
+            </div>
+            
+            <div className="mb-6">
+              <p className="text-slate-300 mb-3">
+                Da li ste sigurni da želite da obrišete ispit:
+              </p>
+              <div className="bg-slate-700/50 border border-white/10 rounded-lg p-3">
+                <h4 className="font-semibold text-white">{examToDelete.title}</h4>
+                <p className="text-sm text-slate-400">{examToDelete.subject} • {examToDelete.total_points} poena</p>
+              </div>
+              <p className="text-sm text-red-400 mt-3">
+                <strong>Upozorenje:</strong> Ova akcija se ne može poništiti!
+              </p>
+            </div>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setExamToDelete(null);
+                }}
+                className="flex-1 px-4 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 transition-colors"
+              >
+                Otkaži
+              </button>
+              <button
+                onClick={deleteExam}
+                disabled={isLoading}
+                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isLoading ? 'Brisanje...' : 'Obriši'}
               </button>
             </div>
           </div>

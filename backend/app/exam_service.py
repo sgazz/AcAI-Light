@@ -5,7 +5,7 @@ Upravlja kreiranjem, pokretanjem i ocenjivanjem ispita
 
 import uuid
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Any, Optional
 from enum import Enum
 import logging
@@ -180,7 +180,7 @@ class ExamAttempt:
         self.exam_id = exam_id
         self.user_id = user_id
         self.username = username
-        self.start_time = start_time or datetime.now()
+        self.start_time = start_time or datetime.now(timezone.utc)
         self.end_time = end_time
         self.answers = answers or {}
         self.score = score
@@ -209,8 +209,20 @@ class ExamAttempt:
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> 'ExamAttempt':
         """Kreiraj ExamAttempt iz dictionary-a"""
-        start_time = datetime.fromisoformat(data["start_time"]) if data.get("start_time") else None
-        end_time = datetime.fromisoformat(data["end_time"]) if data.get("end_time") else None
+        start_time = None
+        end_time = None
+        
+        if data.get("start_time"):
+            start_time = datetime.fromisoformat(data["start_time"])
+            # Ako nema timezone info, dodaj UTC
+            if start_time.tzinfo is None:
+                start_time = start_time.replace(tzinfo=timezone.utc)
+        
+        if data.get("end_time"):
+            end_time = datetime.fromisoformat(data["end_time"])
+            # Ako nema timezone info, dodaj UTC
+            if end_time.tzinfo is None:
+                end_time = end_time.replace(tzinfo=timezone.utc)
         
         return cls(
             attempt_id=data.get("attempt_id"),
@@ -322,6 +334,45 @@ class ExamService:
                 "status": "error",
                 "message": f"Greška pri listanju ispita: {str(e)}"
             }
+
+    async def delete_exam(self, exam_id: str) -> Dict[str, Any]:
+        """Obriši ispit"""
+        try:
+            if self.supabase_manager:
+                # Prvo proveri da li ispit postoji
+                exam_result = await self.get_exam(exam_id)
+                if exam_result["status"] != "success":
+                    return {
+                        "status": "error",
+                        "message": "Ispit nije pronađen"
+                    }
+                
+                # Obriši ispit iz baze
+                result = self.supabase_manager.client.table("exams").delete().eq("exam_id", exam_id).execute()
+                
+                if result.data:
+                    logger.info(f"✅ Ispit obrisan: {exam_id}")
+                    return {
+                        "status": "success",
+                        "message": "Ispit uspešno obrisan"
+                    }
+                else:
+                    return {
+                        "status": "error",
+                        "message": "Ispit nije mogao biti obrisan"
+                    }
+            
+            return {
+                "status": "error",
+                "message": "Brisanje nije podržano u offline modu"
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Greška pri brisanju ispita: {e}")
+            return {
+                "status": "error",
+                "message": f"Greška pri brisanju ispita: {str(e)}"
+            }
     
     async def start_exam_attempt(self, exam_id: str, user_id: str, username: str) -> Dict[str, Any]:
         """Započni pokušaj polaganja ispita"""
@@ -355,7 +406,8 @@ class ExamService:
                 exam_id=exam_id,
                 user_id=user_id,
                 username=username,
-                total_points=exam.total_points
+                total_points=exam.total_points,
+                start_time=datetime.now(timezone.utc)
             )
             
             # Sačuvaj u bazu
@@ -424,11 +476,21 @@ class ExamService:
                 }
             
             attempt = self.active_attempts[attempt_id]
-            attempt.end_time = datetime.now()
+            attempt.end_time = datetime.now(timezone.utc)
             
-            # Izračunaj vreme
-            time_diff = attempt.end_time - attempt.start_time
-            attempt.time_taken_minutes = int(time_diff.total_seconds() / 60)
+            # Izračunaj vreme - osiguraj da oba datetime objekta imaju timezone info
+            if attempt.end_time and attempt.start_time:
+                # Ako start_time nema timezone info, dodaj ga
+                if attempt.start_time.tzinfo is None:
+                    attempt.start_time = attempt.start_time.replace(tzinfo=attempt.end_time.tzinfo)
+                # Ako end_time nema timezone info, dodaj ga
+                elif attempt.end_time.tzinfo is None:
+                    attempt.end_time = attempt.end_time.replace(tzinfo=attempt.start_time.tzinfo)
+                
+                time_diff = attempt.end_time - attempt.start_time
+                attempt.time_taken_minutes = int(time_diff.total_seconds() / 60)
+            else:
+                attempt.time_taken_minutes = 0
             
             # Dohvati ispit za ocenjivanje
             exam_result = await self.get_exam(attempt.exam_id)

@@ -11,6 +11,7 @@ AcAIA je napredna AI aplikacija sa real-time chat funkcionalnostima, multi-langu
 - **Session Management** sa export i sharing opcijama
 - **Performance Optimizacije** sa caching i virtual scrolling
 - **Accessibility Compliance** (WCAG 2.1)
+- **Exam Simulation** sa AI generisanim pitanjima i brisanjem ispita
 
 ## 🚀 Brzo Pokretanje
 
@@ -52,16 +53,17 @@ Session Mgmt      Performance Monitor  Multi-step RAG
 
 ## 📊 Status Implementacije
 
-### **✅ Završeno (75%):**
+### **✅ Završeno (80%):**
 - **Faza 1**: Osnovna UX (100%)
 - **Faza 2**: Napredne funkcionalnosti (100%)
 - **Faza 3**: Performance & Backend (100%)
+- **Faza 4**: Exam Simulation (100%) - Kreiranje, brisanje, polaganje
 
-### **📋 U Razvoju (25%):**
-- **Faza 4**: OCR & Security
-- **Faza 5**: Sidebar Enhancements
-- **Faza 6**: Advanced Accessibility
-- **Faza 7**: Collaboration & AI Features
+### **📋 U Razvoju (20%):**
+- **Faza 5**: OCR & Security
+- **Faza 6**: Sidebar Enhancements
+- **Faza 7**: Advanced Accessibility
+- **Faza 8**: Collaboration & AI Features
 
 ## 🛠️ Tech Stack
 
@@ -96,12 +98,59 @@ AcAIA/
 └── docs/                 # Dokumentacija
 ```
 
+## 🎓 Exam Simulation
+
+### **Funkcionalnosti:**
+- **Kreiranje ispita** - Ručno kreiranje ili AI generisanje
+- **Fizika ispiti** - Predefinisana pitanja iz fizike (20 pitanja)
+- **Brisanje ispita** - Sigurno brisanje sa potvrdom
+- **Real-time polaganje** - Timer, napredak, automatsko završavanje
+- **Rezultati** - Detaljni rezultati sa procentima i statusom
+
+### **Backend Endpoints:**
+```bash
+# Kreiranje ispita
+POST /exam/create
+POST /exam/physics/create
+
+# Listanje ispita
+GET /exams
+
+# Dohvatanje ispita
+GET /exam/{exam_id}
+
+# Brisanje ispita
+DELETE /exam/{exam_id}
+
+# Polaganje ispita
+POST /exam/{exam_id}/start
+POST /exam/{exam_id}/submit
+POST /exam/{exam_id}/finish
+```
+
+### **Frontend Komponente:**
+- `ExamSimulation.tsx` - Glavna komponenta za upravljanje ispitima
+- Modal za kreiranje ispita
+- Modal za potvrdu brisanja
+- Dugme za brisanje (crvena ikona kante)
+- Real-time timer i napredak
+
 ## 🧪 Testiranje
 
 ### **Backend Testovi:**
 ```bash
 cd backend
 python -m pytest test_*.py
+```
+
+### **Exam Simulation Testovi:**
+```bash
+# Test brisanja ispita
+cd tests/python
+python3 test_exam_delete.py
+
+# Test frontend funkcionalnosti
+python3 test_frontend_delete_display.py
 ```
 
 ### **Frontend Testovi:**
@@ -180,5 +229,5 @@ Ovaj projekat je licenciran pod MIT licencom - pogledaj [LICENSE](LICENSE) fajl 
 ---
 
 *AcAIA - Advanced Context-Aware AI Assistant*
-*Status: 75% završeno, 25% u razvoju*
-*Verzija: 1.0.0* 
+*Status: 80% završeno, 20% u razvoju*
+*Verzija: 1.1.0 - Dodana funkcionalnost brisanja ispita* 

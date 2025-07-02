@@ -2125,6 +2125,17 @@ async def get_exam(exam_id: str):
         logger.error(f"❌ Greška pri dohvatanju ispita: {e}")
         return {"status": "error", "message": str(e)}
 
+@app.delete("/exam/{exam_id}")
+async def delete_exam(exam_id: str):
+    """Obriši ispit"""
+    try:
+        exam_service = await get_exam_service()
+        result = await exam_service.delete_exam(exam_id)
+        return result
+    except Exception as e:
+        logger.error(f"❌ Greška pri brisanju ispita: {e}")
+        return {"status": "error", "message": str(e)}
+
 @app.get("/exams")
 async def list_exams(user_id: str = None, subject: str = None):
     """Listaj sve ispite"""
@@ -2206,6 +2217,50 @@ async def generate_ai_questions(generation_data: dict):
         }
     except Exception as e:
         logger.error(f"❌ Greška pri AI generisanju pitanja: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/questions/physics")
+async def get_physics_questions(count: int = 10, difficulty: str = None):
+    """Dohvati pitanja iz fizike"""
+    try:
+        from app.physics_questions import get_physics_questions, get_random_physics_questions
+        
+        if difficulty:
+            questions = [q for q in get_physics_questions() if q["difficulty"] == difficulty]
+        else:
+            questions = get_random_physics_questions(count)
+        
+        return {
+            "status": "success",
+            "questions": questions,
+            "message": f"Dohvaćeno {len(questions)} pitanja iz fizike"
+        }
+    except Exception as e:
+        logger.error(f"❌ Greška pri dohvatanju pitanja iz fizike: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.post("/exam/physics/create")
+async def create_physics_exam(exam_data: dict = None):
+    """Kreiraj ispit iz fizike sa statičkim pitanjem"""
+    try:
+        from app.physics_questions import create_physics_exam
+        
+        if exam_data:
+            title = exam_data.get("title", "Ispit iz fizike")
+            count = exam_data.get("count", 10)
+        else:
+            title = "Ispit iz fizike"
+            count = 10
+        
+        exam = create_physics_exam(title, count)
+        
+        # Sačuvaj u bazu
+        exam_service = await get_exam_service()
+        result = await exam_service.create_exam(exam)
+        
+        return result
+    except Exception as e:
+        logger.error(f"❌ Greška pri kreiranju ispita iz fizike: {e}")
         return {"status": "error", "message": str(e)}
 
 # Startup i shutdown eventi
