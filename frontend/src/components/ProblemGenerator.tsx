@@ -54,6 +54,7 @@ export default function ProblemGenerator() {
   useEffect(() => {
     loadSubjects();
     loadStats();
+    loadProblemsFromDatabase();
   }, []);
 
   const loadSubjects = async () => {
@@ -81,6 +82,22 @@ export default function ProblemGenerator() {
       }
     } catch (error: any) {
       console.error('Greška pri učitavanju statistika:', error);
+    }
+  };
+
+  const loadProblemsFromDatabase = async () => {
+    try {
+      const response = await fetch('http://localhost:8001/problems/database?limit=20');
+      const data = await response.json();
+      
+      if (data.status === 'success') {
+        setProblemHistory(data.problems);
+        console.log(`✅ Učitano ${data.problems.length} problema iz baze`);
+      } else {
+        console.warn('Nema problema u bazi ili greška pri učitavanju');
+      }
+    } catch (error: any) {
+      console.error('Greška pri učitavanju problema iz baze:', error);
     }
   };
 
@@ -271,23 +288,33 @@ export default function ProblemGenerator() {
             </div>
           </div>
           
-          <button
-            onClick={generateProblem}
-            disabled={isLoading}
-            className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isLoading ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                <span>Generisanje...</span>
-              </>
-            ) : (
-              <>
-                <FaPlay size={16} />
-                <span>Generiši problem</span>
-              </>
-            )}
-          </button>
+          <div className="flex gap-4">
+            <button
+              onClick={generateProblem}
+              disabled={isLoading}
+              className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg hover:from-blue-600 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                  <span>Generisanje...</span>
+                </>
+              ) : (
+                <>
+                  <FaPlay size={16} />
+                  <span>Generiši problem</span>
+                </>
+              )}
+            </button>
+            
+            <button
+              onClick={loadProblemsFromDatabase}
+              disabled={isLoading}
+              className="px-6 py-3 bg-slate-700 text-white rounded-lg hover:bg-slate-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <FaCog size={16} />
+            </button>
+          </div>
         </div>
       )}
       
@@ -312,6 +339,48 @@ export default function ProblemGenerator() {
               <div className="text-2xl font-bold text-orange-400">{stats.templates_by_subject?.physics || 0}</div>
               <div className="text-sm text-slate-400">Fizika</div>
             </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Istorija problema */}
+      {problemHistory.length > 0 && (
+        <div className="bg-slate-800/50 border border-white/10 rounded-xl p-4">
+          <h3 className="text-lg font-semibold text-white mb-3">Istorija problema ({problemHistory.length})</h3>
+          <div className="space-y-2 max-h-60 overflow-y-auto">
+            {problemHistory.slice(0, 5).map((problem, index) => (
+              <div
+                key={problem.problem_id || index}
+                className="p-3 bg-slate-700/50 border border-white/10 rounded-lg cursor-pointer hover:bg-slate-700 transition-colors"
+                onClick={() => {
+                  setCurrentProblem(problem);
+                  setCurrentStep('solve');
+                  setUserAnswer('');
+                  setValidationResult(null);
+                  setShowSolution(false);
+                }}
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {getSubjectIcon(problem.subject)}
+                    <div>
+                      <div className="text-white font-medium">{problem.topic}</div>
+                      <div className="text-sm text-slate-400">{problem.question.substring(0, 50)}...</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 rounded text-xs font-medium ${getDifficultyColor(problem.difficulty)}`}>
+                      {problem.difficulty}
+                    </span>
+                    {problem.created_at && (
+                      <span className="text-xs text-slate-500">
+                        {new Date(problem.created_at).toLocaleDateString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

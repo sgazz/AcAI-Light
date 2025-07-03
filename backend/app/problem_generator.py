@@ -13,6 +13,14 @@ from enum import Enum
 from dataclasses import dataclass
 from ollama import Client
 
+# Supabase integracija
+try:
+    from .supabase_client import get_supabase_manager
+    SUPABASE_AVAILABLE = True
+except ImportError:
+    SUPABASE_AVAILABLE = False
+    print("⚠️ Supabase nije dostupan - problemi se neće čuvati u bazi")
+
 logger = logging.getLogger(__name__)
 
 class Subject(Enum):
@@ -72,6 +80,16 @@ class ProblemGenerator:
     def __init__(self, ollama_client: Client = None):
         self.ollama_client = ollama_client or Client(host="http://localhost:11434")
         self.templates = self._load_templates()
+        
+        # Supabase integracija
+        self.supabase_manager = None
+        if SUPABASE_AVAILABLE:
+            try:
+                self.supabase_manager = get_supabase_manager()
+                logger.info("✅ Supabase povezivanje uspešno za Problem Generator")
+            except Exception as e:
+                logger.warning(f"⚠️ Greška pri povezivanju sa Supabase: {e}")
+                self.supabase_manager = None
         
     def _load_templates(self) -> Dict[str, ProblemTemplate]:
         """Učitaj šablone za probleme"""
@@ -202,6 +220,9 @@ class ProblemGenerator:
                 tags=template.tags,
                 created_at=datetime.now(timezone.utc)
             )
+            
+            # Sačuvaj problem u bazu
+            self.save_problem_to_database(problem)
             
             logger.info(f"✅ Problem generisan: {problem.problem_id}")
             return problem
@@ -340,7 +361,16 @@ Problem treba da bude:
             "explanation": "Objašnjenje rešenja"
         }
     
-    def validate_answer(self, problem: GeneratedProblem, user_answer: Any) -> Dict[str, Any]:
+    def validate_answer(
+        self, 
+        problem: GeneratedProblem, 
+        user_answer: Any,
+        user_id: str = "anonymous",
+        username: str = "Anonymous",
+        time_taken_seconds: int = 0,
+        hints_used: int = 0,
+        solution_viewed: bool = False
+    ) -> Dict[str, Any]:
         """Validiraj odgovor korisnika"""
         try:
             is_correct = False
@@ -364,6 +394,18 @@ Problem treba da bude:
                 feedback = "Odlično! Vaš odgovor je tačan."
             else:
                 feedback = f"Vaš odgovor nije tačan. Tačan odgovor je: {problem.correct_answer}"
+            
+            # Sačuvaj pokušaj u bazu
+            self.save_attempt_to_database(
+                problem_id=problem.problem_id,
+                user_id=user_id,
+                username=username,
+                user_answer=str(user_answer),
+                is_correct=is_correct,
+                time_taken_seconds=time_taken_seconds,
+                hints_used=hints_used,
+                solution_viewed=solution_viewed
+            )
             
             return {
                 "is_correct": is_correct,
@@ -405,6 +447,148 @@ Problem treba da bude:
                 subjects[subject_key]["problem_types"].append(template.problem_type.value)
         
         return list(subjects.values())
+    
+    # Supabase integracija metode
+    def save_problem_to_database(self, problem: GeneratedProblem) -> Optional[str]:
+        """Sačuvaj problem u Supabase bazu"""
+        if not self.supabase_manager:
+            logger.warning("Supabase nije dostupan - problem se ne čuva")
+            return None
+        
+        try:
+            problem_data = {
+                'problem_id': problem.problem_id,
+                'subject': problem.subject.value,
+                'topic': problem.topic,
+                'difficulty': problem.difficulty.value,
+                'problem_type': problem.problem_type.value,
+                'question': problem.question,
+                'options': problem.options or [],
+                'correct_answer': str(problem.correct_answer) if problem.correct_answer else None,
+                'solution': problem.solution,
+                'hints': problem.hints or [],
+                'explanation': problem.explanation,
+                'tags': problem.tags or [],
+                'ai_generated': True,
+                'created_by': 'system'
+            }
+            
+            result = self.supabase_manager.client.table('problems').insert(problem_data).execute()
+            logger.info(f"✅ Problem sačuvan u bazu sa ID: {problem.problem_id}")
+            return problem.problem_id
+            
+        except Exception as e:
+            logger.error(f"❌ Greška pri čuvanju problema u bazu: {e}")
+            return None
+    
+    def get_problems_from_database(
+        self,
+        subject: str = None,
+        topic: str = None,
+        difficulty: str = None,
+        limit: int = 50
+    ) -> List[Dict[str, Any]]:
+        """Dohvati probleme iz Supabase baze"""
+        if not self.supabase_manager:
+            logger.warning("Supabase nije dostupan - vraćam praznu listu")
+            return []
+        
+        try:
+            query = self.supabase_manager.client.table('problems').select('*')
+            
+            if subject:
+                query = query.eq('subject', subject)
+            if topic:
+                query = query.eq('topic', topic)
+            if difficulty:
+                query = query.eq('difficulty', difficulty)
+            
+            result = query.order('created_at', desc=True).limit(limit).execute()
+            logger.info(f"✅ Dohvaćeno {len(result.data)} problema iz baze")
+            return result.data
+            
+        except Exception as e:
+            logger.error(f"❌ Greška pri dohvatanju problema iz baze: {e}")
+            return []
+    
+    def save_attempt_to_database(
+        self,
+        problem_id: str,
+        user_id: str,
+        username: str,
+        user_answer: str,
+        is_correct: bool,
+        time_taken_seconds: int = 0,
+        hints_used: int = 0,
+        solution_viewed: bool = False
+    ) -> Optional[str]:
+        """Sačuvaj pokušaj rešavanja u bazu"""
+        if not self.supabase_manager:
+            logger.warning("Supabase nije dostupan - pokušaj se ne čuva")
+            return None
+        
+        try:
+            attempt_data = {
+                'problem_id': problem_id,
+                'user_id': user_id,
+                'username': username,
+                'user_answer': user_answer,
+                'is_correct': is_correct,
+                'time_taken_seconds': time_taken_seconds,
+                'hints_used': hints_used,
+                'solution_viewed': solution_viewed
+            }
+            
+            result = self.supabase_manager.client.table('problem_attempts').insert(attempt_data).execute()
+            logger.info(f"✅ Pokušaj sačuvan u bazu")
+            return result.data[0]['attempt_id'] if result.data else None
+            
+        except Exception as e:
+            logger.error(f"❌ Greška pri čuvanju pokušaja u bazu: {e}")
+            return None
+    
+    def get_user_stats(self, user_id: str) -> Dict[str, Any]:
+        """Dohvati korisničke statistike"""
+        if not self.supabase_manager:
+            return {
+                'total_problems_attempted': 0,
+                'total_problems_correct': 0,
+                'total_time_spent_seconds': 0,
+                'accuracy_percentage': 0.0
+            }
+        
+        try:
+            result = self.supabase_manager.client.table('user_problem_stats').select('*').eq('user_id', user_id).execute()
+            
+            if result.data:
+                stats = result.data[0]
+                accuracy = (stats['total_problems_correct'] / stats['total_problems_attempted'] * 100) if stats['total_problems_attempted'] > 0 else 0
+                return {
+                    'total_problems_attempted': stats['total_problems_attempted'],
+                    'total_problems_correct': stats['total_problems_correct'],
+                    'total_time_spent_seconds': stats['total_time_spent_seconds'],
+                    'accuracy_percentage': round(accuracy, 2),
+                    'current_streak': stats['current_streak'],
+                    'longest_streak': stats['longest_streak']
+                }
+            else:
+                return {
+                    'total_problems_attempted': 0,
+                    'total_problems_correct': 0,
+                    'total_time_spent_seconds': 0,
+                    'accuracy_percentage': 0.0,
+                    'current_streak': 0,
+                    'longest_streak': 0
+                }
+                
+        except Exception as e:
+            logger.error(f"❌ Greška pri dohvatanju korisničkih statistika: {e}")
+            return {
+                'total_problems_attempted': 0,
+                'total_problems_correct': 0,
+                'total_time_spent_seconds': 0,
+                'accuracy_percentage': 0.0
+            }
 
 # Globalna instanca
 problem_generator = ProblemGenerator()

@@ -2338,27 +2338,52 @@ async def generate_problem(generation_data: dict):
 
 @app.post("/problems/{problem_id}/validate")
 async def validate_problem_answer(problem_id: str, answer_data: dict):
-    """Validiraj odgovor na problem"""
+    """Validiraj odgovor na problem iz baze"""
     try:
         problem_generator = get_problem_generator()
         user_answer = answer_data.get("answer")
+        user_id = answer_data.get("user_id", "anonymous")
+        username = answer_data.get("username", "Anonymous")
+        time_taken_seconds = answer_data.get("time_taken_seconds", 0)
+        hints_used = answer_data.get("hints_used", 0)
+        solution_viewed = answer_data.get("solution_viewed", False)
         
         if not user_answer:
             return {"status": "error", "message": "Odgovor je obavezan"}
         
-        # Za sada koristimo mock problem, kasnije ćemo implementirati storage
-        # TODO: Implementirati storage za probleme
-        mock_problem = {
-            "problem_id": problem_id,
-            "question": "Reši jednačinu: 2x + 5 = 13",
-            "correct_answer": 4,
-            "explanation": "Rešenje je x = 4"
-        }
+        # Dohvati problem iz baze
+        problems = problem_generator.get_problems_from_database()
+        problem_data = next((p for p in problems if p["problem_id"] == problem_id), None)
+        if not problem_data:
+            return {"status": "error", "message": "Problem nije pronađen u bazi"}
+        
+        # Kreiraj GeneratedProblem objekat
+        from .problem_generator import GeneratedProblem, Subject, Difficulty, ProblemType
+        problem = GeneratedProblem(
+            problem_id=problem_data["problem_id"],
+            subject=Subject(problem_data["subject"]),
+            topic=problem_data["topic"],
+            difficulty=Difficulty(problem_data["difficulty"]),
+            problem_type=ProblemType(problem_data["problem_type"]),
+            question=problem_data["question"],
+            options=problem_data.get("options", []),
+            correct_answer=problem_data.get("correct_answer"),
+            solution=problem_data.get("solution"),
+            hints=problem_data.get("hints", []),
+            explanation=problem_data.get("explanation"),
+            tags=problem_data.get("tags", []),
+            created_at=None
+        )
         
         # Validiraj odgovor
         validation_result = problem_generator.validate_answer(
-            type('MockProblem', (), mock_problem)(),
-            user_answer
+            problem,
+            user_answer,
+            user_id=user_id,
+            username=username,
+            time_taken_seconds=time_taken_seconds,
+            hints_used=hints_used,
+            solution_viewed=solution_viewed
         )
         
         return {
@@ -2400,6 +2425,150 @@ async def get_problem_generator_stats():
         
     except Exception as e:
         logger.error(f"❌ Greška pri dohvatanju statistika: {e}")
+        return {"status": "error", "message": str(e)}
+
+# Supabase integracija endpointi za Problem Generator
+@app.get("/problems/database")
+async def get_problems_from_database(
+    subject: str = None,
+    topic: str = None,
+    difficulty: str = None,
+    limit: int = 50
+):
+    """Dohvati probleme iz Supabase baze"""
+    try:
+        problem_generator = get_problem_generator()
+        problems = problem_generator.get_problems_from_database(
+            subject=subject,
+            topic=topic,
+            difficulty=difficulty,
+            limit=limit
+        )
+        
+        return {
+            "status": "success",
+            "problems": problems,
+            "total_count": len(problems),
+            "filters": {
+                "subject": subject,
+                "topic": topic,
+                "difficulty": difficulty,
+                "limit": limit
+            }
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/problems/user/{user_id}/stats")
+async def get_user_problem_stats(user_id: str):
+    """Dohvati korisničke statistike za probleme"""
+    try:
+        problem_generator = get_problem_generator()
+        stats = problem_generator.get_user_stats(user_id)
+        
+        return {
+            "status": "success",
+            "user_id": user_id,
+            "stats": stats
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/problems/{problem_id}/attempt")
+async def save_problem_attempt(
+    problem_id: str,
+    attempt_data: dict
+):
+    """Sačuvaj pokušaj rešavanja problema"""
+    try:
+        problem_generator = get_problem_generator()
+        
+        attempt_id = problem_generator.save_attempt_to_database(
+            problem_id=problem_id,
+            user_id=attempt_data.get("user_id", "anonymous"),
+            username=attempt_data.get("username", "Anonymous"),
+            user_answer=attempt_data.get("user_answer", ""),
+            is_correct=attempt_data.get("is_correct", False),
+            time_taken_seconds=attempt_data.get("time_taken_seconds", 0),
+            hints_used=attempt_data.get("hints_used", 0),
+            solution_viewed=attempt_data.get("solution_viewed", False)
+        )
+        
+        return {
+            "status": "success",
+            "attempt_id": attempt_id,
+            "message": "Pokušaj uspešno sačuvan"
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/problems/database/stats")
+async def get_database_problem_stats():
+    """Dohvati statistike problema iz baze"""
+    try:
+        if not supabase_manager:
+            return {"status": "error", "message": "Supabase nije dostupan"}
+        
+        # Pozovi SQL funkciju za statistike
+        result = supabase_manager.client.rpc('get_problem_stats').execute()
+        
+        if result.data:
+            stats = result.data[0]
+            return {
+                "status": "success",
+                "stats": stats
+            }
+        else:
+            return {
+                "status": "success",
+                "stats": {
+                    "total_problems": 0,
+                    "problems_by_subject": {},
+                    "problems_by_difficulty": {},
+                    "problems_by_type": {},
+                    "total_attempts": 0,
+                    "correct_attempts": 0,
+                    "avg_time_seconds": 0
+                }
+            }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/problems/recommended/{user_id}")
+async def get_recommended_problems(
+    user_id: str,
+    subject: str = None,
+    difficulty: str = None,
+    limit: int = 10
+):
+    """Dohvati preporučene probleme za korisnika"""
+    try:
+        if not supabase_manager:
+            return {"status": "error", "message": "Supabase nije dostupan"}
+        
+        # Pozovi SQL funkciju za preporučene probleme
+        result = supabase_manager.client.rpc(
+            'get_recommended_problems',
+            {
+                'p_user_id': user_id,
+                'p_subject': subject,
+                'p_difficulty': difficulty,
+                'p_limit': limit
+            }
+        ).execute()
+        
+        return {
+            "status": "success",
+            "problems": result.data,
+            "total_count": len(result.data),
+            "user_id": user_id,
+            "filters": {
+                "subject": subject,
+                "difficulty": difficulty,
+                "limit": limit
+            }
+        }
+    except Exception as e:
         return {"status": "error", "message": str(e)}
 
 # Startup i shutdown eventi
