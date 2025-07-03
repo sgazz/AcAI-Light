@@ -20,6 +20,7 @@ import VirtualScrollTest from '../components/Performance/VirtualScrollTest';
 import MindMapping from '../components/MindMapping/MindMapping';
 import StudyRoom from '../components/StudyRoom';
 import ExamSimulation from '../components/ExamSimulation';
+import ProblemGenerator from '../components/ProblemGenerator';
 
 export default function Home() {
   const [selectedMenu, setSelectedMenu] = useState(-1);
@@ -177,14 +178,7 @@ export default function Home() {
       case 4:
         return <ExamSimulation />;
       case 5:
-        return (
-          <div className="h-full flex flex-col">
-            <div className="flex-1 p-6">
-              <h2 className="text-2xl font-bold mb-4">Problem Generator</h2>
-              <p className="text-gray-300">Problem generator funkcionalnost će biti implementirana ovde.</p>
-            </div>
-          </div>
-        );
+        return <ProblemGenerator />;
       case 6:
         return (
           <div className="h-full flex flex-col">

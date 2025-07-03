@@ -12,6 +12,7 @@ AcAIA je napredna AI aplikacija sa real-time chat funkcionalnostima, multi-langu
 - **Performance Optimizacije** sa caching i virtual scrolling
 - **Accessibility Compliance** (WCAG 2.1)
 - **Exam Simulation** sa AI generisanim pitanjima i brisanjem ispita
+- **Problem Generator** sa AI-powered generisanjem problema za studente
 
 ## 🚀 Brzo Pokretanje
 
@@ -53,17 +54,18 @@ Session Mgmt      Performance Monitor  Multi-step RAG
 
 ## 📊 Status Implementacije
 
-### **✅ Završeno (80%):**
+### **✅ Završeno (85%):**
 - **Faza 1**: Osnovna UX (100%)
 - **Faza 2**: Napredne funkcionalnosti (100%)
 - **Faza 3**: Performance & Backend (100%)
 - **Faza 4**: Exam Simulation (100%) - Kreiranje, brisanje, polaganje
+- **Faza 5**: Problem Generator (100%) - AI-powered generisanje problema
 
-### **📋 U Razvoju (20%):**
-- **Faza 5**: OCR & Security
-- **Faza 6**: Sidebar Enhancements
-- **Faza 7**: Advanced Accessibility
-- **Faza 8**: Collaboration & AI Features
+### **📋 U Razvoju (15%):**
+- **Faza 6**: OCR & Security
+- **Faza 7**: Sidebar Enhancements
+- **Faza 8**: Advanced Accessibility
+- **Faza 9**: Collaboration & AI Features
 
 ## 🛠️ Tech Stack
 
@@ -138,6 +140,54 @@ POST /exam/{exam_id}/finish
 - PDF izbor dokumenta i konfiguracija
 - Real-time timer i napredak
 
+## 🧮 Problem Generator
+
+### **Funkcionalnosti:**
+- **AI-powered generisanje** - Inteligentno generisanje problema sa Ollama
+- **Multi-subject podrška** - Matematika, Fizika, Hemija, Programiranje
+- **Adaptivna težina** - Početnik, Srednji, Napredni nivoi
+- **Interaktivno rešavanje** - Korak-po-korak vodič i hints
+- **Validacija odgovora** - Instant feedback sa objašnjenjima
+- **Personalizovani dashboard** - Praćenje napretka i statistike
+
+### **Podržani predmeti:**
+- **Matematika** - Algebra, Geometrija, Kalkulus, Trigonometrija
+- **Fizika** - Mehanika, Elektromagnetizam, Termodinamika
+- **Hemija** - Stehiometrija, Organska hemija, Analitička hemija
+- **Programiranje** - Algoritmi, Strukture podataka, Logika
+
+### **Backend Endpoints:**
+```bash
+# Dohvatanje predmeta
+GET /problems/subjects
+
+# Generisanje problema
+POST /problems/generate
+{
+  "subject": "mathematics",
+  "topic": "Algebra",
+  "difficulty": "beginner",
+  "problem_type": "open_ended"
+}
+
+# Validacija odgovora
+POST /problems/{problem_id}/validate
+{
+  "answer": "4"
+}
+
+# Statistike
+GET /problems/stats
+```
+
+### **Frontend Komponente:**
+- `ProblemGenerator.tsx` - Glavna komponenta sa modernim UI-om
+- Odabir predmeta i parametara
+- Interaktivno rešavanje problema
+- Korak-po-korak vodič i hints
+- Validacija i feedback sistem
+- Praćenje napretka i statistike
+
 ## 🧪 Testiranje
 
 ### **Backend Testovi:**
@@ -157,6 +207,16 @@ python3 test_frontend_delete_display.py
 
 # Test PDF funkcionalnosti (MVP)
 python3 test_pdf_exam_creation.py
+```
+
+### **Problem Generator Testovi:**
+```bash
+# Test Problem Generator funkcionalnosti
+cd tests/python
+python3 test_problem_generator.py
+
+# Ili koristeći command fajl
+./tests/scripts/TestProblemGenerator.command
 ```
 
 ### **Frontend Testovi:**

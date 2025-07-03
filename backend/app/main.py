@@ -45,6 +45,7 @@ from .cache_manager import cache_manager, get_cached_ai_response, set_cached_ai_
 from .background_tasks import task_manager, add_background_task, get_task_status, cancel_task, get_all_tasks, get_task_stats, TaskPriority, TaskStatus
 from .websocket import websocket_manager, WebSocketMessage, MessageType, get_websocket_manager
 from .exam_service import get_exam_service
+from .problem_generator import get_problem_generator, Subject, Difficulty, ProblemType
 from .error_handler import (
     error_handler, handle_api_error, ErrorCategory, ErrorSeverity,
     AcAIAException, ValidationError, ExternalServiceError, RAGError, OCRError,
@@ -2261,6 +2262,144 @@ async def create_physics_exam(exam_data: dict = None):
         return result
     except Exception as e:
         logger.error(f"❌ Greška pri kreiranju ispita iz fizike: {e}")
+        return {"status": "error", "message": str(e)}
+
+# Problem Generator API endpoints
+@app.get("/problems/subjects")
+async def get_available_subjects():
+    """Dohvati dostupne predmete za Problem Generator"""
+    try:
+        problem_generator = get_problem_generator()
+        subjects = problem_generator.get_available_subjects()
+        
+        return {
+            "status": "success",
+            "subjects": subjects,
+            "message": f"Dostupno {len(subjects)} predmeta"
+        }
+    except Exception as e:
+        logger.error(f"❌ Greška pri dohvatanju predmeta: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.post("/problems/generate")
+async def generate_problem(generation_data: dict):
+    """Generiši problem na osnovu parametara"""
+    try:
+        problem_generator = get_problem_generator()
+        
+        # Parsiraj parametre
+        subject_str = generation_data.get("subject", "mathematics")
+        topic = generation_data.get("topic")
+        difficulty_str = generation_data.get("difficulty", "beginner")
+        problem_type_str = generation_data.get("problem_type")
+        
+        # Konvertuj stringove u enum-ove
+        try:
+            subject = Subject(subject_str)
+            difficulty = Difficulty(difficulty_str)
+            problem_type = ProblemType(problem_type_str) if problem_type_str else None
+        except ValueError as e:
+            return {"status": "error", "message": f"Nevažeći parametar: {e}"}
+        
+        # Generiši problem
+        problem = problem_generator.generate_problem(
+            subject=subject,
+            topic=topic,
+            difficulty=difficulty,
+            problem_type=problem_type
+        )
+        
+        # Konvertuj u dict za JSON response
+        problem_dict = {
+            "problem_id": problem.problem_id,
+            "subject": problem.subject.value,
+            "topic": problem.topic,
+            "difficulty": problem.difficulty.value,
+            "problem_type": problem.problem_type.value,
+            "question": problem.question,
+            "options": problem.options,
+            "correct_answer": problem.correct_answer,
+            "solution": problem.solution,
+            "hints": problem.hints,
+            "explanation": problem.explanation,
+            "tags": problem.tags,
+            "created_at": problem.created_at.isoformat() if problem.created_at else None
+        }
+        
+        return {
+            "status": "success",
+            "problem": problem_dict,
+            "message": "Problem uspešno generisan"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Greška pri generisanju problema: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.post("/problems/{problem_id}/validate")
+async def validate_problem_answer(problem_id: str, answer_data: dict):
+    """Validiraj odgovor na problem"""
+    try:
+        problem_generator = get_problem_generator()
+        user_answer = answer_data.get("answer")
+        
+        if not user_answer:
+            return {"status": "error", "message": "Odgovor je obavezan"}
+        
+        # Za sada koristimo mock problem, kasnije ćemo implementirati storage
+        # TODO: Implementirati storage za probleme
+        mock_problem = {
+            "problem_id": problem_id,
+            "question": "Reši jednačinu: 2x + 5 = 13",
+            "correct_answer": 4,
+            "explanation": "Rešenje je x = 4"
+        }
+        
+        # Validiraj odgovor
+        validation_result = problem_generator.validate_answer(
+            type('MockProblem', (), mock_problem)(),
+            user_answer
+        )
+        
+        return {
+            "status": "success",
+            "validation": validation_result,
+            "message": "Odgovor validiran"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Greška pri validaciji odgovora: {e}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/problems/stats")
+async def get_problem_generator_stats():
+    """Dohvati statistike Problem Generator-a"""
+    try:
+        problem_generator = get_problem_generator()
+        
+        # Broj šablona po predmetu
+        templates_by_subject = {}
+        for template in problem_generator.templates.values():
+            subject = template.subject.value
+            if subject not in templates_by_subject:
+                templates_by_subject[subject] = 0
+            templates_by_subject[subject] += 1
+        
+        stats = {
+            "total_templates": len(problem_generator.templates),
+            "templates_by_subject": templates_by_subject,
+            "available_subjects": len(problem_generator.get_available_subjects()),
+            "status": "active"
+        }
+        
+        return {
+            "status": "success",
+            "stats": stats,
+            "message": "Statistike uspešno dohvaćene"
+        }
+        
+    except Exception as e:
+        logger.error(f"❌ Greška pri dohvatanju statistika: {e}")
         return {"status": "error", "message": str(e)}
 
 # Startup i shutdown eventi
