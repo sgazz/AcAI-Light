@@ -311,21 +311,21 @@ export default function StudyRoom() {
       } else {
         console.log('📤 Slanje poruke kroz HTTP (WebSocket nije povezan)');
         // Pošalji kroz HTTP endpoint samo ako WebSocket nije povezan
-        await sendStudyRoomMessage(currentRoom.room_id, {
-          user_id: currentUserId,
-          username: currentUsername,
-          content: input,
-          type: 'chat'
-        });
+      await sendStudyRoomMessage(currentRoom.room_id, {
+        user_id: currentUserId,
+        username: currentUsername,
+        content: input,
+        type: 'chat'
+      });
       }
 
       setInput('');
       
       // Osveži poruke nakon slanja (samo ako nismo povezani kroz WebSocket)
       if (!ws || ws.readyState !== WebSocket.OPEN) {
-        setTimeout(() => {
-          refreshMessages();
-        }, 1000);
+      setTimeout(() => {
+        refreshMessages();
+      }, 1000);
       }
       
     } catch (error: any) {

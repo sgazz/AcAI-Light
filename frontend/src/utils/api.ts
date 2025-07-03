@@ -173,6 +173,123 @@ export const STUDY_ROOM_LEAVE_ENDPOINT = (roomId: string) => `${API_BASE}/study-
 export const STUDY_ROOM_WS_URL = (roomId: string, userId: string, username: string) => 
   `ws://localhost:8001/ws/study-room/${roomId}`;
 
+// Study Journal API Endpoints
+export const STUDY_JOURNAL_ENTRIES_ENDPOINT = `${API_BASE}/study-journal/entries`;
+export const STUDY_JOURNAL_GOALS_ENDPOINT = `${API_BASE}/study-journal/goals`;
+
+// Study Journal Flashcards Endpoints
+export const STUDY_JOURNAL_FLASHCARDS_ENDPOINT = `${API_BASE}/study-journal/flashcards`;
+
+// Study Journal API Functions
+export const createJournalEntry = async (entryData: {
+  user_id: string;
+  subject: string;
+  topic?: string;
+  entry_type: 'reflection' | 'note' | 'question' | 'achievement';
+  content: string;
+  mood_rating?: number;
+  study_time_minutes?: number;
+  difficulty_level?: 'easy' | 'medium' | 'hard';
+  tags?: string[];
+  related_chat_session?: string;
+  related_problem_id?: string;
+  related_study_room_id?: string;
+  is_public?: boolean;
+}) => {
+  return await apiRequest(STUDY_JOURNAL_ENTRIES_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(entryData),
+  });
+};
+
+export const getJournalEntries = async (
+  userId: string,
+  subject?: string,
+  entryType?: string,
+  limit: number = 50,
+  offset: number = 0
+) => {
+  const params = new URLSearchParams({
+    user_id: userId,
+    limit: limit.toString(),
+    offset: offset.toString(),
+  });
+  if (subject) params.append('subject', subject);
+  if (entryType) params.append('entry_type', entryType);
+  
+  return await apiRequest(`${STUDY_JOURNAL_ENTRIES_ENDPOINT}?${params}`);
+};
+
+export const updateJournalEntry = async (entryId: string, updateData: any) => {
+  return await apiRequest(`${STUDY_JOURNAL_ENTRIES_ENDPOINT}/${entryId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updateData),
+  });
+};
+
+export const deleteJournalEntry = async (entryId: string) => {
+  return await apiRequest(`${STUDY_JOURNAL_ENTRIES_ENDPOINT}/${entryId}`, {
+    method: 'DELETE',
+  });
+};
+
+export const createStudyGoal = async (goalData: {
+  user_id: string;
+  title: string;
+  description?: string;
+  subject?: string;
+  target_date: string;
+  goal_type: 'daily' | 'weekly' | 'monthly' | 'custom';
+  target_value: number;
+  current_value?: number;
+  status?: 'active' | 'completed' | 'overdue' | 'cancelled';
+  priority?: 'low' | 'medium' | 'high';
+  measurement_unit?: string;
+  tags?: string[];
+}) => {
+  return await apiRequest(STUDY_JOURNAL_GOALS_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(goalData),
+  });
+};
+
+export const getStudyGoals = async (
+  userId: string,
+  status?: string,
+  subject?: string,
+  limit: number = 50,
+  offset: number = 0
+) => {
+  const params = new URLSearchParams({
+    user_id: userId,
+    limit: limit.toString(),
+    offset: offset.toString(),
+  });
+  if (status) params.append('status', status);
+  if (subject) params.append('subject', subject);
+  
+  return await apiRequest(`${STUDY_JOURNAL_GOALS_ENDPOINT}?${params}`);
+};
+
+export const updateGoalProgress = async (goalId: string, newValue: number) => {
+  return await apiRequest(`${STUDY_JOURNAL_GOALS_ENDPOINT}/${goalId}/progress`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ new_value: newValue }),
+  });
+};
+
 // Study Room API Functions
 export const createStudyRoom = async (roomData: {
   name: string;
@@ -330,5 +447,55 @@ export const generateAIQuestions = async (generationData: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(generationData),
+  });
+};
+
+// Study Journal Flashcards Functions
+export const createFlashcard = async (flashcardData: {
+  user_id: string;
+  subject: string;
+  topic?: string;
+  front_content: string;
+  back_content: string;
+  difficulty_level?: 'easy' | 'medium' | 'hard';
+  tags?: string[];
+  is_archived?: boolean;
+}) => {
+  return await apiRequest(STUDY_JOURNAL_FLASHCARDS_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(flashcardData),
+  });
+};
+
+export const getFlashcardsForReview = async (
+  userId: string,
+  limit: number = 20
+) => {
+  const params = new URLSearchParams({
+    user_id: userId,
+    limit: limit.toString(),
+  });
+  return await apiRequest(`${STUDY_JOURNAL_FLASHCARDS_ENDPOINT}?${params}`);
+};
+
+export const reviewFlashcard = async (
+  flashcardId: string,
+  difficultyRating: number,
+  wasCorrect: boolean,
+  responseTimeSeconds?: number
+) => {
+  return await apiRequest(`${STUDY_JOURNAL_FLASHCARDS_ENDPOINT}/${flashcardId}/review`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      difficulty_rating: difficultyRating,
+      was_correct: wasCorrect,
+      response_time_seconds: responseTimeSeconds,
+    }),
   });
 }; 

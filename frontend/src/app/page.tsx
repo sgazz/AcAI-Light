@@ -21,6 +21,7 @@ import MindMapping from '../components/MindMapping/MindMapping';
 import StudyRoom from '../components/StudyRoom';
 import ExamSimulation from '../components/ExamSimulation';
 import ProblemGenerator from '../components/ProblemGenerator';
+import StudyJournal from '../components/StudyJournal';
 
 export default function Home() {
   const [selectedMenu, setSelectedMenu] = useState(-1);
@@ -180,14 +181,7 @@ export default function Home() {
       case 5:
         return <ProblemGenerator />;
       case 6:
-        return (
-          <div className="h-full flex flex-col">
-            <div className="flex-1 p-6">
-              <h2 className="text-2xl font-bold mb-4">Study Journal</h2>
-              <p className="text-gray-300">Study journal funkcionalnost će biti implementirana ovde.</p>
-            </div>
-          </div>
-        );
+        return <StudyJournal />;
       case 7:
         return (
           <div className="h-full flex flex-col">

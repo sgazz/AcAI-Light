@@ -11,7 +11,7 @@ import logging
 import time
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
-from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, WebSocket, WebSocketDisconnect, Request
+from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, WebSocket, WebSocketDisconnect, Request, APIRouter, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from ollama import Client
@@ -53,6 +53,7 @@ from .error_handler import (
 )
 from .query_rewriter import query_rewriter, QueryEnhancement
 from .fact_checker import fact_checker, FactCheckResult, VerificationStatus
+from .study_journal_service import study_journal_service
 
 # Kreiraj FastAPI aplikaciju
 app = FastAPI(
@@ -2264,6 +2265,74 @@ async def create_physics_exam(exam_data: dict = None):
         logger.error(f"❌ Greška pri kreiranju ispita iz fizike: {e}")
         return {"status": "error", "message": str(e)}
 
+# Study Journal API endpoints
+@app.post("/study-journal/entries")
+async def create_journal_entry(entry: dict = Body(...)):
+    """Kreiraj novi journal entry"""
+    result = await study_journal_service.create_journal_entry(entry)
+    return JSONResponse(result)
+
+@app.get("/study-journal/entries")
+async def get_journal_entries(
+    user_id: str,
+    subject: str = None,
+    entry_type: str = None,
+    limit: int = 50,
+    offset: int = 0
+):
+    """Dohvati journal entries za korisnika"""
+    result = await study_journal_service.get_journal_entries(
+        user_id=user_id,
+        subject=subject,
+        entry_type=entry_type,
+        limit=limit,
+        offset=offset
+    )
+    return JSONResponse(result)
+
+@app.put("/study-journal/entries/{entry_id}")
+async def update_journal_entry(entry_id: str, update_data: dict = Body(...)):
+    """Ažuriraj journal entry"""
+    result = await study_journal_service.update_journal_entry(entry_id, update_data)
+    return JSONResponse(result)
+
+@app.delete("/study-journal/entries/{entry_id}")
+async def delete_journal_entry(entry_id: str):
+    """Obriši journal entry"""
+    result = await study_journal_service.delete_journal_entry(entry_id)
+    return JSONResponse(result)
+
+# Study Journal Goals endpoints
+@app.post("/study-journal/goals")
+async def create_study_goal(goal: dict = Body(...)):
+    """Kreiraj novi study goal"""
+    result = await study_journal_service.create_study_goal(goal)
+    return JSONResponse(result)
+
+@app.get("/study-journal/goals")
+async def get_study_goals(
+    user_id: str,
+    status: str = None,
+    subject: str = None,
+    limit: int = 50,
+    offset: int = 0
+):
+    """Dohvati study goals za korisnika"""
+    result = await study_journal_service.get_study_goals(
+        user_id=user_id,
+        status=status,
+        subject=subject,
+        limit=limit,
+        offset=offset
+    )
+    return JSONResponse(result)
+
+@app.put("/study-journal/goals/{goal_id}/progress")
+async def update_goal_progress(goal_id: str, new_value: int = Body(..., embed=True)):
+    """Ažuriraj napredak u cilju (current_value)"""
+    result = await study_journal_service.update_goal_progress(goal_id, new_value)
+    return JSONResponse(result)
+
 # Problem Generator API endpoints
 @app.get("/problems/subjects")
 async def get_available_subjects():
@@ -2631,3 +2700,35 @@ async def shutdown_event():
     print("👋 AcAIA Backend zatvoren!")
     # Očisti keš
     preloaded_models.clear() 
+
+# Study Journal Flashcards endpoints
+@app.post("/study-journal/flashcards")
+async def create_flashcard(flashcard: dict = Body(...)):
+    """Kreiraj novi flashcard"""
+    result = await study_journal_service.create_flashcard(flashcard)
+    return JSONResponse(result)
+
+@app.get("/study-journal/flashcards")
+async def get_flashcards_for_review(
+    user_id: str,
+    limit: int = 20
+):
+    """Dohvati flashcards za review (spaced repetition)"""
+    result = await study_journal_service.get_flashcards_for_review(user_id, limit)
+    return JSONResponse(result)
+
+@app.post("/study-journal/flashcards/{flashcard_id}/review")
+async def review_flashcard(
+    flashcard_id: str,
+    difficulty_rating: int = Body(..., embed=True),
+    was_correct: bool = Body(..., embed=True),
+    response_time_seconds: int = Body(None, embed=True)
+):
+    """Obeleži review flashcard-a"""
+    result = await study_journal_service.review_flashcard(
+        flashcard_id,
+        difficulty_rating,
+        was_correct,
+        response_time_seconds
+    )
+    return JSONResponse(result)
