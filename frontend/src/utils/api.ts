@@ -498,4 +498,210 @@ export const reviewFlashcard = async (
       response_time_seconds: responseTimeSeconds,
     }),
   });
+};
+
+// Career Guidance API Endpoints
+export const CAREER_GUIDANCE_PROFILE_ENDPOINT = `${API_BASE}/career-guidance/profile`;
+export const CAREER_GUIDANCE_SKILLS_ENDPOINT = `${API_BASE}/career-guidance/skills`;
+export const CAREER_GUIDANCE_ASSESSMENTS_ENDPOINT = `${API_BASE}/career-guidance/assessments`;
+export const CAREER_GUIDANCE_JOBS_ENDPOINT = `${API_BASE}/career-guidance/jobs`;
+export const CAREER_GUIDANCE_PATHS_ENDPOINT = `${API_BASE}/career-guidance/paths`;
+export const CAREER_GUIDANCE_INDUSTRIES_ENDPOINT = `${API_BASE}/career-guidance/industries`;
+export const CAREER_GUIDANCE_INSIGHTS_ENDPOINT = `${API_BASE}/career-guidance/insights`;
+
+// Career Guidance API Functions
+
+// Profile Management
+export const createCareerProfile = async (profileData: {
+  user_id: string;
+  current_position: string;
+  years_of_experience: number;
+  education_level: string;
+  preferred_industries: string[];
+  salary_expectations: number;
+  location_preferences: string[];
+  remote_work_preference: boolean;
+}) => {
+  return await apiRequest(CAREER_GUIDANCE_PROFILE_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(profileData),
+  });
+};
+
+export const getCareerProfile = async (userId: string) => {
+  return await apiRequest(`${CAREER_GUIDANCE_PROFILE_ENDPOINT}/${userId}`);
+};
+
+export const updateCareerProfile = async (profileId: string, updateData: any) => {
+  return await apiRequest(`${CAREER_GUIDANCE_PROFILE_ENDPOINT}/${profileId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updateData),
+  });
+};
+
+// Skills Management
+export const addSkill = async (skillData: {
+  user_id: string;
+  skill_name: string;
+  skill_category: string;
+  proficiency_level: number;
+  years_of_experience: number;
+  is_certified: boolean;
+  certification_name?: string;
+  certification_date?: string;
+}) => {
+  return await apiRequest(CAREER_GUIDANCE_SKILLS_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(skillData),
+  });
+};
+
+export const getUserSkills = async (userId: string, category?: string) => {
+  const url = category 
+    ? `${CAREER_GUIDANCE_SKILLS_ENDPOINT}/${userId}?category=${category}`
+    : `${CAREER_GUIDANCE_SKILLS_ENDPOINT}/${userId}`;
+  return await apiRequest(url);
+};
+
+export const updateSkill = async (skillId: string, updateData: any) => {
+  return await apiRequest(`${CAREER_GUIDANCE_SKILLS_ENDPOINT}/${skillId}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(updateData),
+  });
+};
+
+export const deleteSkill = async (skillId: string) => {
+  return await apiRequest(`${CAREER_GUIDANCE_SKILLS_ENDPOINT}/${skillId}`, {
+    method: 'DELETE',
+  });
+};
+
+export const getSkillsSummary = async (userId: string) => {
+  return await apiRequest(`${CAREER_GUIDANCE_SKILLS_ENDPOINT}/${userId}/summary`);
+};
+
+// Assessments
+export const createCareerAssessment = async (assessmentData: {
+  user_id: string;
+  assessment_type: string;
+  assessment_name: string;
+  questions: any[];
+}) => {
+  return await apiRequest(CAREER_GUIDANCE_ASSESSMENTS_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(assessmentData),
+  });
+};
+
+export const getUserAssessments = async (userId: string, assessmentType?: string) => {
+  const url = assessmentType 
+    ? `${CAREER_GUIDANCE_ASSESSMENTS_ENDPOINT}/${userId}?assessment_type=${assessmentType}`
+    : `${CAREER_GUIDANCE_ASSESSMENTS_ENDPOINT}/${userId}`;
+  return await apiRequest(url);
+};
+
+export const getAssessmentQuestions = async (assessmentType: string) => {
+  return await apiRequest(`${CAREER_GUIDANCE_ASSESSMENTS_ENDPOINT}/questions/${assessmentType}`);
+};
+
+export const calculateAssessmentResults = async (assessmentId: string, answers: any) => {
+  return await apiRequest(`${CAREER_GUIDANCE_ASSESSMENTS_ENDPOINT}/${assessmentId}/calculate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ answers }),
+  });
+};
+
+// Job Recommendations
+export const getJobRecommendations = async (userId: string, status?: string) => {
+  const url = status 
+    ? `${CAREER_GUIDANCE_JOBS_ENDPOINT}/${userId}?status=${status}`
+    : `${CAREER_GUIDANCE_JOBS_ENDPOINT}/${userId}`;
+  return await apiRequest(url);
+};
+
+export const generateJobRecommendations = async (userId: string, limit: number = 10) => {
+  return await apiRequest(`${CAREER_GUIDANCE_JOBS_ENDPOINT}/generate/${userId}?limit=${limit}`, {
+    method: 'POST',
+  });
+};
+
+export const updateJobApplicationStatus = async (jobId: string, status: string) => {
+  return await apiRequest(`${CAREER_GUIDANCE_JOBS_ENDPOINT}/${jobId}/status`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ status }),
+  });
+};
+
+// Career Paths
+export const createCareerPath = async (pathData: {
+  user_id: string;
+  path_name: string;
+  target_role: string;
+  starting_position: string;
+  steps: any[];
+  estimated_duration: number;
+  required_skills: string[];
+  progress_percentage: number;
+  is_active: boolean;
+}) => {
+  return await apiRequest(CAREER_GUIDANCE_PATHS_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(pathData),
+  });
+};
+
+export const getUserCareerPaths = async (userId: string, activeOnly: boolean = true) => {
+  return await apiRequest(`${CAREER_GUIDANCE_PATHS_ENDPOINT}/${userId}?active_only=${activeOnly}`);
+};
+
+export const updateCareerPathProgress = async (pathId: string, progressPercentage: number) => {
+  return await apiRequest(`${CAREER_GUIDANCE_PATHS_ENDPOINT}/${pathId}/progress`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ progress_percentage: progressPercentage }),
+  });
+};
+
+// Industries
+export const getAllIndustries = async () => {
+  return await apiRequest(CAREER_GUIDANCE_INDUSTRIES_ENDPOINT);
+};
+
+export const getIndustryDetails = async (industryName: string) => {
+  return await apiRequest(`${CAREER_GUIDANCE_INDUSTRIES_ENDPOINT}/${encodeURIComponent(industryName)}`);
+};
+
+export const getIndustryTrends = async () => {
+  return await apiRequest(`${CAREER_GUIDANCE_INDUSTRIES_ENDPOINT}/trends`);
+};
+
+// Career Insights
+export const getUserCareerInsights = async (userId: string) => {
+  return await apiRequest(`${CAREER_GUIDANCE_INSIGHTS_ENDPOINT}/${userId}`);
 }; 

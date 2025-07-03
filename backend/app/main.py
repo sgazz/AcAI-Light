@@ -54,6 +54,7 @@ from .error_handler import (
 from .query_rewriter import query_rewriter, QueryEnhancement
 from .fact_checker import fact_checker, FactCheckResult, VerificationStatus
 from .study_journal_service import study_journal_service
+from .career_guidance_service import CareerGuidanceService
 
 # Kreiraj FastAPI aplikaciju
 app = FastAPI(
@@ -108,6 +109,7 @@ async def get_http_session():
 rag_service = RAGService(use_supabase=True)
 ocr_service = OCRService()
 ollama_client = Client(host="http://localhost:11434")
+career_guidance_service = CareerGuidanceService()
 
 # Globalni keš za preload-ovane modele
 preloaded_models = {}
@@ -2731,4 +2733,190 @@ async def review_flashcard(
         was_correct,
         response_time_seconds
     )
+    return JSONResponse(result)
+
+# ==================== CAREER GUIDANCE ENDPOINTS ====================
+
+# Career Profiles
+@app.post("/career-guidance/profile")
+async def create_career_profile(profile_data: dict = Body(...)):
+    """Kreiraj novi career profile"""
+    result = await career_guidance_service.create_career_profile(profile_data)
+    return JSONResponse(result)
+
+@app.get("/career-guidance/profile/{user_id}")
+async def get_career_profile(user_id: str):
+    """Dohvati career profile za korisnika"""
+    result = await career_guidance_service.get_career_profile(user_id)
+    return JSONResponse(result)
+
+@app.put("/career-guidance/profile/{profile_id}")
+async def update_career_profile(profile_id: str, update_data: dict = Body(...)):
+    """Ažuriraj career profile"""
+    result = await career_guidance_service.update_career_profile(profile_id, update_data)
+    return JSONResponse(result)
+
+@app.delete("/career-guidance/profile/{profile_id}")
+async def delete_career_profile(profile_id: str):
+    """Obriši career profile"""
+    result = await career_guidance_service.delete_career_profile(profile_id)
+    return JSONResponse(result)
+
+# Skills Inventory
+@app.post("/career-guidance/skills")
+async def add_skill(skill_data: dict = Body(...)):
+    """Dodaj novu veštinu"""
+    result = await career_guidance_service.add_skill(skill_data)
+    return JSONResponse(result)
+
+@app.get("/career-guidance/skills/{user_id}")
+async def get_user_skills(user_id: str, category: str = None):
+    """Dohvati veštine korisnika"""
+    result = await career_guidance_service.get_user_skills(user_id, category)
+    return JSONResponse(result)
+
+@app.put("/career-guidance/skills/{skill_id}")
+async def update_skill(skill_id: str, update_data: dict = Body(...)):
+    """Ažuriraj veštinu"""
+    result = await career_guidance_service.update_skill(skill_id, update_data)
+    return JSONResponse(result)
+
+@app.delete("/career-guidance/skills/{skill_id}")
+async def delete_skill(skill_id: str):
+    """Obriši veštinu"""
+    result = await career_guidance_service.delete_skill(skill_id)
+    return JSONResponse(result)
+
+@app.get("/career-guidance/skills/{user_id}/summary")
+async def get_skills_summary(user_id: str):
+    """Dohvati summary veština korisnika"""
+    result = await career_guidance_service.get_skills_summary(user_id)
+    return JSONResponse(result)
+
+# Career Assessments
+@app.post("/career-guidance/assessments")
+async def create_assessment(assessment_data: dict = Body(...)):
+    """Kreiraj novu procenu"""
+    result = await career_guidance_service.create_assessment(assessment_data)
+    return JSONResponse(result)
+
+@app.get("/career-guidance/assessments/{user_id}")
+async def get_user_assessments(user_id: str, assessment_type: str = None):
+    """Dohvati procene korisnika"""
+    result = await career_guidance_service.get_user_assessments(user_id, assessment_type)
+    return JSONResponse(result)
+
+@app.post("/career-guidance/assessments/{assessment_id}/submit")
+async def submit_assessment_answers(
+    assessment_id: str,
+    answers: dict = Body(...),
+    results: dict = Body(...),
+    score: float = Body(...)
+):
+    """Predaj odgovore za procenu"""
+    result = await career_guidance_service.submit_assessment_answers(assessment_id, answers, results, score)
+    return JSONResponse(result)
+
+@app.get("/career-guidance/assessments/questions/{assessment_type}")
+async def get_assessment_questions(assessment_type: str):
+    """Dohvati pitanja za tip procene"""
+    result = await career_guidance_service.get_assessment_questions(assessment_type)
+    return JSONResponse(result)
+
+@app.post("/career-guidance/assessments/create/{user_id}")
+async def create_career_assessment(user_id: str, assessment_type: str):
+    """Kreiraj novu career procenu za korisnika"""
+    result = await career_guidance_service.create_career_assessment(user_id, assessment_type)
+    return JSONResponse(result)
+
+@app.post("/career-guidance/assessments/{assessment_id}/calculate")
+async def calculate_assessment_results(assessment_id: str, answers: dict = Body(...)):
+    """Izračunaj rezultate procene"""
+    result = await career_guidance_service.calculate_assessment_results(assessment_id, answers)
+    return JSONResponse(result)
+
+# Job Recommendations
+@app.post("/career-guidance/jobs")
+async def create_job_recommendation(job_data: dict = Body(...)):
+    """Kreiraj novu preporuku posla"""
+    result = await career_guidance_service.create_job_recommendation(job_data)
+    return JSONResponse(result)
+
+@app.get("/career-guidance/jobs/{user_id}")
+async def get_job_recommendations(user_id: str, status: str = None):
+    """Dohvati preporuke poslova za korisnika"""
+    result = await career_guidance_service.get_job_recommendations(user_id, status)
+    return JSONResponse(result)
+
+@app.put("/career-guidance/jobs/{job_id}/status")
+async def update_job_application_status(job_id: str, status: str = Body(..., embed=True)):
+    """Ažuriraj status prijave na posao"""
+    result = await career_guidance_service.update_job_application_status(job_id, status)
+    return JSONResponse(result)
+
+@app.post("/career-guidance/jobs/match-score")
+async def calculate_job_match_score(
+    user_id: str = Body(...),
+    required_skills: List[str] = Body(...),
+    preferred_skills: List[str] = Body(...)
+):
+    """Izračunaj match score za posao"""
+    result = await career_guidance_service.calculate_job_match_score(user_id, required_skills, preferred_skills)
+    return JSONResponse(result)
+
+@app.post("/career-guidance/jobs/generate/{user_id}")
+async def generate_job_recommendations(user_id: str, limit: int = 10):
+    """Generiši preporuke poslova za korisnika"""
+    result = await career_guidance_service.generate_job_recommendations(user_id, limit)
+    return JSONResponse(result)
+
+# Career Paths
+@app.post("/career-guidance/paths")
+async def create_career_path(path_data: dict = Body(...)):
+    """Kreiraj novu karijernu putanju"""
+    result = await career_guidance_service.create_career_path(path_data)
+    return JSONResponse(result)
+
+@app.get("/career-guidance/paths/{user_id}")
+async def get_user_career_paths(user_id: str, active_only: bool = True):
+    """Dohvati karijerne putanje korisnika"""
+    result = await career_guidance_service.get_user_career_paths(user_id, active_only)
+    return JSONResponse(result)
+
+@app.put("/career-guidance/paths/{path_id}/progress")
+async def update_career_path_progress(path_id: str, progress_percentage: float = Body(..., embed=True)):
+    """Ažuriraj napredak karijerne putanje"""
+    result = await career_guidance_service.update_career_path_progress(path_id, progress_percentage)
+    return JSONResponse(result)
+
+@app.put("/career-guidance/paths/{path_id}/deactivate")
+async def deactivate_career_path(path_id: str):
+    """Deaktiviraj karijernu putanju"""
+    result = await career_guidance_service.deactivate_career_path(path_id)
+    return JSONResponse(result)
+
+# Industry Insights
+@app.get("/career-guidance/industries")
+async def get_all_industries():
+    """Dohvati sve industrije"""
+    result = await career_guidance_service.get_all_industries()
+    return JSONResponse(result)
+
+@app.get("/career-guidance/industries/{industry_name}")
+async def get_industry_details(industry_name: str):
+    """Dohvati detalje industrije"""
+    result = await career_guidance_service.get_industry_details(industry_name)
+    return JSONResponse(result)
+
+@app.get("/career-guidance/industries/trends")
+async def get_industry_trends():
+    """Dohvati trendove industrija"""
+    result = await career_guidance_service.get_industry_trends()
+    return JSONResponse(result)
+
+# Comprehensive Insights
+@app.get("/career-guidance/insights/{user_id}")
+async def get_user_career_insights(user_id: str):
+    """Dohvati sveobuhvatne career insights za korisnika"""
+    result = await career_guidance_service.get_user_career_insights(user_id)
     return JSONResponse(result)
