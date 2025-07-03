@@ -2,6 +2,29 @@
 
 import React, { useState, useEffect } from 'react';
 import { 
+  FaUser, 
+  FaTools, 
+  FaClipboardCheck, 
+  FaBriefcase, 
+  FaRoute, 
+  FaIndustry, 
+  FaChartLine,
+  FaPlus,
+  FaEdit,
+  FaTrash,
+  FaEye,
+  FaDownload,
+  FaStar,
+  FaClock,
+  FaMapMarkerAlt,
+  FaGraduationCap,
+  FaCertificate,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaSpinner
+} from 'react-icons/fa';
+import { useErrorToast } from './ErrorToastProvider';
+import { 
   createCareerProfile, 
   getCareerProfile, 
   updateCareerProfile,
@@ -151,6 +174,8 @@ const CareerGuidance: React.FC = () => {
   const [showJobModal, setShowJobModal] = useState(false);
   const [showPathModal, setShowPathModal] = useState(false);
 
+  const { showError, showSuccess } = useErrorToast();
+
   useEffect(() => {
     loadData();
   }, [activeTab]);
@@ -198,33 +223,43 @@ const CareerGuidance: React.FC = () => {
   };
 
   const tabs = [
-    { id: 'profile', name: 'Profil', icon: '👤' },
-    { id: 'skills', name: 'Veštine', icon: '🛠️' },
-    { id: 'assessments', name: 'Testovi', icon: '📊' },
-    { id: 'jobs', name: 'Poslovi', icon: '💼' },
-    { id: 'paths', name: 'Karijera', icon: '🎯' },
-    { id: 'industries', name: 'Industrije', icon: '🏭' },
-    { id: 'insights', name: 'Analitika', icon: '📈' },
+    { id: 'profile', name: 'Profil', icon: FaUser, color: 'text-blue-600' },
+    { id: 'skills', name: 'Veštine', icon: FaTools, color: 'text-green-600' },
+    { id: 'assessments', name: 'Testovi', icon: FaClipboardCheck, color: 'text-purple-600' },
+    { id: 'jobs', name: 'Poslovi', icon: FaBriefcase, color: 'text-orange-600' },
+    { id: 'paths', name: 'Karijera', icon: FaRoute, color: 'text-indigo-600' },
+    { id: 'industries', name: 'Industrije', icon: FaIndustry, color: 'text-red-600' },
+    { id: 'insights', name: 'Analitika', icon: FaChartLine, color: 'text-teal-600' },
   ];
 
   const renderTabContent = () => {
     if (loading) {
       return (
         <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="flex flex-col items-center space-y-4">
+            <FaSpinner className="animate-spin text-4xl text-blue-500" />
+            <p className="text-slate-400">Učitavanje podataka...</p>
+          </div>
         </div>
       );
     }
 
     if (error) {
       return (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-800">{error}</p>
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-6">
+          <div className="flex items-center space-x-3">
+            <FaTimesCircle className="text-red-400 text-xl" />
+            <div>
+              <h3 className="text-red-300 font-medium">Greška pri učitavanju</h3>
+              <p className="text-red-400 mt-1">{error}</p>
+            </div>
+          </div>
           <button 
             onClick={loadData}
-            className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
           >
-            Pokušaj ponovo
+            <FaSpinner className="text-sm" />
+            <span>Pokušaj ponovo</span>
           </button>
         </div>
       );
@@ -251,47 +286,45 @@ const CareerGuidance: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Career Guidance
-          </h1>
-          <p className="text-gray-600">
-            Upravljajte svojom karijerom, veštinama i profesionalnim razvojem
-          </p>
-        </div>
-
-        {/* Tab Navigation */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="-mb-px flex space-x-8 px-6" aria-label="Tabs">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`
-                    py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2
-                    ${activeTab === tab.id
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                    }
-                  `}
-                >
-                  <span>{tab.icon}</span>
-                  <span>{tab.name}</span>
-                </button>
-              ))}
-            </nav>
+    <div className="h-full flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+      <div className="flex items-center justify-between p-6 border-b border-white/10">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl">
+            <FaRoute className="text-white" size={24} />
           </div>
+          <div>
+            <h1 className="text-2xl font-bold text-white">Career Guidance</h1>
+            <p className="text-slate-400">Upravljajte svojom karijerom, veštinama i profesionalnim razvojem</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 p-6">
+        {/* Tab Navigation */}
+        <div className="flex items-center gap-2 mb-6">
+          {tabs.map((tab) => {
+            const IconComponent = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
+                  isActive
+                    ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
+                    : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                }`}
+              >
+                <IconComponent className="text-lg" />
+                <span>{tab.name}</span>
+              </button>
+            );
+          })}
         </div>
 
         {/* Tab Content */}
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="p-6">
-            {renderTabContent()}
-          </div>
+        <div className="space-y-6">
+          {renderTabContent()}
         </div>
       </div>
     </div>
@@ -314,119 +347,164 @@ const ProfileTab: React.FC<{ profile: CareerProfile | null; onUpdate: () => void
     // Implementacija kreiranja/ažuriranja profila
   };
 
-  if (!profile && !isEditing) {
-    return (
-      <div className="text-center py-12">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">
-          Nema kreiranog profila
-        </h3>
-        <button
-          onClick={() => setIsEditing(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          Kreiraj profil
-        </button>
-      </div>
-    );
-  }
+        if (!profile && !isEditing) {
+        return (
+          <div className="text-center py-16">
+            <div className="max-w-md mx-auto">
+              <div className="p-6 bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl border-2 border-dashed border-slate-600">
+                <FaUser className="text-6xl text-blue-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-white mb-3">
+                  Nema kreiranog profila
+                </h3>
+                <p className="text-slate-400 mb-6">
+                  Kreirajte svoj karijerni profil da biste počeli sa planiranjem karijere
+                </p>
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center space-x-2 mx-auto"
+                >
+                  <FaPlus className="text-sm" />
+                  <span>Kreiraj profil</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Karijerni profil</h2>
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-white flex items-center space-x-3">
+            <FaUser className="text-blue-500" />
+            <span>Karijerni profil</span>
+          </h2>
+          <p className="text-slate-400 mt-1">Upravljajte svojim profesionalnim informacijama</p>
+        </div>
         <button
           onClick={() => setIsEditing(!isEditing)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 ${
+            isEditing 
+              ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' 
+              : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700'
+          }`}
         >
-          {isEditing ? 'Otkaži' : 'Uredi'}
+          {isEditing ? <FaTimesCircle /> : <FaEdit />}
+          <span>{isEditing ? 'Otkaži' : 'Uredi profil'}</span>
         </button>
       </div>
 
       {isEditing ? (
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Ime i prezime
-              </label>
-              <input
-                type="text"
-                value={formData.full_name || ''}
-                onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
+        <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl p-8 border border-slate-600">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-300">
+                  Ime i prezime
+                </label>
+                <input
+                  type="text"
+                  value={formData.full_name || ''}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-white placeholder-slate-400"
+                  placeholder="Unesite ime i prezime"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-300">
+                  Email adresa
+                </label>
+                <input
+                  type="email"
+                  value={formData.email || ''}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-white placeholder-slate-400"
+                  placeholder="vas@email.com"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-300">
+                  Trenutna pozicija
+                </label>
+                <input
+                  type="text"
+                  value={formData.current_position || ''}
+                  onChange={(e) => setFormData({ ...formData, current_position: e.target.value })}
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-white placeholder-slate-400"
+                  placeholder="npr. Software Developer"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-slate-300">
+                  Godine iskustva
+                </label>
+                <input
+                  type="number"
+                  value={formData.years_of_experience || ''}
+                  onChange={(e) => setFormData({ ...formData, years_of_experience: parseInt(e.target.value) })}
+                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-white placeholder-slate-400"
+                  placeholder="0"
+                  min="0"
+                  required
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email
-              </label>
-              <input
-                type="email"
-                value={formData.email || ''}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
+            <div className="flex justify-end space-x-4">
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="px-6 py-3 border border-slate-600 text-slate-300 rounded-xl hover:bg-slate-700 transition-colors"
+              >
+                Otkaži
+              </button>
+              <button
+                type="submit"
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
+              >
+                Sačuvaj profil
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Trenutna pozicija
-              </label>
-              <input
-                type="text"
-                value={formData.current_position || ''}
-                onChange={(e) => setFormData({ ...formData, current_position: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Godine iskustva
-              </label>
-              <input
-                type="number"
-                value={formData.years_of_experience || ''}
-                onChange={(e) => setFormData({ ...formData, years_of_experience: parseInt(e.target.value) })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              />
-            </div>
-          </div>
-          <div className="flex justify-end space-x-3">
-            <button
-              type="button"
-              onClick={() => setIsEditing(false)}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-            >
-              Otkaži
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-            >
-              Sačuvaj
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 className="font-medium text-gray-900">Ime i prezime</h4>
-            <p className="text-gray-600">{profile?.full_name}</p>
-          </div>
-          <div>
-            <h4 className="font-medium text-gray-900">Email</h4>
-            <p className="text-gray-600">{profile?.email}</p>
-          </div>
-          <div>
-            <h4 className="font-medium text-gray-900">Trenutna pozicija</h4>
-            <p className="text-gray-600">{profile?.current_position}</p>
-          </div>
-          <div>
-            <h4 className="font-medium text-gray-900">Godine iskustva</h4>
-            <p className="text-gray-600">{profile?.years_of_experience}</p>
+        <div className="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold text-white flex items-center space-x-2">
+                  <FaUser className="text-blue-500" />
+                  <span>Ime i prezime</span>
+                </h4>
+                <p className="text-slate-300 mt-1 text-lg">{profile?.full_name || 'Nije uneto'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-white flex items-center space-x-2">
+                  <FaUser className="text-blue-500" />
+                  <span>Email adresa</span>
+                </h4>
+                <p className="text-slate-300 mt-1 text-lg">{profile?.email || 'Nije uneto'}</p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <h4 className="font-semibold text-white flex items-center space-x-2">
+                  <FaBriefcase className="text-green-500" />
+                  <span>Trenutna pozicija</span>
+                </h4>
+                <p className="text-slate-300 mt-1 text-lg">{profile?.current_position || 'Nije uneto'}</p>
+              </div>
+              <div>
+                <h4 className="font-semibold text-white flex items-center space-x-2">
+                  <FaClock className="text-orange-500" />
+                  <span>Godine iskustva</span>
+                </h4>
+                <p className="text-slate-300 mt-1 text-lg">{profile?.years_of_experience || '0'} godina</p>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -438,41 +516,115 @@ const ProfileTab: React.FC<{ profile: CareerProfile | null; onUpdate: () => void
 const SkillsTab: React.FC<{ skills: Skill[]; onUpdate: () => void }> = ({ skills, onUpdate }) => {
   const [showAddModal, setShowAddModal] = useState(false);
 
+  const getProficiencyColor = (level: string) => {
+    const colors = {
+      beginner: 'text-red-500',
+      intermediate: 'text-yellow-500',
+      advanced: 'text-blue-500',
+      expert: 'text-green-500'
+    };
+    return colors[level as keyof typeof colors] || 'text-gray-500';
+  };
+
+  const getProficiencyWidth = (level: string) => {
+    const widths = {
+      beginner: '25%',
+      intermediate: '50%',
+      advanced: '75%',
+      expert: '100%'
+    };
+    return widths[level as keyof typeof widths] || '0%';
+  };
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Veštine</h2>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-        >
-          Dodaj veštinu
-        </button>
-      </div>
-
-      {skills.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">Nema dodanih veština</p>
+              <div className="flex justify-between items-center mb-8">
+          <div>
+            <h2 className="text-2xl font-bold text-white flex items-center space-x-3">
+              <FaTools className="text-green-500" />
+              <span>Veštine</span>
+            </h2>
+            <p className="text-slate-400 mt-1">Upravljajte svojim tehničkim i soft veštinama</p>
+          </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 flex items-center space-x-2"
           >
-            Dodaj prvu veštinu
+            <FaPlus className="text-sm" />
+            <span>Dodaj veštinu</span>
           </button>
         </div>
+
+      {skills.length === 0 ? (
+        <div className="text-center py-16">
+          <div className="max-w-md mx-auto">
+            <div className="p-6 bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl border-2 border-dashed border-slate-600">
+              <FaTools className="text-6xl text-green-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-3">
+                Nema dodanih veština
+              </h3>
+              <p className="text-slate-400 mb-6">
+                Dodajte svoje veštine da biste kreirali kompletan profil
+              </p>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 flex items-center space-x-2 mx-auto"
+              >
+                <FaPlus className="text-sm" />
+                <span>Dodaj prvu veštinu</span>
+              </button>
+            </div>
+          </div>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {skills.map((skill) => (
-            <div key={skill.id} className="border border-gray-200 rounded-lg p-4">
-              <h3 className="font-medium text-gray-900 mb-2">{skill.skill_name}</h3>
-              <p className="text-sm text-gray-600 mb-2">{skill.skill_category}</p>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">
-                  {skill.proficiency_level}
-                </span>
-                <span className="text-sm text-gray-500">
-                  {skill.years_of_experience} god.
-                </span>
+            <div key={skill.id} className="bg-slate-800 rounded-xl shadow-lg border border-slate-700 p-6 hover:shadow-xl transition-all duration-200">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <h3 className="font-bold text-white text-lg mb-1">{skill.skill_name}</h3>
+                  <p className="text-sm text-slate-400 bg-slate-700 px-2 py-1 rounded-full inline-block">
+                    {skill.skill_category}
+                  </p>
+                </div>
+                <div className="flex space-x-2">
+                  <button className="p-2 text-slate-400 hover:text-blue-500 transition-colors">
+                    <FaEdit className="text-sm" />
+                  </button>
+                  <button className="p-2 text-slate-400 hover:text-red-500 transition-colors">
+                    <FaTrash className="text-sm" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-medium text-slate-300">Nivo veštine</span>
+                    <span className={`text-sm font-semibold ${getProficiencyColor(skill.proficiency_level)}`}>
+                      {skill.proficiency_level}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-700 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-300"
+                      style={{ width: getProficiencyWidth(skill.proficiency_level) }}
+                    ></div>
+                  </div>
+                </div>
+                
+                <div className="flex justify-between items-center text-sm text-slate-400">
+                  <span className="flex items-center space-x-1">
+                    <FaClock className="text-slate-500" />
+                    <span>{skill.years_of_experience} godina</span>
+                  </span>
+                  {skill.is_certified && (
+                    <span className="flex items-center space-x-1 text-green-500">
+                      <FaCertificate className="text-sm" />
+                      <span>Certifikovan</span>
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           ))}
@@ -484,31 +636,133 @@ const SkillsTab: React.FC<{ skills: Skill[]; onUpdate: () => void }> = ({ skills
 
 // Assessments Tab Component
 const AssessmentsTab: React.FC<{ assessments: Assessment[]; onUpdate: () => void }> = ({ assessments, onUpdate }) => {
+  const getAssessmentTypeColor = (type: string) => {
+    const colors = {
+      personality: 'text-blue-600 bg-blue-100',
+      skills: 'text-green-600 bg-green-100',
+      interests: 'text-purple-600 bg-purple-100',
+      values: 'text-orange-600 bg-orange-100'
+    };
+    return colors[type as keyof typeof colors] || 'text-gray-600 bg-gray-100';
+  };
+
+  const getScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600';
+    if (score >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getScoreBg = (score: number) => {
+    if (score >= 80) return 'bg-green-100';
+    if (score >= 60) return 'bg-yellow-100';
+    return 'bg-red-100';
+  };
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Karijerni testovi</h2>
-        <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-          Novi test
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-white flex items-center space-x-3">
+            <FaClipboardCheck className="text-purple-600" />
+            <span>Karijerni testovi</span>
+          </h2>
+          <p className="text-slate-400 mt-1">Procenite svoje veštine i interese</p>
+        </div>
+        <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-200 flex items-center space-x-2">
+          <FaPlus className="text-sm" />
+          <span>Novi test</span>
         </button>
       </div>
 
       {assessments.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">Nema završenih testova</p>
-          <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">
-            Započni prvi test
-          </button>
+        <div className="text-center py-16">
+          <div className="max-w-md mx-auto">
+            <div className="p-6 bg-gradient-to-br from-purple-50 to-pink-50 rounded-2xl border-2 border-dashed border-purple-200">
+              <FaClipboardCheck className="text-6xl text-purple-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Nema završenih testova
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Započnite sa testovima da biste bolje razumeli svoje veštine
+              </p>
+              <button className="px-6 py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl hover:from-purple-700 hover:to-pink-700 transition-all duration-200 flex items-center space-x-2 mx-auto">
+                <FaPlus className="text-sm" />
+                <span>Započni prvi test</span>
+              </button>
+            </div>
+          </div>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {assessments.map((assessment) => (
-            <div key={assessment.id} className="border border-gray-200 rounded-lg p-4">
-              <h3 className="font-medium text-gray-900 mb-2">{assessment.assessment_name}</h3>
-              <p className="text-sm text-gray-600 mb-2">Tip: {assessment.assessment_type}</p>
-              {assessment.score && (
-                <p className="text-sm text-gray-600">Rezultat: {assessment.score}%</p>
-              )}
+            <div key={assessment.id} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-200">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-900 text-lg mb-2">{assessment.assessment_name}</h3>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getAssessmentTypeColor(assessment.assessment_type)}`}>
+                    {assessment.assessment_type}
+                  </span>
+                </div>
+                <div className="flex space-x-2">
+                  <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                    <FaEye className="text-sm" />
+                  </button>
+                  <button className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                    <FaTrash className="text-sm" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                {assessment.score && (
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-gray-700">Rezultat</span>
+                      <span className={`text-lg font-bold ${getScoreColor(assessment.score)}`}>
+                        {assessment.score}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3">
+                      <div 
+                        className={`h-3 rounded-full transition-all duration-500 ${getScoreBg(assessment.score)}`}
+                        style={{ width: `${assessment.score}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+                
+                {assessment.completion_date && (
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <FaClock className="text-gray-400" />
+                    <span>Završen: {new Date(assessment.completion_date).toLocaleDateString()}</span>
+                  </div>
+                )}
+                
+                {assessment.questions && assessment.questions.length > 0 && (
+                  <div className="flex items-center space-x-2 text-sm text-gray-600">
+                    <FaClipboardCheck className="text-gray-400" />
+                    <span>{assessment.questions.length} pitanja</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+                <div className="flex space-x-3">
+                  <button className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2">
+                    <FaEye className="text-sm" />
+                    <span>Detalji</span>
+                  </button>
+                  <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2">
+                    <FaDownload className="text-sm" />
+                    <span>Izveštaj</span>
+                  </button>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">
+                    Kreiran: {new Date(assessment.created_at).toLocaleDateString()}
+                  </p>
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -519,33 +773,146 @@ const AssessmentsTab: React.FC<{ assessments: Assessment[]; onUpdate: () => void
 
 // Jobs Tab Component
 const JobsTab: React.FC<{ jobs: JobRecommendation[]; onUpdate: () => void }> = ({ jobs, onUpdate }) => {
+  const getMatchScoreColor = (score: number) => {
+    if (score >= 80) return 'text-green-600';
+    if (score >= 60) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
+  const getMatchScoreBg = (score: number) => {
+    if (score >= 80) return 'bg-green-100';
+    if (score >= 60) return 'bg-yellow-100';
+    return 'bg-red-100';
+  };
+
+  const getStatusColor = (status: string) => {
+    const colors = {
+      recommended: 'text-blue-600 bg-blue-100',
+      applied: 'text-yellow-600 bg-yellow-100',
+      interviewed: 'text-purple-600 bg-purple-100',
+      offered: 'text-green-600 bg-green-100',
+      rejected: 'text-red-600 bg-red-100',
+      accepted: 'text-emerald-600 bg-emerald-100'
+    };
+    return colors[status as keyof typeof colors] || 'text-gray-600 bg-gray-100';
+  };
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Preporuke poslova</h2>
-        <button className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
-          Generiši preporuke
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-white flex items-center space-x-3">
+            <FaBriefcase className="text-orange-600" />
+            <span>Preporučeni poslovi</span>
+          </h2>
+          <p className="text-slate-400 mt-1">Pronađite poslove koji odgovaraju vašim veštinama</p>
+        </div>
+        <button className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl hover:from-orange-700 hover:to-red-700 transition-all duration-200 flex items-center space-x-2">
+          <FaStar className="text-sm" />
+          <span>Generiši preporuke</span>
         </button>
       </div>
 
       {jobs.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">Nema preporuka poslova</p>
-          <button className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
-            Generiši prve preporuke
-          </button>
+        <div className="text-center py-16">
+          <div className="max-w-md mx-auto">
+            <div className="p-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl border-2 border-dashed border-orange-200">
+              <FaBriefcase className="text-6xl text-orange-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Nema preporučenih poslova
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Generišite preporuke na osnovu vašeg profila i veština
+              </p>
+              <button className="px-6 py-3 bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-xl hover:from-orange-700 hover:to-red-700 transition-all duration-200 flex items-center space-x-2 mx-auto">
+                <FaStar className="text-sm" />
+                <span>Generiši prve preporuke</span>
+              </button>
+            </div>
+          </div>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {jobs.map((job) => (
-            <div key={job.id} className="border border-gray-200 rounded-lg p-4">
-              <div className="flex justify-between items-start mb-2">
-                <h3 className="font-medium text-gray-900">{job.job_title}</h3>
-                <span className="text-sm text-gray-500">{job.match_score}% match</span>
+            <div key={job.id} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-200">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-3 mb-2">
+                    <h3 className="font-bold text-gray-900 text-xl">{job.job_title}</h3>
+                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(job.application_status)}`}>
+                      {job.application_status}
+                    </span>
+                  </div>
+                  <p className="text-lg text-gray-700 mb-2">{job.company_name}</p>
+                  <div className="flex items-center space-x-4 text-sm text-gray-600">
+                    <span className="flex items-center space-x-1">
+                      <FaMapMarkerAlt className="text-gray-400" />
+                      <span>{job.location}</span>
+                    </span>
+                    <span className="flex items-center space-x-1">
+                      <FaClock className="text-gray-400" />
+                      <span>{job.job_type}</span>
+                    </span>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className={`inline-flex items-center space-x-2 px-3 py-2 rounded-full ${getMatchScoreBg(job.match_score)}`}>
+                    <FaStar className={`text-sm ${getMatchScoreColor(job.match_score)}`} />
+                    <span className={`font-bold ${getMatchScoreColor(job.match_score)}`}>
+                      {job.match_score}%
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-600 mt-2">{job.salary_range}</p>
+                </div>
               </div>
-              <p className="text-sm text-gray-600 mb-2">{job.company_name}</p>
-              <p className="text-sm text-gray-600 mb-2">{job.location} • {job.job_type}</p>
-              <p className="text-sm text-gray-600">{job.salary_range}</p>
+              
+              <div className="mb-4">
+                <p className="text-gray-700 line-clamp-2">{job.job_description}</p>
+              </div>
+              
+              <div className="space-y-3">
+                {job.required_skills && job.required_skills.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Potrebne veštine:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {job.required_skills.slice(0, 5).map((skill, index) => (
+                        <span key={index} className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {job.preferred_skills && job.preferred_skills.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Preferirane veštine:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {job.preferred_skills.slice(0, 5).map((skill, index) => (
+                        <span key={index} className="px-2 py-1 bg-blue-100 text-blue-700 text-xs rounded-full">
+                          {skill}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+                <div className="flex space-x-3">
+                  <button className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2">
+                    <FaCheckCircle className="text-sm" />
+                    <span>Prijavi se</span>
+                  </button>
+                  <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2">
+                    <FaEye className="text-sm" />
+                    <span>Detalji</span>
+                  </button>
+                </div>
+                <button className="px-4 py-2 text-gray-400 hover:text-gray-600 transition-colors">
+                  <FaDownload className="text-sm" />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -556,40 +923,146 @@ const JobsTab: React.FC<{ jobs: JobRecommendation[]; onUpdate: () => void }> = (
 
 // Paths Tab Component
 const PathsTab: React.FC<{ paths: CareerPath[]; onUpdate: () => void }> = ({ paths, onUpdate }) => {
+  const getProgressColor = (percentage: number) => {
+    if (percentage >= 80) return 'from-green-500 to-emerald-500';
+    if (percentage >= 60) return 'from-blue-500 to-indigo-500';
+    if (percentage >= 40) return 'from-yellow-500 to-orange-500';
+    return 'from-red-500 to-pink-500';
+  };
+
+  const getProgressTextColor = (percentage: number) => {
+    if (percentage >= 80) return 'text-green-600';
+    if (percentage >= 60) return 'text-blue-600';
+    if (percentage >= 40) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
   return (
     <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">Karijerni putovi</h2>
-        <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-          Novi put
+      <div className="flex justify-between items-center mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-white flex items-center space-x-3">
+            <FaRoute className="text-indigo-600" />
+            <span>Karijerni putovi</span>
+          </h2>
+          <p className="text-slate-400 mt-1">Planirajte i pratiте napredak svoje karijere</p>
+        </div>
+        <button className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 flex items-center space-x-2">
+          <FaPlus className="text-sm" />
+          <span>Novi put</span>
         </button>
       </div>
 
       {paths.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500 mb-4">Nema definisanih karijernih putova</p>
-          <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-            Kreiraj prvi put
-          </button>
+        <div className="text-center py-16">
+          <div className="max-w-md mx-auto">
+            <div className="p-6 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl border-2 border-dashed border-indigo-200">
+              <FaRoute className="text-6xl text-indigo-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Nema definisanih karijernih putova
+              </h3>
+              <p className="text-gray-600 mb-6">
+                Kreirajte svoj prvi karijerni put i počnite sa planiranjem
+              </p>
+              <button className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all duration-200 flex items-center space-x-2 mx-auto">
+                <FaPlus className="text-sm" />
+                <span>Kreiraj prvi put</span>
+              </button>
+            </div>
+          </div>
         </div>
       ) : (
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {paths.map((path) => (
-            <div key={path.id} className="border border-gray-200 rounded-lg p-4">
-              <h3 className="font-medium text-gray-900 mb-2">{path.path_name}</h3>
-              <p className="text-sm text-gray-600 mb-2">
-                Cilj: {path.target_position} u {path.target_industry}
-              </p>
-              <div className="mb-2">
-                <div className="flex justify-between text-sm text-gray-600 mb-1">
-                  <span>Napredak</span>
-                  <span>{path.progress_percentage}%</span>
+            <div key={path.id} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-200">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-900 text-xl mb-2">{path.path_name}</h3>
+                  <div className="flex items-center space-x-2 mb-3">
+                    <span className="px-3 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full font-semibold">
+                      {path.target_industry}
+                    </span>
+                    {path.is_active && (
+                      <span className="px-3 py-1 bg-green-100 text-green-700 text-xs rounded-full font-semibold">
+                        Aktivan
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-blue-600 h-2 rounded-full" 
-                    style={{ width: `${path.progress_percentage}%` }}
-                  ></div>
+                <div className="flex space-x-2">
+                  <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+                    <FaEdit className="text-sm" />
+                  </button>
+                  <button className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                    <FaTrash className="text-sm" />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center space-x-2">
+                    <FaBriefcase className="text-indigo-500" />
+                    <span>Ciljna pozicija</span>
+                  </h4>
+                  <p className="text-gray-900 font-medium">{path.target_position}</p>
+                </div>
+                
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2 flex items-center space-x-2">
+                    <FaClock className="text-indigo-500" />
+                    <span>Trajanje</span>
+                  </h4>
+                  <p className="text-gray-900">{path.estimated_duration_months} meseci</p>
+                </div>
+                
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <h4 className="text-sm font-semibold text-gray-700">Napredak</h4>
+                    <span className={`text-sm font-bold ${getProgressTextColor(path.progress_percentage)}`}>
+                      {path.progress_percentage}%
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-3">
+                    <div 
+                      className={`bg-gradient-to-r ${getProgressColor(path.progress_percentage)} h-3 rounded-full transition-all duration-500`}
+                      style={{ width: `${path.progress_percentage}%` }}
+                    ></div>
+                  </div>
+                </div>
+                
+                {path.required_skills && path.required_skills.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Potrebne veštine</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {path.required_skills.slice(0, 4).map((skill, index) => (
+                        <span key={index} className="px-2 py-1 bg-indigo-100 text-indigo-700 text-xs rounded-full">
+                          {skill}
+                        </span>
+                      ))}
+                      {path.required_skills.length > 4 && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                          +{path.required_skills.length - 4} više
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-200">
+                <div className="flex space-x-3">
+                  <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center space-x-2">
+                    <FaEye className="text-sm" />
+                    <span>Detalji</span>
+                  </button>
+                  <button className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors flex items-center space-x-2">
+                    <FaEdit className="text-sm" />
+                    <span>Uredi</span>
+                  </button>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">Kreiran: {new Date(path.created_at).toLocaleDateString()}</p>
                 </div>
               </div>
             </div>
@@ -602,23 +1075,121 @@ const PathsTab: React.FC<{ paths: CareerPath[]; onUpdate: () => void }> = ({ pat
 
 // Industries Tab Component
 const IndustriesTab: React.FC<{ industries: Industry[] }> = ({ industries }) => {
+  const getDemandColor = (demand: string) => {
+    const colors = {
+      high: 'text-green-600 bg-green-100',
+      medium: 'text-yellow-600 bg-yellow-100',
+      low: 'text-red-600 bg-red-100'
+    };
+    return colors[demand as keyof typeof colors] || 'text-gray-600 bg-gray-100';
+  };
+
+  const getGrowthColor = (growth: number) => {
+    if (growth >= 10) return 'text-green-600';
+    if (growth >= 5) return 'text-yellow-600';
+    return 'text-red-600';
+  };
+
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">Industrije i trendovi</h2>
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-white flex items-center space-x-3">
+          <FaIndustry className="text-red-600" />
+          <span>Industrije i trendovi</span>
+        </h2>
+        <p className="text-slate-400 mt-1">Istražite različite industrije i njihove trendove</p>
+      </div>
 
       {industries.length === 0 ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">Učitavanje informacija o industrijama...</p>
+        <div className="text-center py-16">
+          <div className="max-w-md mx-auto">
+            <div className="p-6 bg-gradient-to-br from-red-50 to-pink-50 rounded-2xl border-2 border-dashed border-red-200">
+              <FaIndustry className="text-6xl text-red-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Učitavanje informacija
+              </h3>
+              <p className="text-gray-600">
+                Prikupljamo najnovije podatke o industrijama...
+              </p>
+            </div>
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {industries.map((industry) => (
-            <div key={industry.id} className="border border-gray-200 rounded-lg p-4">
-              <h3 className="font-medium text-gray-900 mb-2">{industry.industry_name}</h3>
-              <p className="text-sm text-gray-600 mb-2">{industry.description}</p>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-green-600">+{industry.growth_rate}% rast</span>
-                <span className="text-gray-500">{industry.job_demand} potražnja</span>
+            <div key={industry.id} className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-200">
+              <div className="flex justify-between items-start mb-4">
+                <div className="flex-1">
+                  <h3 className="font-bold text-gray-900 text-xl mb-2">{industry.industry_name}</h3>
+                  <p className="text-gray-600 text-sm line-clamp-3">{industry.description}</p>
+                </div>
+                <button className="p-2 text-gray-400 hover:text-red-600 transition-colors">
+                  <FaEye className="text-sm" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-2">
+                    <FaChartLine className="text-green-500" />
+                    <span className="text-sm font-medium text-gray-700">Rast</span>
+                  </div>
+                  <span className={`text-lg font-bold ${getGrowthColor(industry.growth_rate)}`}>
+                    +{industry.growth_rate}%
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-2">
+                    <FaBriefcase className="text-blue-500" />
+                    <span className="text-sm font-medium text-gray-700">Potražnja</span>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getDemandColor(industry.job_demand)}`}>
+                    {industry.job_demand}
+                  </span>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-2">
+                    <FaStar className="text-yellow-500" />
+                    <span className="text-sm font-medium text-gray-700">Prosečna plata</span>
+                  </div>
+                  <span className="text-sm font-semibold text-gray-900">
+                    {industry.average_salary}
+                  </span>
+                </div>
+              </div>
+              
+              {industry.key_skills && industry.key_skills.length > 0 && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <h4 className="text-sm font-semibold text-gray-700 mb-2">Ključne veštine</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {industry.key_skills.slice(0, 3).map((skill, index) => (
+                      <span key={index} className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded-full">
+                        {skill}
+                      </span>
+                    ))}
+                    {industry.key_skills.length > 3 && (
+                      <span className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded-full">
+                        +{industry.key_skills.length - 3} više
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <div className="flex justify-between items-center">
+                  <button className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2">
+                    <FaEye className="text-sm" />
+                    <span>Detalji</span>
+                  </button>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500">
+                      Ažurirano: {new Date(industry.updated_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           ))}
@@ -630,27 +1201,177 @@ const IndustriesTab: React.FC<{ industries: Industry[] }> = ({ industries }) => 
 
 // Insights Tab Component
 const InsightsTab: React.FC<{ insights: any }> = ({ insights }) => {
+  const stats = [
+    {
+      title: 'Ukupno veština',
+      value: insights?.total_skills || 0,
+      icon: FaTools,
+      color: 'from-blue-500 to-indigo-500',
+      bgColor: 'from-blue-50 to-indigo-50',
+      borderColor: 'border-blue-200'
+    },
+    {
+      title: 'Završeni testovi',
+      value: insights?.completed_assessments || 0,
+      icon: FaClipboardCheck,
+      color: 'from-green-500 to-emerald-500',
+      bgColor: 'from-green-50 to-emerald-50',
+      borderColor: 'border-green-200'
+    },
+    {
+      title: 'Aktivni putovi',
+      value: insights?.active_paths || 0,
+      icon: FaRoute,
+      color: 'from-purple-500 to-violet-500',
+      bgColor: 'from-purple-50 to-violet-50',
+      borderColor: 'border-purple-200'
+    },
+    {
+      title: 'Preporučeni poslovi',
+      value: insights?.job_recommendations || 0,
+      icon: FaBriefcase,
+      color: 'from-orange-500 to-red-500',
+      bgColor: 'from-orange-50 to-red-50',
+      borderColor: 'border-orange-200'
+    },
+    {
+      title: 'Prosečan match score',
+      value: `${insights?.average_match_score || 0}%`,
+      icon: FaStar,
+      color: 'from-yellow-500 to-amber-500',
+      bgColor: 'from-yellow-50 to-amber-50',
+      borderColor: 'border-yellow-200'
+    },
+    {
+      title: 'Dani aktivnosti',
+      value: insights?.active_days || 0,
+      icon: FaClock,
+      color: 'from-teal-500 to-cyan-500',
+      bgColor: 'from-teal-50 to-cyan-50',
+      borderColor: 'border-teal-200'
+    }
+  ];
+
   return (
     <div>
-      <h2 className="text-xl font-semibold text-gray-900 mb-6">Karijerna analitika</h2>
+      <div className="mb-8">
+        <h2 className="text-2xl font-bold text-white flex items-center space-x-3">
+          <FaChartLine className="text-teal-600" />
+          <span>Karijerna analitika</span>
+        </h2>
+        <p className="text-slate-400 mt-1">Pregled vašeg napretka i aktivnosti</p>
+      </div>
 
       {!insights ? (
-        <div className="text-center py-12">
-          <p className="text-gray-500">Učitavanje analitike...</p>
+        <div className="text-center py-16">
+          <div className="max-w-md mx-auto">
+            <div className="p-6 bg-gradient-to-br from-teal-50 to-cyan-50 rounded-2xl border-2 border-dashed border-teal-200">
+              <FaChartLine className="text-6xl text-teal-400 mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                Učitavanje analitike
+              </h3>
+              <p className="text-gray-600">
+                Prikupljamo podatke o vašem napretku...
+              </p>
+            </div>
+          </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-medium text-blue-900 mb-2">Ukupno veština</h3>
-            <p className="text-2xl font-bold text-blue-600">{insights.total_skills || 0}</p>
+        <div className="space-y-8">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {stats.map((stat, index) => {
+              const IconComponent = stat.icon;
+              return (
+                <div key={index} className={`bg-gradient-to-br ${stat.bgColor} rounded-xl border ${stat.borderColor} p-6 hover:shadow-lg transition-all duration-200`}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`p-3 bg-gradient-to-r ${stat.color} rounded-lg`}>
+                      <IconComponent className="text-white text-xl" />
+                    </div>
+                    <div className="text-right">
+                      <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
+                    </div>
+                  </div>
+                  <h3 className="font-semibold text-gray-700">{stat.title}</h3>
+                </div>
+              );
+            })}
           </div>
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <h3 className="font-medium text-green-900 mb-2">Završeni testovi</h3>
-            <p className="text-2xl font-bold text-green-600">{insights.completed_assessments || 0}</p>
+
+          {/* Progress Overview */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center space-x-3">
+              <FaRoute className="text-indigo-600" />
+              <span>Pregled napretka</span>
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-4">Najbolje veštine</h4>
+                                 <div className="space-y-3">
+                   {insights?.top_skills && insights.top_skills.length > 0 ? (
+                     insights.top_skills.slice(0, 5).map((skill: any, index: number) => (
+                       <div key={index} className="flex justify-between items-center">
+                         <span className="text-gray-600">{skill.name}</span>
+                         <div className="flex items-center space-x-2">
+                           <div className="w-20 bg-gray-200 rounded-full h-2">
+                             <div 
+                               className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full"
+                               style={{ width: `${skill.level}%` }}
+                             ></div>
+                           </div>
+                           <span className="text-sm font-semibold text-gray-700">{skill.level}%</span>
+                         </div>
+                       </div>
+                     ))
+                   ) : (
+                     <p className="text-gray-500 text-sm">Nema podataka o veštinama</p>
+                   )}
+                 </div>
+              </div>
+              
+              <div>
+                <h4 className="font-semibold text-gray-700 mb-4">Preporučene industrije</h4>
+                                 <div className="space-y-3">
+                   {insights?.recommended_industries && insights.recommended_industries.length > 0 ? (
+                     insights.recommended_industries.slice(0, 5).map((industry: any, index: number) => (
+                       <div key={index} className="flex justify-between items-center">
+                         <span className="text-gray-600">{industry.name}</span>
+                         <span className="text-sm font-semibold text-green-600">{industry.match_score}%</span>
+                       </div>
+                     ))
+                   ) : (
+                     <p className="text-gray-500 text-sm">Nema podataka o industrijama</p>
+                   )}
+                 </div>
+              </div>
+            </div>
           </div>
-          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-            <h3 className="font-medium text-purple-900 mb-2">Aktivni putovi</h3>
-            <p className="text-2xl font-bold text-purple-600">{insights.active_paths || 0}</p>
+
+          {/* Recent Activity */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+            <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center space-x-3">
+              <FaClock className="text-orange-600" />
+              <span>Nedavne aktivnosti</span>
+            </h3>
+            
+                         <div className="space-y-4">
+               {insights?.recent_activities && insights.recent_activities.length > 0 ? (
+                 insights.recent_activities.slice(0, 5).map((activity: any, index: number) => (
+                   <div key={index} className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                     <div className="p-2 bg-blue-100 rounded-lg">
+                       <FaCheckCircle className="text-blue-600 text-sm" />
+                     </div>
+                     <div className="flex-1">
+                       <p className="text-gray-900 font-medium">{activity.description}</p>
+                       <p className="text-sm text-gray-500">{activity.date}</p>
+                     </div>
+                   </div>
+                 ))
+               ) : (
+                 <p className="text-gray-500 text-center py-8">Nema nedavnih aktivnosti</p>
+               )}
+             </div>
           </div>
         </div>
       )}
