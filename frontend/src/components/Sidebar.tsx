@@ -35,9 +35,9 @@ export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
         <div className="absolute bottom-1/4 left-1/4 w-24 h-24 bg-purple-400/10 rounded-full blur-xl animate-pulse"></div>
       </div>
 
-      <div className="relative flex flex-col h-full p-6">
+      <div className="relative flex flex-col h-full p-6 overflow-y-auto">
         {/* Premium Header */}
-        <div className="flex items-center gap-3 mb-8 mt-2">
+        <div className="flex items-center gap-3 mb-8 mt-2 flex-shrink-0">
           <div className="relative">
             <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
               <FaGraduationCap className="text-white" size={28} />
@@ -53,11 +53,11 @@ export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
         </div>
 
         {/* Premium Navigation */}
-        <nav className="flex flex-col gap-2 flex-1">
+        <nav className="flex flex-col gap-2 flex-1 min-h-0">
           {/* Welcome Button */}
           <button
             onClick={() => onMenuSelect(-1)}
-            className={`group relative p-4 rounded-2xl card-hover-profi ${
+            className={`group relative p-4 rounded-2xl card-hover-profi flex-shrink-0 ${
               -1 === selectedMenu 
                 ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 shadow-xl shadow-blue-500/20' 
                 : 'hover-border-subtle hover-bg-subtle border border-white/10'
@@ -87,13 +87,13 @@ export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
             )}
           </button>
           
-          <div className="border-t border-white/10 my-2"></div>
+          <div className="border-t border-white/10 my-2 flex-shrink-0"></div>
 
           {menu.map((item, idx) => (
             <button
               key={item.label}
               onClick={() => onMenuSelect(idx)}
-              className={`group relative p-4 rounded-2xl card-hover-profi ${
+              className={`group relative p-4 rounded-2xl card-hover-profi flex-shrink-0 ${
                 idx === selectedMenu 
                   ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 shadow-xl shadow-blue-500/20' 
                   : 'hover-border-subtle hover-bg-subtle border border-white/10'
@@ -128,7 +128,7 @@ export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
         </nav>
 
         {/* Premium User Profile */}
-        <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 backdrop-blur-sm">
+        <div className="flex items-center gap-3 p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 backdrop-blur-sm flex-shrink-0 mt-4">
           <div className="relative">
             <img 
               src="https://randomuser.me/api/portraits/men/32.jpg" 

@@ -31,6 +31,7 @@ class ErrorCategory(Enum):
     WEBSOCKET = "websocket"
     RAG = "rag"
     OCR = "ocr"
+    DOCUMENT_PROCESSING = "document_processing"
     GENERAL = "general"
 
 @dataclass

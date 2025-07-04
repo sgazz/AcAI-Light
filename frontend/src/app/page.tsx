@@ -217,9 +217,9 @@ export default function Home() {
     <ErrorBoundary>
       <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
         <OfflineDetector />
-        <div className="flex h-screen p-4 gap-4">
+        <div className="flex min-h-screen p-4 gap-4">
           <Sidebar selectedMenu={selectedMenu} onMenuSelect={setSelectedMenu} />
-          <main className="flex-1 overflow-hidden">
+          <main className="flex-1 overflow-y-auto">
             {renderContent()}
           </main>
         </div>

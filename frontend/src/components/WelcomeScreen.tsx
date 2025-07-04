@@ -251,46 +251,46 @@ export default function WelcomeScreen({
   };
 
   return (
-    <div className={`min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+    <div className={`w-full bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 transition-opacity duration-1000 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
       {/* Animated Background */}
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/5 via-purple-500/5 to-pink-500/5"></div>
         <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl"></div>
         <div className="absolute bottom-1/4 left-1/4 w-80 h-80 bg-purple-400/10 rounded-full blur-3xl"></div>
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-pink-400/10 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="relative z-10 container mx-auto px-6 py-12">
+      <div className="relative z-10 container mx-auto px-4 sm:px-6 py-8 sm:py-12 lg:py-16">
         {/* Hero Section */}
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center gap-3 mb-6">
+        <div className="text-center mb-12 sm:mb-16 lg:mb-20">
+          <div className="inline-flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
             <div className="relative">
-              <div className="p-4 bg-gradient-to-br from-blue-500 to-purple-600 rounded-3xl">
-                <FaGraduationCap className="text-white" size={40} />
+              <div className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl sm:rounded-3xl">
+                <FaGraduationCap className="text-white" size={32} />
               </div>
             </div>
-            <h1 className="text-6xl font-bold bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent">
+            <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent">
               AcAIA
             </h1>
           </div>
           
-          <h2 className="text-3xl font-semibold text-white mb-4">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-white mb-3 sm:mb-4">
             Dobrodošli u budućnost učenja
           </h2>
           
-          <p className="text-xl text-slate-300 mb-8 max-w-2xl mx-auto">
+          <p className="text-lg sm:text-xl lg:text-2xl text-slate-300 mb-6 sm:mb-8 lg:mb-10 max-w-3xl mx-auto px-4">
             Vaš AI asistent za pametno učenje, sa naprednim RAG tehnologijama i 
             interaktivnim alatima za maksimalan uspeh
           </p>
 
           {/* CTA Button */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 lg:gap-6 justify-center items-center px-4">
             <button
               onClick={() => setShowSessionSetup(true)}
-              className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl text-white font-semibold text-lg shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:scale-105"
+              className="group relative w-full sm:w-auto px-6 sm:px-8 lg:px-10 py-3 sm:py-4 lg:py-5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl sm:rounded-2xl text-white font-semibold text-base sm:text-lg lg:text-xl shadow-2xl hover:shadow-blue-500/25 transition-all duration-300 transform hover:scale-105"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-700 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              <span className="relative flex items-center gap-2">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-700 rounded-xl sm:rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+              <span className="relative flex items-center gap-2 justify-center">
                 Započni sada
                 <FaArrowRight className="group-hover:translate-x-1 transition-transform duration-300" />
               </span>
@@ -298,9 +298,9 @@ export default function WelcomeScreen({
             
             <button
               onClick={() => setShowLoginModal(true)}
-              className="group relative px-8 py-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl text-white font-semibold text-lg hover:bg-white/20 hover:border-white/30 transition-all duration-300 transform hover:scale-105"
+              className="group relative w-full sm:w-auto px-6 sm:px-8 lg:px-10 py-3 sm:py-4 lg:py-5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl sm:rounded-2xl text-white font-semibold text-base sm:text-lg lg:text-xl hover:bg-white/20 hover:border-white/30 transition-all duration-300 transform hover:scale-105"
             >
-              <span className="relative flex items-center gap-2">
+              <span className="relative flex items-center gap-2 justify-center">
                 <FaSignInAlt />
                 Prijavi se
               </span>
@@ -309,36 +309,36 @@ export default function WelcomeScreen({
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-16">
-          <h3 className="text-2xl font-semibold text-white mb-6 text-center">
+        <div className="mb-12 sm:mb-16 lg:mb-20">
+          <h3 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-white mb-4 sm:mb-6 lg:mb-8 text-center">
             Brzi pristup
           </h3>
           
           {/* Recent Sessions */}
-          <div className="mb-8">
-            <h4 className="text-lg font-medium text-white mb-4 text-center flex items-center justify-center gap-2">
+          <div className="mb-6 sm:mb-8 lg:mb-10">
+            <h4 className="text-base sm:text-lg lg:text-xl font-medium text-white mb-3 sm:mb-4 lg:mb-6 text-center flex items-center justify-center gap-2">
               <FaHistory className="text-blue-400" />
               Poslednje sesije
             </h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto mb-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 max-w-5xl mx-auto mb-4 sm:mb-6 lg:mb-8">
               {recentSessions?.slice(0, 3).map((session) => (
                 <button
                   key={session.id}
                   onClick={() => onStartChat()}
-                  className="group p-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 transform hover:scale-105 text-left"
+                  className="group p-3 sm:p-4 lg:p-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg sm:rounded-xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 transform hover:scale-105 text-left"
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300">
-                      <FaComment className="text-blue-400" size={16} />
+                  <div className="flex items-start gap-2 sm:gap-3 lg:gap-4">
+                    <div className="p-2 lg:p-3 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300">
+                      <FaComment className="text-blue-400" size={14} />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h5 className="text-white font-medium text-sm mb-1 truncate">
+                      <h5 className="text-white font-medium text-xs sm:text-sm lg:text-base mb-1 truncate">
                         {session.title}
                       </h5>
-                      <p className="text-slate-400 text-xs mb-2 truncate">
+                      <p className="text-slate-400 text-xs sm:text-sm mb-2 truncate">
                         {session.lastMessage}
                       </p>
-                      <div className="flex items-center justify-between text-xs text-slate-500">
+                      <div className="flex items-center justify-between text-xs sm:text-sm text-slate-500">
                         <span>{new Date(session.timestamp).toLocaleDateString('sr-RS')}</span>
                         <span>{session.messageCount} poruka</span>
                       </div>
@@ -350,18 +350,18 @@ export default function WelcomeScreen({
           </div>
 
           {/* Quick Action Buttons */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-6 max-w-5xl mx-auto">
             {quickActions.map((action, index) => (
               <button
                 key={action.label}
                 onClick={() => handleQuickAction(action.action)}
-                className="group p-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 transform hover:scale-105"
+                className="group p-4 sm:p-6 lg:p-8 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg sm:rounded-2xl hover:bg-white/10 hover:border-white/20 transition-all duration-300 transform hover:scale-105"
               >
-                <div className="flex flex-col items-center gap-3">
-                  <div className="p-3 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300">
+                <div className="flex flex-col items-center gap-2 sm:gap-3 lg:gap-4">
+                  <div className="p-2 sm:p-3 lg:p-4 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg sm:rounded-xl group-hover:from-blue-500/30 group-hover:to-purple-500/30 transition-all duration-300">
                     {action.icon}
                   </div>
-                  <span className="text-white font-medium">{action.label}</span>
+                  <span className="text-white font-medium text-xs sm:text-sm lg:text-base text-center">{action.label}</span>
                 </div>
               </button>
             ))}
@@ -369,24 +369,24 @@ export default function WelcomeScreen({
         </div>
 
         {/* Feature Highlights */}
-        <div className="mb-16">
-          <h3 className="text-2xl font-semibold text-white mb-6 text-center">
+        <div className="mb-12 sm:mb-16 lg:mb-20">
+          <h3 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-white mb-4 sm:mb-6 lg:mb-8 text-center">
             Istražite mogućnosti
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-7xl mx-auto">
             {features.map((feature, index) => (
               <button
                 key={feature.title}
                 onClick={() => onSelectFeature(index)}
-                className={`group p-6 ${feature.bgColor} backdrop-blur-sm border ${feature.borderColor} rounded-2xl hover:bg-white/5 hover:border-white/20 transition-all duration-300 transform hover:scale-105`}
+                className={`group p-4 sm:p-6 lg:p-8 ${feature.bgColor} backdrop-blur-sm border ${feature.borderColor} rounded-lg sm:rounded-2xl hover:bg-white/5 hover:border-white/20 transition-all duration-300 transform hover:scale-105`}
               >
-                <div className="flex items-start gap-4">
-                  <div className={`p-3 bg-gradient-to-br ${feature.color} rounded-xl text-white shadow-lg`}>
+                <div className="flex items-start gap-3 sm:gap-4 lg:gap-6">
+                  <div className={`p-2 sm:p-3 lg:p-4 bg-gradient-to-br ${feature.color} rounded-lg sm:rounded-xl text-white shadow-lg`}>
                     {feature.icon}
                   </div>
                   <div className="text-left">
-                    <h4 className="text-white font-semibold mb-2">{feature.title}</h4>
-                    <p className="text-slate-300 text-sm">{feature.description}</p>
+                    <h4 className="text-white font-semibold mb-1 sm:mb-2 lg:mb-3 text-sm sm:text-base lg:text-lg">{feature.title}</h4>
+                    <p className="text-slate-300 text-xs sm:text-sm lg:text-base">{feature.description}</p>
                   </div>
                 </div>
               </button>
@@ -395,45 +395,45 @@ export default function WelcomeScreen({
         </div>
 
         {/* Stats Section */}
-        <div className="mb-16">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            <div className="p-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl text-center">
-              <div className="flex justify-center mb-3">
-                <FaStar className="text-yellow-400" size={24} />
+        <div className="mb-12 sm:mb-16 lg:mb-20">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-5xl mx-auto">
+            <div className="p-4 sm:p-6 lg:p-8 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg sm:rounded-2xl text-center">
+              <div className="flex justify-center mb-2 sm:mb-3 lg:mb-4">
+                <FaStar className="text-yellow-400" size={20} />
               </div>
-              <div className="text-2xl font-bold text-white mb-1">4.9/5</div>
-              <div className="text-slate-300 text-sm">Korisnička ocena</div>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1">4.9/5</div>
+              <div className="text-slate-300 text-xs sm:text-sm lg:text-base">Korisnička ocena</div>
             </div>
-            <div className="p-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl text-center">
-              <div className="flex justify-center mb-3">
-                <FaClock className="text-blue-400" size={24} />
+            <div className="p-4 sm:p-6 lg:p-8 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg sm:rounded-2xl text-center">
+              <div className="flex justify-center mb-2 sm:mb-3 lg:mb-4">
+                <FaClock className="text-blue-400" size={20} />
               </div>
-              <div className="text-2xl font-bold text-white mb-1">24/7</div>
-              <div className="text-slate-300 text-sm">Dostupnost</div>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1">24/7</div>
+              <div className="text-slate-300 text-xs sm:text-sm lg:text-base">Dostupnost</div>
             </div>
-            <div className="p-6 bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl text-center">
-              <div className="flex justify-center mb-3">
-                <FaChartLine className="text-green-400" size={24} />
+            <div className="p-4 sm:p-6 lg:p-8 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg sm:rounded-2xl text-center">
+              <div className="flex justify-center mb-2 sm:mb-3 lg:mb-4">
+                <FaChartLine className="text-green-400" size={20} />
               </div>
-              <div className="text-2xl font-bold text-white mb-1">+85%</div>
-              <div className="text-slate-300 text-sm">Poboljšanje rezultata</div>
+              <div className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-1">+85%</div>
+              <div className="text-slate-300 text-xs sm:text-sm lg:text-base">Poboljšanje rezultata</div>
             </div>
           </div>
         </div>
 
         {/* Getting Started */}
-        <div className="text-center">
-          <h3 className="text-2xl font-semibold text-white mb-4">
+        <div className="text-center pb-8 sm:pb-12 lg:pb-16">
+          <h3 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-white mb-3 sm:mb-4 lg:mb-6">
             Kako početi?
           </h3>
-          <div className="max-w-2xl mx-auto text-slate-300">
-            <p className="mb-4">
+          <div className="max-w-3xl mx-auto text-slate-300 text-sm sm:text-base lg:text-lg px-4">
+            <p className="mb-3 sm:mb-4 lg:mb-6">
               1. <strong>Upload dokumente</strong> - Dodajte svoje materijale za učenje
             </p>
-            <p className="mb-4">
+            <p className="mb-3 sm:mb-4 lg:mb-6">
               2. <strong>Započnite chat</strong> - Postavite pitanja AI asistentu
             </p>
-            <p className="mb-4">
+            <p className="mb-3 sm:mb-4 lg:mb-6">
               3. <strong>Istražite alate</strong> - Koristite Mind Mapping, Audio Mode i druge funkcionalnosti
             </p>
             <p>

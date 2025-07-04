@@ -220,63 +220,63 @@ export default function StudyJournal() {
   };
 
   const renderEntries = () => (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Journal Entries ({entries.length})</h3>
+    <div className="space-y-3 sm:space-y-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <h3 className="text-lg sm:text-xl font-semibold text-white">Journal Entries ({entries.length})</h3>
         <button
           onClick={() => setShowCreateEntryModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all"
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg sm:rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all text-sm sm:text-base w-full sm:w-auto justify-center"
         >
-          <FaPlus size={16} />
+          <FaPlus size={14} />
           <span>Novi Entry</span>
         </button>
       </div>
       
       {entries.length === 0 ? (
-        <div className="text-center py-8">
-          <FaBook size={48} className="mx-auto mb-4 text-slate-600" />
-          <h3 className="text-lg font-semibold text-white mb-2">Nema journal entries</h3>
-          <p className="text-slate-400 mb-4">Kreirajte svoj prvi journal entry da počnete praćenje učenja</p>
+        <div className="text-center py-8 sm:py-12">
+          <FaBook size={40} className="mx-auto mb-3 sm:mb-4 text-slate-600" />
+          <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">Nema journal entries</h3>
+          <p className="text-slate-400 mb-4 text-sm sm:text-base">Kreirajte svoj prvi journal entry da počnete praćenje učenja</p>
           <button
             onClick={() => setShowCreateEntryModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all mx-auto"
+            className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg sm:rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all mx-auto text-sm sm:text-base"
           >
-            <FaPlus size={16} />
+            <FaPlus size={14} />
             <span>Kreiraj Entry</span>
           </button>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3 sm:gap-4">
           {entries.map((entry) => (
-            <div key={entry.id} className="bg-slate-800/50 border border-white/10 rounded-xl p-4 hover:border-blue-500/30 transition-all">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
+            <div key={entry.id} className="bg-slate-800/50 border border-white/10 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:border-blue-500/30 transition-all">
+              <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-2 sm:mb-3 gap-2 sm:gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                   <div className={`p-2 bg-gradient-to-r ${getEntryTypeColor(entry.entry_type)} rounded-lg`}>
-                    <FaBook className="text-white" size={16} />
+                    <FaBook className="text-white" size={14} />
                   </div>
                   <div>
-                    <h4 className="font-semibold text-white capitalize">{entry.entry_type}</h4>
-                    <p className="text-sm text-slate-400">{entry.subject}</p>
+                    <h4 className="font-semibold text-white capitalize text-sm sm:text-base">{entry.entry_type}</h4>
+                    <p className="text-xs sm:text-sm text-slate-400">{entry.subject}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 text-xs sm:text-sm">
                   {entry.mood_rating && (
                     <div className="flex items-center gap-1">
-                      <span className="text-sm text-slate-400">Mood:</span>
-                      <span className="text-sm text-yellow-400">{entry.mood_rating}/5</span>
+                      <span className="text-slate-400">Mood:</span>
+                      <span className="text-yellow-400">{entry.mood_rating}/5</span>
                     </div>
                   )}
-                  <span className="text-xs text-slate-500">{formatDate(entry.created_at)}</span>
+                  <span className="text-slate-500">{formatDate(entry.created_at)}</span>
                 </div>
               </div>
               
-              <p className="text-slate-300 mb-3 line-clamp-3">{entry.content}</p>
+              <p className="text-slate-300 mb-2 sm:mb-3 line-clamp-3 text-sm sm:text-base">{entry.content}</p>
               
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4 text-sm text-slate-400">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-4">
+                <div className="flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-slate-400">
                   {entry.study_time_minutes > 0 && (
                     <div className="flex items-center gap-1">
-                      <FaClock size={12} />
+                      <FaClock size={10} />
                       <span>{entry.study_time_minutes} min</span>
                     </div>
                   )}
@@ -293,7 +293,7 @@ export default function StudyJournal() {
                 
                 {entry.tags.length > 0 && (
                   <div className="flex items-center gap-1">
-                    <FaTag size={12} className="text-slate-500" />
+                    <FaTag size={10} className="text-slate-500" />
                     {entry.tags.slice(0, 2).map((tag, index) => (
                       <span key={index} className="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300">
                         {tag}
@@ -313,63 +313,63 @@ export default function StudyJournal() {
   );
 
   const renderGoals = () => (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white">Study Goals ({goals.length})</h3>
+    <div className="space-y-3 sm:space-y-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+        <h3 className="text-lg sm:text-xl font-semibold text-white">Study Goals ({goals.length})</h3>
         <button
           onClick={() => setShowCreateGoalModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all"
+          className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg sm:rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all text-sm sm:text-base w-full sm:w-auto justify-center"
         >
-          <FaPlus size={16} />
+          <FaPlus size={14} />
           <span>Novi Cilj</span>
         </button>
       </div>
       
       {goals.length === 0 ? (
-        <div className="text-center py-8">
-          <FaBullseye size={48} className="mx-auto mb-4 text-slate-600" />
-          <h3 className="text-lg font-semibold text-white mb-2">Nema ciljeva</h3>
-          <p className="text-slate-400 mb-4">Kreirajte svoj prvi cilj da počnete praćenje napretka</p>
+        <div className="text-center py-8 sm:py-12">
+          <FaBullseye size={40} className="mx-auto mb-3 sm:mb-4 text-slate-600" />
+          <h3 className="text-lg sm:text-xl font-semibold text-white mb-2">Nema ciljeva</h3>
+          <p className="text-slate-400 mb-4 text-sm sm:text-base">Kreirajte svoj prvi cilj da počnete praćenje napretka</p>
           <button
             onClick={() => setShowCreateGoalModal(true)}
-            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all mx-auto"
+            className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg sm:rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all mx-auto text-sm sm:text-base"
           >
-            <FaPlus size={16} />
+            <FaPlus size={14} />
             <span>Kreiraj Cilj</span>
           </button>
         </div>
       ) : (
-        <div className="grid gap-4">
+        <div className="grid gap-3 sm:gap-4">
           {goals.map((goal) => {
             const progress = (goal.current_value / goal.target_value) * 100;
             return (
-              <div key={goal.id} className="bg-slate-800/50 border border-white/10 rounded-xl p-4 hover:border-green-500/30 transition-all">
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex items-center gap-3">
+              <div key={goal.id} className="bg-slate-800/50 border border-white/10 rounded-lg sm:rounded-xl p-3 sm:p-4 hover:border-green-500/30 transition-all">
+                <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-2 sm:mb-3 gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3">
                     <div className="p-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg">
-                      <FaBullseye className="text-white" size={16} />
+                      <FaBullseye className="text-white" size={14} />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-white">{goal.title}</h4>
-                      <p className="text-sm text-slate-400">{goal.subject || 'Opšta tema'}</p>
+                      <h4 className="font-semibold text-white text-sm sm:text-base">{goal.title}</h4>
+                      <p className="text-xs sm:text-sm text-slate-400">{goal.subject || 'Opšta tema'}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className={`text-sm ${getPriorityColor(goal.priority)}`}>
+                  <div className="flex items-center gap-2 text-xs sm:text-sm">
+                    <span className={`${getPriorityColor(goal.priority)}`}>
                       {goal.priority}
                     </span>
-                    <span className={`text-sm ${getStatusColor(goal.status)}`}>
+                    <span className={`${getStatusColor(goal.status)}`}>
                       {goal.status}
                     </span>
                   </div>
                 </div>
                 
                 {goal.description && (
-                  <p className="text-slate-300 mb-3">{goal.description}</p>
+                  <p className="text-slate-300 mb-2 sm:mb-3 text-sm sm:text-base">{goal.description}</p>
                 )}
                 
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
                     <span className="text-slate-400">Napredak</span>
                     <span className="text-white">{goal.current_value} / {goal.target_value} {goal.measurement_unit}</span>
                   </div>
@@ -385,9 +385,9 @@ export default function StudyJournal() {
                   </div>
                 </div>
                 
-                <div className="flex items-center justify-between mt-3 text-sm text-slate-400">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between mt-2 sm:mt-3 text-xs sm:text-sm text-slate-400 gap-1 sm:gap-2">
                   <div className="flex items-center gap-1">
-                    <FaCalendar size={12} />
+                    <FaCalendar size={10} />
                     <span>Target: {new Date(goal.target_date).toLocaleDateString('sr-RS')}</span>
                   </div>
                   <span className="capitalize">{goal.goal_type}</span>
@@ -481,24 +481,24 @@ export default function StudyJournal() {
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="flex items-center justify-between p-6 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl">
-            <FaBook className="text-white" size={24} />
+      <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl sm:rounded-2xl">
+            <FaBook className="text-white" size={20} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Study Journal</h1>
-            <p className="text-slate-400">Praćenje učenja, ciljeva i flashcards</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Study Journal</h1>
+            <p className="text-slate-400 text-sm sm:text-base">Praćenje učenja, ciljeva i flashcards</p>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 sm:p-6">
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4 sm:mb-6">
           <button
             onClick={() => setActiveTab('entries')}
-            className={`px-4 py-2 rounded-xl font-medium transition-all ${
+            className={`px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl font-medium transition-all text-sm sm:text-base ${
               activeTab === 'entries'
                 ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
@@ -509,7 +509,7 @@ export default function StudyJournal() {
           </button>
           <button
             onClick={() => setActiveTab('goals')}
-            className={`px-4 py-2 rounded-xl font-medium transition-all ${
+            className={`px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl font-medium transition-all text-sm sm:text-base ${
               activeTab === 'goals'
                 ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
@@ -520,7 +520,7 @@ export default function StudyJournal() {
           </button>
           <button
             onClick={() => setActiveTab('flashcards')}
-            className={`px-4 py-2 rounded-xl font-medium transition-all ${
+            className={`px-3 sm:px-4 py-2 rounded-lg sm:rounded-xl font-medium transition-all text-sm sm:text-base ${
               activeTab === 'flashcards'
                 ? 'bg-gradient-to-r from-purple-500 to-pink-600 text-white'
                 : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
@@ -533,14 +533,14 @@ export default function StudyJournal() {
 
         {/* Content */}
         {isLoading ? (
-          <div className="flex items-center justify-center h-64">
+          <div className="flex items-center justify-center h-48 sm:h-64">
             <div className="text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-              <p className="text-slate-400">Učitavanje...</p>
+              <div className="animate-spin rounded-full h-8 sm:h-12 w-8 sm:w-12 border-b-2 border-blue-500 mx-auto mb-3 sm:mb-4"></div>
+              <p className="text-slate-400 text-sm sm:text-base">Učitavanje...</p>
             </div>
           </div>
         ) : (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {activeTab === 'entries' && renderEntries()}
             {activeTab === 'goals' && renderGoals()}
             {activeTab === 'flashcards' && renderFlashcards()}
@@ -550,9 +550,9 @@ export default function StudyJournal() {
 
       {/* Create Entry Modal */}
       {showCreateEntryModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-slate-800 border border-white/10 rounded-2xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-semibold text-white mb-4">Kreiraj Journal Entry</h3>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4">Kreiraj Journal Entry</h3>
             <CreateEntryForm onSubmit={createEntry} onCancel={() => setShowCreateEntryModal(false)} />
           </div>
         </div>
@@ -560,9 +560,9 @@ export default function StudyJournal() {
 
       {/* Create Goal Modal */}
       {showCreateGoalModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-slate-800 border border-white/10 rounded-2xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-semibold text-white mb-4">Kreiraj Study Goal</h3>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4">Kreiraj Study Goal</h3>
             <CreateGoalForm onSubmit={createGoal} onCancel={() => setShowCreateGoalModal(false)} />
           </div>
         </div>
@@ -570,9 +570,9 @@ export default function StudyJournal() {
 
       {/* Create Flashcard Modal */}
       {showCreateFlashcardModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-slate-800 border border-white/10 rounded-2xl p-6 w-full max-w-md">
-            <h3 className="text-xl font-semibold text-white mb-4">Kreiraj Flashcard</h3>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-slate-800 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4">Kreiraj Flashcard</h3>
             <CreateFlashcardForm onSubmit={createFlashcardHandler} onCancel={() => setShowCreateFlashcardModal(false)} />
           </div>
         </div>

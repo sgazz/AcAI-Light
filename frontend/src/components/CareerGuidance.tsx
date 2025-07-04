@@ -235,10 +235,10 @@ const CareerGuidance: React.FC = () => {
   const renderTabContent = () => {
     if (loading) {
       return (
-        <div className="flex items-center justify-center h-64">
-          <div className="flex flex-col items-center space-y-4">
-            <FaSpinner className="animate-spin text-4xl text-blue-500" />
-            <p className="text-slate-400">Učitavanje podataka...</p>
+        <div className="flex items-center justify-center h-48 sm:h-64">
+          <div className="flex flex-col items-center space-y-3 sm:space-y-4">
+            <FaSpinner className="animate-spin text-3xl sm:text-4xl text-blue-500" />
+            <p className="text-slate-400 text-sm sm:text-base">Učitavanje podataka...</p>
           </div>
         </div>
       );
@@ -246,17 +246,17 @@ const CareerGuidance: React.FC = () => {
 
     if (error) {
       return (
-        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-6">
+        <div className="bg-red-900/20 border border-red-500/30 rounded-lg p-4 sm:p-6">
           <div className="flex items-center space-x-3">
-            <FaTimesCircle className="text-red-400 text-xl" />
+            <FaTimesCircle className="text-red-400 text-lg sm:text-xl" />
             <div>
-              <h3 className="text-red-300 font-medium">Greška pri učitavanju</h3>
-              <p className="text-red-400 mt-1">{error}</p>
+              <h3 className="text-red-300 font-medium text-sm sm:text-base">Greška pri učitavanju</h3>
+              <p className="text-red-400 mt-1 text-xs sm:text-sm">{error}</p>
             </div>
           </div>
           <button 
             onClick={loadData}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2"
+            className="mt-3 sm:mt-4 px-3 sm:px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors flex items-center space-x-2 text-sm sm:text-base"
           >
             <FaSpinner className="text-sm" />
             <span>Pokušaj ponovo</span>
@@ -287,21 +287,21 @@ const CareerGuidance: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="flex items-center justify-between p-6 border-b border-white/10">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl">
-            <FaRoute className="text-white" size={24} />
+      <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl sm:rounded-2xl">
+            <FaRoute className="text-white" size={20} />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Career Guidance</h1>
-            <p className="text-slate-400">Upravljajte svojom karijerom, veštinama i profesionalnim razvojem</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-white">Career Guidance</h1>
+            <p className="text-slate-400 text-sm sm:text-base">Upravljajte svojom karijerom, veštinama i profesionalnim razvojem</p>
           </div>
         </div>
       </div>
 
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-4 sm:p-6">
         {/* Tab Navigation */}
-        <div className="flex items-center gap-2 mb-6">
+        <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-4 sm:mb-6">
           {tabs.map((tab) => {
             const IconComponent = tab.icon;
             const isActive = activeTab === tab.id;
@@ -309,21 +309,21 @@ const CareerGuidance: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-2 rounded-xl font-medium transition-all flex items-center gap-2 ${
+                className={`px-2 sm:px-4 py-2 rounded-lg sm:rounded-xl font-medium transition-all flex items-center gap-1 sm:gap-2 text-xs sm:text-sm ${
                   isActive
                     ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
                     : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
                 }`}
               >
-                <IconComponent className="text-lg" />
-                <span>{tab.name}</span>
+                <IconComponent className="text-sm sm:text-lg" />
+                <span className="hidden sm:inline">{tab.name}</span>
               </button>
             );
           })}
         </div>
 
         {/* Tab Content */}
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           {renderTabContent()}
         </div>
       </div>
@@ -349,19 +349,19 @@ const ProfileTab: React.FC<{ profile: CareerProfile | null; onUpdate: () => void
 
         if (!profile && !isEditing) {
         return (
-          <div className="text-center py-16">
-            <div className="max-w-md mx-auto">
-              <div className="p-6 bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl border-2 border-dashed border-slate-600">
-                <FaUser className="text-6xl text-blue-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-white mb-3">
+          <div className="text-center py-8 sm:py-16">
+            <div className="max-w-md mx-auto px-4">
+              <div className="p-4 sm:p-6 bg-gradient-to-br from-slate-800 to-slate-700 rounded-xl sm:rounded-2xl border-2 border-dashed border-slate-600">
+                <FaUser className="text-4xl sm:text-6xl text-blue-400 mx-auto mb-3 sm:mb-4" />
+                <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-3">
                   Nema kreiranog profila
                 </h3>
-                <p className="text-slate-400 mb-6">
+                <p className="text-slate-400 mb-4 sm:mb-6 text-sm sm:text-base">
                   Kreirajte svoj karijerni profil da biste počeli sa planiranjem karijere
                 </p>
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center space-x-2 mx-auto"
+                  className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg sm:rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 flex items-center space-x-2 mx-auto text-sm sm:text-base"
                 >
                   <FaPlus className="text-sm" />
                   <span>Kreiraj profil</span>
@@ -374,17 +374,17 @@ const ProfileTab: React.FC<{ profile: CareerProfile | null; onUpdate: () => void
 
   return (
     <div>
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-3 sm:gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-white flex items-center space-x-3">
+          <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center space-x-2 sm:space-x-3">
             <FaUser className="text-blue-500" />
             <span>Karijerni profil</span>
           </h2>
-          <p className="text-slate-400 mt-1">Upravljajte svojim profesionalnim informacijama</p>
+          <p className="text-slate-400 mt-1 text-sm sm:text-base">Upravljajte svojim profesionalnim informacijama</p>
         </div>
         <button
           onClick={() => setIsEditing(!isEditing)}
-          className={`px-6 py-3 rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 ${
+          className={`px-4 sm:px-6 py-2 sm:py-3 rounded-lg sm:rounded-xl font-medium transition-all duration-200 flex items-center space-x-2 text-sm sm:text-base w-full sm:w-auto justify-center ${
             isEditing 
               ? 'bg-slate-700 text-slate-300 hover:bg-slate-600' 
               : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700'
@@ -396,9 +396,9 @@ const ProfileTab: React.FC<{ profile: CareerProfile | null; onUpdate: () => void
       </div>
 
       {isEditing ? (
-        <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl p-8 border border-slate-600">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-xl sm:rounded-2xl p-4 sm:p-8 border border-slate-600">
+                      <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               <div className="space-y-2">
                 <label className="block text-sm font-semibold text-slate-300">
                   Ime i prezime
@@ -407,7 +407,7 @@ const ProfileTab: React.FC<{ profile: CareerProfile | null; onUpdate: () => void
                   type="text"
                   value={formData.full_name || ''}
                   onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-white placeholder-slate-400"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border border-slate-600 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-white placeholder-slate-400 text-sm sm:text-base"
                   placeholder="Unesite ime i prezime"
                   required
                 />
@@ -420,7 +420,7 @@ const ProfileTab: React.FC<{ profile: CareerProfile | null; onUpdate: () => void
                   type="email"
                   value={formData.email || ''}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-white placeholder-slate-400"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-slate-700 border border-slate-600 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-white placeholder-slate-400 text-sm sm:text-base"
                   placeholder="vas@email.com"
                   required
                 />
@@ -453,17 +453,17 @@ const ProfileTab: React.FC<{ profile: CareerProfile | null; onUpdate: () => void
                 />
               </div>
             </div>
-            <div className="flex justify-end space-x-4">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 sm:gap-4">
               <button
                 type="button"
                 onClick={() => setIsEditing(false)}
-                className="px-6 py-3 border border-slate-600 text-slate-300 rounded-xl hover:bg-slate-700 transition-colors"
+                className="px-4 sm:px-6 py-2 sm:py-3 border border-slate-600 text-slate-300 rounded-lg sm:rounded-xl hover:bg-slate-700 transition-colors text-sm sm:text-base w-full sm:w-auto"
               >
                 Otkaži
               </button>
               <button
                 type="submit"
-                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg sm:rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-200 text-sm sm:text-base w-full sm:w-auto"
               >
                 Sačuvaj profil
               </button>
@@ -471,8 +471,8 @@ const ProfileTab: React.FC<{ profile: CareerProfile | null; onUpdate: () => void
           </form>
         </div>
       ) : (
-        <div className="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-slate-800 rounded-xl shadow-sm border border-slate-700 p-4 sm:p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
             <div className="space-y-4">
               <div>
                 <h4 className="font-semibold text-white flex items-center space-x-2">
@@ -538,17 +538,17 @@ const SkillsTab: React.FC<{ skills: Skill[]; onUpdate: () => void }> = ({ skills
 
   return (
     <div>
-              <div className="flex justify-between items-center mb-8">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-3 sm:gap-4">
           <div>
-            <h2 className="text-2xl font-bold text-white flex items-center space-x-3">
+            <h2 className="text-xl sm:text-2xl font-bold text-white flex items-center space-x-2 sm:space-x-3">
               <FaTools className="text-green-500" />
               <span>Veštine</span>
             </h2>
-            <p className="text-slate-400 mt-1">Upravljajte svojim tehničkim i soft veštinama</p>
+            <p className="text-slate-400 mt-1 text-sm sm:text-base">Upravljajte svojim tehničkim i soft veštinama</p>
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 flex items-center space-x-2"
+            className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg sm:rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 flex items-center space-x-2 text-sm sm:text-base w-full sm:w-auto justify-center"
           >
             <FaPlus className="text-sm" />
             <span>Dodaj veštinu</span>
@@ -556,19 +556,19 @@ const SkillsTab: React.FC<{ skills: Skill[]; onUpdate: () => void }> = ({ skills
         </div>
 
       {skills.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="max-w-md mx-auto">
-            <div className="p-6 bg-gradient-to-br from-slate-800 to-slate-700 rounded-2xl border-2 border-dashed border-slate-600">
-              <FaTools className="text-6xl text-green-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-3">
+        <div className="text-center py-8 sm:py-16">
+          <div className="max-w-md mx-auto px-4">
+            <div className="p-4 sm:p-6 bg-gradient-to-br from-slate-800 to-slate-700 rounded-xl sm:rounded-2xl border-2 border-dashed border-slate-600">
+              <FaTools className="text-4xl sm:text-6xl text-green-400 mx-auto mb-3 sm:mb-4" />
+              <h3 className="text-lg sm:text-xl font-semibold text-white mb-2 sm:mb-3">
                 Nema dodanih veština
               </h3>
-              <p className="text-slate-400 mb-6">
+              <p className="text-slate-400 mb-4 sm:mb-6 text-sm sm:text-base">
                 Dodajte svoje veštine da biste kreirali kompletan profil
               </p>
               <button
                 onClick={() => setShowAddModal(true)}
-                className="px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 flex items-center space-x-2 mx-auto"
+                className="px-4 sm:px-6 py-2 sm:py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-lg sm:rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-200 flex items-center space-x-2 mx-auto text-sm sm:text-base"
               >
                 <FaPlus className="text-sm" />
                 <span>Dodaj prvu veštinu</span>
