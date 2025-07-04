@@ -60,8 +60,8 @@ def test_ocr_service():
     """Testira OCR service"""
     
     # Import OCR service
-    sys.path.append(os.path.join(os.path.dirname(__file__), 'app'))
-    from ocr_service import OCRService
+    sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
+    from app.ocr_service import OCRService
     
     # Kreiraj OCR service
     ocr = OCRService()

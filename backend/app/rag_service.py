@@ -63,8 +63,9 @@ class RAGService:
             try:
                 # Pokušaj OCR ako je omogućen i ako je slika
                 if use_ocr and self.ocr_service.is_supported_format(filename):
-                    ocr_result = self.ocr_service.extract_text_advanced(
+                    ocr_result = self.ocr_service.extract_text_from_bytes(
                         file_content, 
+                        filename,
                         languages=languages or ['srp+eng']
                     )
                     
@@ -83,7 +84,7 @@ class RAGService:
                             'text': ocr_result['text'],
                             'confidence': ocr_result.get('confidence', 0),
                             'languages': ocr_result.get('languages', ['srp+eng']),
-                            'processing_time': ocr_result.get('processing_time', 0)
+                            'processing_time': 0  # OCR servis ne meri processing time
                         }
                         
                         # Obriši privremene fajlove
