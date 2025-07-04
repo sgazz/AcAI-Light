@@ -80,6 +80,7 @@ class RAGService:
                         
                         # Procesiraj dokument sa OCR tekstom
                         document_data = self.document_processor.process_document(ocr_temp_path)
+                        document_data['filename'] = filename
                         document_data['ocr_info'] = {
                             'text': ocr_result['text'],
                             'confidence': ocr_result.get('confidence', 0),
@@ -92,6 +93,7 @@ class RAGService:
                     else:
                         # Ako OCR nije uspešan, koristi običan document processor
                         document_data = self.document_processor.process_document(temp_file_path)
+                        document_data['filename'] = filename
                         document_data['ocr_info'] = {
                             'text': '',
                             'confidence': 0,
@@ -101,6 +103,7 @@ class RAGService:
                 else:
                     # Procesiraj dokument bez OCR-a
                     document_data = self.document_processor.process_document(temp_file_path)
+                    document_data['filename'] = filename
                     document_data['ocr_info'] = {
                         'text': '',
                         'confidence': 0,
