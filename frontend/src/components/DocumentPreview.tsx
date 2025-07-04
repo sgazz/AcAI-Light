@@ -7,12 +7,14 @@ import { DOCUMENTS_ENDPOINT, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
 
 interface DocumentContent {
-  document_id: string;
+  document_id?: string;
   filename: string;
   file_type: string;
+  content_type?: string;
   total_pages: number;
   pages: Record<number, string>;
   all_content: string;
+  message?: string;
 }
 
 interface DocumentPreviewProps {
@@ -45,7 +47,19 @@ export default function DocumentPreview({ documentId, filename, onClose, ocrInfo
       const data = await apiRequest(`${DOCUMENTS_ENDPOINT}/${documentId}/content`);
       
       if (data.status === 'success') {
-        setContent(data);
+        // Ako je slika, prikaži poruku
+        if (data.content_type === 'image') {
+          setContent({
+            filename: data.filename,
+            file_type: data.file_type,
+            content_type: 'image',
+            total_pages: 1,
+            pages: {1: data.message || 'Slika je dostupna za preview'},
+            all_content: data.message || 'Slika je dostupna za preview'
+          });
+        } else {
+          setContent(data);
+        }
         setCurrentPage(1);
         showSuccess('Sadržaj dokumenta uspešno učitan', 'Učitavanje');
       } else {
@@ -174,35 +188,75 @@ export default function DocumentPreview({ documentId, filename, onClose, ocrInfo
           </div>
         )}
 
-        {/* View Mode Toggle */}
-        <div className="flex items-center justify-center p-4 border-b border-[var(--border-color)]">
-          <div className="flex bg-[var(--bg-secondary)] rounded-lg p-1">
-            <button
-              onClick={() => setViewMode('pages')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'pages'
-                  ? 'bg-[var(--accent-blue)] text-[var(--text-primary)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Po stranicama
-            </button>
-            <button
-              onClick={() => setViewMode('all')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                viewMode === 'all'
-                  ? 'bg-[var(--accent-blue)] text-[var(--text-primary)]'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-              }`}
-            >
-              Ceo dokument
-            </button>
+        {/* View Mode Toggle - Only for text documents */}
+        {content && content.content_type !== 'image' && (
+          <div className="flex items-center justify-center p-4 border-b border-[var(--border-color)]">
+            <div className="flex bg-[var(--bg-secondary)] rounded-lg p-1">
+              <button
+                onClick={() => setViewMode('pages')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  viewMode === 'pages'
+                    ? 'bg-[var(--accent-blue)] text-[var(--text-primary)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                Po stranicama
+              </button>
+              <button
+                onClick={() => setViewMode('all')}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  viewMode === 'all'
+                    ? 'bg-[var(--accent-blue)] text-[var(--text-primary)]'
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
+                }`}
+              >
+                Ceo dokument
+              </button>
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Image Preview Message */}
+        {content && content.content_type === 'image' && (
+          <div className="flex items-center justify-center p-8 border-b border-[var(--border-color)]">
+            <div className="text-center">
+              <div className="text-6xl mb-4">🖼️</div>
+              <h3 className="text-lg font-bold text-[var(--text-primary)] mb-2">
+                Slika je dostupna za preview
+              </h3>
+              <p className="text-[var(--text-secondary)] mb-4">
+                Koristite dugme "Preview originalnog fajla" u listi dokumenata da vidite sliku.
+              </p>
+              <div className="text-sm text-[var(--text-muted)]">
+                {content.message || 'Slika je uspešno uploadovana i obrađena.'}
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Content */}
         <div className="flex-1 overflow-hidden">
-          {viewMode === 'pages' ? (
+          {content.content_type === 'image' ? (
+            /* Image Preview */
+            <div className="h-full flex flex-col">
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="bg-[var(--bg-secondary)] rounded-lg p-6 h-full flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="text-6xl mb-4">🖼️</div>
+                    <div className="text-[var(--text-primary)] text-lg font-semibold mb-2">
+                      {content.filename}
+                    </div>
+                    <div className="text-[var(--text-secondary)]">
+                      {content.message || 'Slika je dostupna za preview'}
+                    </div>
+                    <div className="mt-4 text-sm text-[var(--text-muted)]">
+                      Tip: {content.file_type}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : viewMode === 'pages' ? (
             <div className="h-full flex flex-col">
               {/* Page Navigation */}
               <div className="flex items-center justify-between p-4 border-b border-[var(--border-color)]">

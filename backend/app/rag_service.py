@@ -55,10 +55,18 @@ class RAGService:
                        use_ocr: bool = True, languages: List[str] = None) -> Dict[str, Any]:
         """Upload dokumenta sa OCR podrškom (bez lokalne baze)"""
         try:
-            # Kreiraj privremeni fajl
-            with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(filename)[1]) as temp_file:
-                temp_file.write(file_content)
-                temp_file_path = temp_file.name
+            # Kreiraj direktorijum za čuvanje fajlova ako ne postoji
+            upload_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'uploads')
+            os.makedirs(upload_dir, exist_ok=True)
+            
+            # Generiši jedinstveno ime fajla
+            file_extension = os.path.splitext(filename)[1]
+            unique_filename = f"{uuid.uuid4()}{file_extension}"
+            file_path = os.path.join(upload_dir, unique_filename)
+            
+            # Sačuvaj fajl trajno
+            with open(file_path, 'wb') as f:
+                f.write(file_content)
             
             try:
                 # Pokušaj OCR ako je omogućen i ako je slika
@@ -71,7 +79,7 @@ class RAGService:
                     
                     if ocr_result and ocr_result.get('text'):
                         # Sačuvaj OCR rezultat u Supabase
-                        self._save_ocr_to_supabase(filename, temp_file_path, ocr_result['text'], ocr_result)
+                        self._save_ocr_to_supabase(filename, file_path, ocr_result['text'], ocr_result)
                         
                         # Kreiraj privremeni fajl sa OCR tekstom
                         with tempfile.NamedTemporaryFile(delete=False, suffix='.txt') as ocr_temp_file:
@@ -88,11 +96,11 @@ class RAGService:
                             'processing_time': 0  # OCR servis ne meri processing time
                         }
                         
-                        # Obriši privremene fajlove
+                        # Obriši privremeni OCR fajl
                         os.unlink(ocr_temp_path)
                     else:
                         # Ako OCR nije uspešan, koristi običan document processor
-                        document_data = self.document_processor.process_document(temp_file_path)
+                        document_data = self.document_processor.process_document(file_path)
                         document_data['filename'] = filename
                         document_data['ocr_info'] = {
                             'text': '',
@@ -102,7 +110,7 @@ class RAGService:
                         }
                 else:
                     # Procesiraj dokument bez OCR-a
-                    document_data = self.document_processor.process_document(temp_file_path)
+                    document_data = self.document_processor.process_document(file_path)
                     document_data['filename'] = filename
                     document_data['ocr_info'] = {
                         'text': '',
@@ -118,7 +126,7 @@ class RAGService:
                 if self.use_supabase and self.supabase_manager:
                     supabase_doc_id = self.supabase_manager.insert_document(
                         filename=document_data['filename'],
-                        file_path=temp_file_path,
+                        file_path=file_path,
                         file_type=document_data['file_type'],
                         file_size=len(file_content),
                         content=document_data.get('content', ''),
@@ -147,15 +155,12 @@ class RAGService:
                 return response
                 
             except Exception as e:
-                # Ako dođe do greške, obriši dokument iz vector store-a
+                # Ako dođe do greške, obriši dokument iz vector store-a i fajl
                 if 'doc_id' in locals():
                     self.vector_store.delete_document(doc_id)
+                if os.path.exists(file_path):
+                    os.unlink(file_path)
                 raise e
-                
-            finally:
-                # Obriši privremeni fajl
-                if os.path.exists(temp_file_path):
-                    os.unlink(temp_file_path)
                     
         except Exception as e:
             raise RAGError(f"Greška pri upload-u dokumenta: {str(e)}", ErrorCategory.DOCUMENT_PROCESSING)

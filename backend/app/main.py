@@ -13,7 +13,7 @@ from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, WebSocket, WebSocketDisconnect, Request, APIRouter, Body
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from ollama import Client
 import sys
 import functools
@@ -883,6 +883,80 @@ async def get_document_info(doc_id: str):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.get("/documents/{doc_id}/content")
+async def get_document_content(doc_id: str, page: int = None):
+    """Dohvata sadržaj dokumenta za preview"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
+        
+        # Dohvati dokument iz baze
+        document = supabase_manager.get_document(doc_id)
+        
+        if not document:
+            raise HTTPException(status_code=404, detail="Dokument nije pronađen")
+        
+        # Ako je slika, vrati je direktno
+        if document.get('file_type', '').startswith('image/'):
+            # Za slike, vrati URL ili base64 podatke
+            # Ovde bi trebalo da se implementira logika za dohvatanje slike iz storage-a
+            return {
+                "status": "success",
+                "filename": document['filename'],
+                "file_type": document['file_type'],
+                "content_type": "image",
+                "message": "Slika je dostupna za preview"
+            }
+        
+        # Za tekstualne dokumente, vrati sadržaj
+        content = document.get('content', '')
+        if not content:
+            return {
+                "status": "success",
+                "filename": document['filename'],
+                "file_type": document['file_type'],
+                "content_type": "text",
+                "all_content": "Sadržaj dokumenta nije dostupan",
+                "total_pages": 1,
+                "pages": {1: "Sadržaj dokumenta nije dostupan"}
+            }
+        
+        # Podeli sadržaj na stranice (po 1000 karaktera)
+        lines = content.split('\n')
+        pages = {}
+        current_page = 1
+        current_content = []
+        char_count = 0
+        
+        for line in lines:
+            if char_count + len(line) > 1000 and current_content:
+                pages[current_page] = '\n'.join(current_content)
+                current_page += 1
+                current_content = [line]
+                char_count = len(line)
+            else:
+                current_content.append(line)
+                char_count += len(line) + 1
+        
+        # Dodaj poslednju stranicu
+        if current_content:
+            pages[current_page] = '\n'.join(current_content)
+        
+        return {
+            "status": "success",
+            "filename": document['filename'],
+            "file_type": document['file_type'],
+            "content_type": "text",
+            "all_content": content,
+            "total_pages": len(pages),
+            "pages": pages
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 @app.delete("/documents/{doc_id}")
 async def delete_document(doc_id: str):
     """Briše dokument iz Supabase"""
@@ -896,6 +970,110 @@ async def delete_document(doc_id: str):
             return {"status": "success", "message": "Dokument obrisan"}
         else:
             return {"status": "error", "message": "Greška pri brisanju dokumenta"}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/documents/{doc_id}/download")
+async def download_document(doc_id: str):
+    """Dohvata originalni fajl za download"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
+        
+        # Dohvati dokument iz baze
+        document = supabase_manager.get_document(doc_id)
+        
+        if not document:
+            raise HTTPException(status_code=404, detail="Dokument nije pronađen")
+        
+        file_path = document.get('file_path')
+        if not file_path or not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="Originalni fajl nije pronađen")
+        
+        # Proveri da li je fajl bezbedan za čitanje
+        if not os.path.isfile(file_path):
+            raise HTTPException(status_code=400, detail="Neispravna putanja fajla")
+        
+        # Dohvati MIME tip na osnovu ekstenzije
+        file_extension = os.path.splitext(document['filename'])[1].lower()
+        mime_types = {
+            '.pdf': 'application/pdf',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.txt': 'text/plain',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp'
+        }
+        content_type = mime_types.get(file_extension, 'application/octet-stream')
+        
+        # Čitaj fajl i vrati kao response
+        with open(file_path, 'rb') as file:
+            file_content = file.read()
+        
+        return Response(
+            content=file_content,
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f"attachment; filename=\"{document['filename']}\""
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/documents/{doc_id}/preview")
+async def preview_document(doc_id: str):
+    """Dohvata fajl za preview (posebno za slike)"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
+        
+        # Dohvati dokument iz baze
+        document = supabase_manager.get_document(doc_id)
+        
+        if not document:
+            raise HTTPException(status_code=404, detail="Dokument nije pronađen")
+        
+        file_path = document.get('file_path')
+        if not file_path or not os.path.exists(file_path):
+            raise HTTPException(status_code=404, detail="Originalni fajl nije pronađen")
+        
+        # Proveri da li je fajl bezbedan za čitanje
+        if not os.path.isfile(file_path):
+            raise HTTPException(status_code=400, detail="Neispravna putanja fajla")
+        
+        # Dohvati MIME tip na osnovu ekstenzije
+        file_extension = os.path.splitext(document['filename'])[1].lower()
+        mime_types = {
+            '.pdf': 'application/pdf',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.txt': 'text/plain',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp'
+        }
+        content_type = mime_types.get(file_extension, 'application/octet-stream')
+        
+        # Čitaj fajl i vrati kao response
+        with open(file_path, 'rb') as file:
+            file_content = file.read()
+        
+        return Response(
+            content=file_content,
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f"inline; filename=\"{document['filename']}\""
+            }
+        )
+        
+    except HTTPException:
+        raise
     except Exception as e:
         return {"status": "error", "message": str(e)}
 

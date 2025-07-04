@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaFile, FaTrash, FaEye, FaSpinner, FaFileAlt, FaClock, FaHdd, FaLayerGroup, FaCheckCircle, FaExclamationTriangle, FaCog, FaRedo, FaSearch, FaFilter, FaMagic, FaTimes } from 'react-icons/fa';
+import { FaFile, FaTrash, FaEye, FaSpinner, FaFileAlt, FaClock, FaHdd, FaLayerGroup, FaCheckCircle, FaExclamationTriangle, FaCog, FaRedo, FaSearch, FaFilter, FaMagic, FaTimes, FaDownload, FaExternalLinkAlt } from 'react-icons/fa';
 import DocumentPreview from './DocumentPreview';
 import { formatFileSize, getFileIcon } from '../utils/fileUtils';
 import { formatDate } from '../utils/dateUtils';
@@ -111,6 +111,42 @@ export default function DocumentList() {
 
   const closeOcrPreview = () => {
     setOcrModal(null);
+  };
+
+  const handlePreviewOriginal = async (document: Document) => {
+    try {
+      const response = await fetch(`http://localhost:8001/documents/${document.id}/preview`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+      } else {
+        showError('Greška pri otvaranju preview-a', 'Preview greška');
+      }
+    } catch (error) {
+      showError('Greška pri otvaranju preview-a', 'Preview greška');
+    }
+  };
+
+  const handleDownloadOriginal = async (document: Document) => {
+    try {
+      const response = await fetch(`http://localhost:8001/documents/${document.id}/download`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = URL.createObjectURL(blob);
+        const a = window.document.createElement('a');
+        a.href = url;
+        a.download = document.filename;
+        window.document.body.appendChild(a);
+        a.click();
+        window.document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else {
+        showError('Greška pri preuzimanju fajla', 'Download greška');
+      }
+    } catch (error) {
+      showError('Greška pri preuzimanju fajla', 'Download greška');
+    }
   };
 
   const getStatusColor = (): string => {
@@ -280,12 +316,42 @@ export default function DocumentList() {
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setSelectedDocument(doc);
+                        handlePreviewOriginal(doc);
+                      }}
+                      className="p-2 lg:p-3 text-purple-400 hover:text-purple-300 hover:bg-purple-500/20 rounded-lg lg:rounded-xl icon-hover-profi"
+                      title="Preview originalnog fajla"
+                    >
+                      <FaExternalLinkAlt size={14} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownloadOriginal(doc);
+                      }}
+                      className="p-2 lg:p-3 text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/20 rounded-lg lg:rounded-xl icon-hover-profi"
+                      title="Preuzmi originalni fajl"
+                    >
+                      <FaDownload size={14} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openDocumentPreview(doc);
                       }}
                       className="p-2 lg:p-3 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-lg lg:rounded-xl icon-hover-profi"
-                      title="Pogledaj dokument"
+                      title="Pregledaj sadržaj"
                     >
                       <FaEye size={14} />
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedDocument(doc);
+                      }}
+                      className="p-2 lg:p-3 text-green-400 hover:text-green-300 hover:bg-green-500/20 rounded-lg lg:rounded-xl icon-hover-profi"
+                      title="Detalji dokumenta"
+                    >
+                      <FaFileAlt size={14} />
                     </button>
                     <button
                       onClick={(e) => {
