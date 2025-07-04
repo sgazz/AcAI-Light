@@ -188,44 +188,18 @@ export default function Home() {
       case 8:
         return (
           <div className="h-full flex flex-col">
-            <div className="flex-1 p-6">
-              <div className="mb-6">
-                <h2 className="text-2xl font-bold mb-2">Dokumenti</h2>
-                <p className="text-gray-300">Upload, pregled i upravljanje dokumentima</p>
+            <div className="flex-1 p-4 lg:p-6 overflow-hidden">
+              <div className="mb-4 lg:mb-6">
+                <h2 className="text-xl lg:text-2xl font-bold mb-2">Dokumenti</h2>
+                <p className="text-gray-300 text-sm lg:text-base">Upload, pregled i upravljanje dokumentima</p>
               </div>
               
-              {/* File Handling Section */}
-              <div className="mb-8">
-                <h3 className="text-lg font-semibold mb-4 text-blue-300">📁 File Handling</h3>
-                <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl p-6">
-                  <FileSharing
-                    onFileUpload={(files: File[]) => {
-                      console.log('Files uploaded:', files);
-                      showSuccess(`${files.length} fajlova uspešno uploadovano`, 'Upload');
-                    }}
-                    onFileRemove={(fileId: string) => {
-                      console.log('File removed:', fileId);
-                      showInfo('Fajl uklonjen', 'File Management');
-                    }}
-                    maxFiles={10}
-                    maxSize={50}
-                    acceptedTypes={[
-                      'image/*', 
-                      'application/pdf', 
-                      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-                      'text/*',
-                      'application/json',
-                      'application/xml'
-                    ]}
-                  />
-                </div>
-              </div>
-              
-              {/* Existing Document Management */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4 text-green-300">📋 Document Management</h3>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Document Management - Responsive Layout */}
+              <div className="flex flex-col lg:flex-row gap-4 lg:gap-6 h-full">
+                <div className="w-full lg:w-1/2 h-full min-h-0">
                   <DocumentUpload />
+                </div>
+                <div className="w-full lg:w-1/2 h-full min-h-0">
                   <DocumentList />
                 </div>
               </div>
