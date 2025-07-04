@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
-import { FaHistory, FaTrash, FaEye, FaTimes, FaSearch, FaFilter, FaCalendar, FaSort, FaDownload, FaComments, FaClock, FaUser, FaRobot, FaStar, FaBookmark, FaShare, FaEllipsisH, FaEdit, FaTags, FaArchive } from 'react-icons/fa';
+import { FaHistory, FaTrash, FaEye, FaTimes, FaSearch, FaFilter, FaCalendar, FaSort, FaDownload, FaComments, FaClock, FaUser, FaRobot, FaStar, FaBookmark, FaShare, FaEllipsisH, FaEdit, FaTags, FaArchive, FaPlay } from 'react-icons/fa';
 import { formatDate } from '../utils/dateUtils';
 import { CHAT_SESSIONS_ENDPOINT, CHAT_HISTORY_ENDPOINT, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
@@ -30,12 +30,13 @@ interface Message {
 interface ChatHistorySidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  onRestoreSession?: (sessionId: string, messages: any[]) => void;
 }
 
 type SortOption = 'date-desc' | 'date-asc' | 'messages-desc' | 'messages-asc';
 type FilterOption = 'all' | 'today' | 'week' | 'month' | 'custom';
 
-export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySidebarProps) {
+export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }: ChatHistorySidebarProps) {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [sessionMessages, setSessionMessages] = useState<Message[]>([]);
@@ -198,6 +199,30 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
     setFilterOption('all');
     setSortOption('date-desc');
     setCustomDateRange({ start: '', end: '' });
+  };
+
+  const handleResumeSession = async (sessionId: string) => {
+    try {
+      // Učitaj poruke iz sesije
+      const data = await apiRequest(`${CHAT_HISTORY_ENDPOINT}/${sessionId}`);
+      if (data.status === 'success' && data.messages) {
+        // Pozovi callback funkciju sa session ID i porukama
+        if (onRestoreSession) {
+          onRestoreSession(sessionId, data.messages);
+          showSuccess('Sesija povraćena', 'Povratak');
+          onClose(); // Zatvori sidebar
+        }
+      } else {
+        throw new Error(data.message || 'Greška pri povratku sesije');
+      }
+    } catch (error: any) {
+      showError(
+        error.message || 'Greška pri povratku sesije',
+        'Greška povratka',
+        true,
+        () => handleResumeSession(sessionId)
+      );
+    }
   };
 
   const handleExport = () => {
@@ -611,6 +636,16 @@ export default function ChatHistorySidebar({ isOpen, onClose }: ChatHistorySideb
                               </div>
                             </div>
                             <div className="flex gap-2 ml-4 opacity-100 transition-opacity duration-300">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleResumeSession(session.session_id);
+                                }}
+                                className="p-3 text-green-400 hover:text-green-300 hover:bg-green-500/20 rounded-xl icon-hover-profi"
+                                title="Povrati sesiju u chat"
+                              >
+                                <FaPlay size={16} />
+                              </button>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();

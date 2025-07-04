@@ -971,11 +971,20 @@ async def get_supabase_stats():
 
 # Session Management Endpoint-i
 @app.post("/session/metadata")
-async def create_session_metadata(session_id: str, name: str = None, description: str = None):
+async def create_session_metadata(request: Request):
     """Kreira session metadata u Supabase"""
     try:
         if not supabase_manager:
             raise HTTPException(status_code=503, detail="Supabase nije omogućen")
+        
+        # Parsiraj JSON body
+        body = await request.json()
+        session_id = body.get('session_id')
+        name = body.get('name')
+        description = body.get('description')
+        
+        if not session_id:
+            raise HTTPException(status_code=400, detail="session_id je obavezan")
         
         # Koristi RPC funkciju za kreiranje session metadata
         result = supabase_manager.client.rpc('ensure_session_metadata', {

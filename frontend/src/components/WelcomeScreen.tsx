@@ -23,6 +23,7 @@ import {
 import { MdQuiz } from 'react-icons/md';
 import LoginModal from './LoginModal';
 import SessionSetupModal from './SessionSetupModal';
+import { useErrorToast } from './ErrorToastProvider';
 
 interface WelcomeScreenProps {
   onStartChat: () => void;
@@ -143,6 +144,7 @@ export default function WelcomeScreen({
   const [isVisible, setIsVisible] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSessionSetup, setShowSessionSetup] = useState(false);
+  const { showError, showSuccess } = useErrorToast();
 
   useEffect(() => {
     setIsVisible(true);
@@ -188,7 +190,7 @@ export default function WelcomeScreen({
     setShowLoginModal(false);
   };
 
-  const handleStartSession = (subject: string, topic: string, sessionType: 'subject' | 'general') => {
+  const handleStartSession = async (subject: string, topic: string, sessionType: 'subject' | 'general') => {
     console.log('Starting session:', { subject, topic, sessionType });
     
     // Kreiraj naslov sesije
@@ -196,11 +198,56 @@ export default function WelcomeScreen({
       ? 'General Chat' 
       : `${subjects.find(s => s.id === subject)?.name} - ${topic}`;
     
-    // Možeš ovde dodati logiku za kreiranje sesije u bazi
-    console.log('Session created:', { title: sessionTitle, subject, topic, sessionType });
-    
-    // Prebaci na chat
-    onStartChat();
+    try {
+      // Kreiraj novu sesiju u backend-u
+      const response = await fetch('http://localhost:8001/chat/new-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        const sessionId = data.session_id;
+        
+        console.log('Session created:', { sessionId, title: sessionTitle, subject, topic, sessionType });
+        
+        // Kreiraj session metadata
+        const metadataResponse = await fetch('http://localhost:8001/session/metadata', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            session_id: sessionId,
+            name: sessionTitle,
+            description: `${sessionType === 'general' ? 'Generalna' : 'Predmetna'} sesija za ${sessionType === 'general' ? 'opšta pitanja' : `${subjects.find(s => s.id === subject)?.name} - ${topic}`}`
+          })
+        });
+        
+        if (metadataResponse.ok) {
+          console.log('Session metadata created successfully');
+        }
+        
+        // Sačuvaj session ID u localStorage
+        localStorage.setItem('currentSessionId', sessionId);
+        localStorage.setItem('currentSessionTitle', sessionTitle);
+        localStorage.setItem('currentSessionType', sessionType);
+        
+        // Prikaži toast sa informacijama o sesiji
+        showSuccess(`Sesija kreirana: ${sessionTitle}`, 'Nova sesija');
+        
+        // Prebaci na chat
+        onStartChat();
+      } else {
+        console.error('Greška pri kreiranju sesije:', response.status);
+        showError('Greška pri kreiranju sesije', 'Greška');
+      }
+    } catch (error) {
+      console.error('Greška pri kreiranju sesije:', error);
+      showError('Greška pri kreiranju sesije', 'Greška');
+    }
   };
 
   return (

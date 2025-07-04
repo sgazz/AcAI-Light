@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { FaGraduationCap, FaToggleOn, FaToggleOff, FaBook, FaKeyboard, FaHistory } from 'react-icons/fa';
+import { FaGraduationCap, FaToggleOn, FaToggleOff, FaBook, FaKeyboard, FaHistory, FaPlus } from 'react-icons/fa';
 import SourcesDisplay from './SourcesDisplay';
 import ChatHistorySidebar from './ChatHistorySidebar';
 import MessageRenderer from './MessageRenderer';
@@ -58,7 +58,7 @@ export default function ChatBox() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [sessionId, setSessionId] = useState<string>('default');
+  const [sessionId, setSessionId] = useState<string>('');
   const [useRAG, setUseRAG] = useState(true);
   const [useRerank, setUseRerank] = useState(true);
   const [useEnhancedContext, setUseEnhancedContext] = useState(false);
@@ -70,9 +70,17 @@ export default function ChatBox() {
   const inputRef = useRef<HTMLInputElement>(null);
   const { showError, showSuccess, showWarning } = useErrorToast();
 
-  // Kreiraj novu sesiju kada se komponenta učita
+  // Pročitaj session ID iz localStorage ili kreiraj novu sesiju
   useEffect(() => {
-    if (!sessionId) {
+    const savedSessionId = localStorage.getItem('currentSessionId');
+    const savedSessionTitle = localStorage.getItem('currentSessionTitle');
+    
+    if (savedSessionId && savedSessionTitle) {
+      // Koristi postojeću sesiju
+      setSessionId(savedSessionId);
+      console.log('Using existing session:', { sessionId: savedSessionId, title: savedSessionTitle });
+    } else if (!sessionId) {
+      // Kreiraj novu sesiju samo ako nema postojeće
       createNewSession();
     }
   }, [sessionId]);
@@ -120,6 +128,11 @@ export default function ChatBox() {
       if (data.session_id) {
         setSessionId(data.session_id);
         setMessages([]); // Resetuj poruke za novu sesiju
+        
+        // Očisti localStorage
+        localStorage.removeItem('currentSessionId');
+        localStorage.removeItem('currentSessionTitle');
+        localStorage.removeItem('currentSessionType');
         
         // Automatski kreiraj session metadata u Supabase
         try {
@@ -341,6 +354,41 @@ export default function ChatBox() {
     showSuccess(`Prikazan izvor: ${source.filename}`, 'Izvor');
   };
 
+  const handleRestoreSessionFromHistory = (sessionId: string, messages: any[]) => {
+    console.log('Restoring session from history:', { sessionId, messageCount: messages.length });
+    
+    // Postavi session ID
+    setSessionId(sessionId);
+    
+    // Konvertuj poruke u odgovarajući format
+    const convertedMessages = messages.map((msg: any) => ({
+      id: msg.id,
+      sender: msg.sender,
+      content: msg.content,
+      timestamp: msg.timestamp,
+      sources: msg.sources || [],
+      used_rag: msg.used_rag || false,
+      reranking_applied: msg.reranking_applied || false,
+      reranker_info: msg.reranker_info,
+      original_query: msg.original_query,
+      enhanced_query: msg.enhanced_query,
+      query_rewriting_applied: msg.query_rewriting_applied || false,
+      query_rewriter_info: msg.query_rewriter_info,
+      fact_checking_applied: msg.fact_checking_applied || false,
+      fact_checker_info: msg.fact_checker_info,
+      reaction: msg.reaction || null
+    }));
+    
+    // Postavi poruke
+    setMessages(convertedMessages);
+    
+    // Sačuvaj session ID u localStorage
+    localStorage.setItem('currentSessionId', sessionId);
+    
+    // Prikaži toast
+    showSuccess(`Sesija povraćena: ${sessionId.slice(0, 8)}...`, 'Povratak sesije');
+  };
+
   return (
     <div className="flex flex-col h-full relative overflow-hidden">
       {/* Premium Glassmorphism Background */}
@@ -377,6 +425,17 @@ export default function ChatBox() {
           <div className="flex items-center gap-4">
             {/* Theme Toggle */}
             <ThemeToggle />
+            
+            {/* Nova Sesija Button */}
+            <button
+              onClick={createNewSession}
+              className="group relative flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+              title="Kreiraj novu sesiju"
+            >
+              <FaPlus size={14} />
+              <span>Nova sesija</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </button>
             
             {/* Premium History Button */}
             <button
@@ -700,6 +759,7 @@ export default function ChatBox() {
             <ChatHistorySidebar 
               isOpen={isHistorySidebarOpen}
               onClose={() => setIsHistorySidebarOpen(false)}
+              onRestoreSession={handleRestoreSessionFromHistory}
             />
           </div>
         </div>
