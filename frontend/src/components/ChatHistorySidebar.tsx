@@ -473,14 +473,16 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
                 <div className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
                   <div className="relative">
-                    <FaSearch className="absolute left-5 top-1/2 transform -translate-y-1/2 text-slate-400 group-hover:text-blue-400 transition-colors duration-300" size={18} />
                     <input
                       type="text"
                       placeholder="Pretraži sesije..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-full pl-14 pr-6 py-4 bg-slate-800/50 border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/20 backdrop-blur-sm transition-all duration-300"
+                      className="w-full pl-16 pr-6 py-4 bg-slate-800/50 border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/20 backdrop-blur-sm transition-all duration-300"
                     />
+                    <div className="absolute left-6 top-1/2 transform -translate-y-1/2 w-5 h-5 bg-slate-700/80 group-hover:bg-blue-500/80 rounded-full flex items-center justify-center z-10 transition-all duration-300">
+                      <FaSearch className="text-white group-hover:text-white transition-colors duration-300" size={16} />
+                    </div>
                   </div>
                 </div>
 
