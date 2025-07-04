@@ -21,20 +21,20 @@ export default function SessionRenameModal({
   onRename,
   onDelete
 }: SessionRenameModalProps) {
-  const [newName, setNewName] = useState(currentName);
+  const [newName, setNewName] = useState(currentName || '');
   const [isLoading, setIsLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { showError, showSuccess } = useErrorToast();
 
   useEffect(() => {
     if (isOpen) {
-      setNewName(currentName);
+      setNewName(currentName || '');
       setShowDeleteConfirm(false);
     }
   }, [isOpen, currentName]);
 
   const handleRename = async () => {
-    if (!newName.trim()) {
+    if (!newName || !newName.trim()) {
       showError('Naziv sesije ne može biti prazan', 'Greška');
       return;
     }
@@ -152,7 +152,7 @@ export default function SessionRenameModal({
             <div className="flex gap-2">
               <button
                 onClick={handleRename}
-                disabled={isLoading || !newName.trim() || newName.trim() === currentName}
+                disabled={isLoading || !newName || !newName.trim() || newName.trim() === currentName}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 text-white rounded-lg transition-colors"
               >
                 <FaSave />

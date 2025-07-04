@@ -513,8 +513,14 @@ async def get_sessions():
         for msg in all_messages.data:
             session_id = msg['session_id']
             if session_id not in sessions:
+                # Dohvati session_name iz metadata ako postoji
+                session_name = None
+                if msg.get('metadata') and isinstance(msg['metadata'], dict):
+                    session_name = msg['metadata'].get('session_name')
+                
                 sessions[session_id] = {
                     'session_id': session_id,
+                    'name': session_name,  # Dodajemo name polje
                     'message_count': 0,
                     'first_message': None,
                     'last_message': None
@@ -573,15 +579,35 @@ async def delete_session(session_id: str):
 
 # Session Management Endpoint-i
 @app.put("/chat/sessions/{session_id}/rename")
-async def rename_session(session_id: str, name: str):
+async def rename_session(session_id: str, request: Request):
     """Preimenuje chat sesiju"""
     try:
         if not supabase_manager:
             raise HTTPException(status_code=503, detail="Supabase nije dostupan")
         
-        # Ažuriraj metadata u chat_history tabeli (koristi postojeću metadata kolonu)
+        # Dohvati JSON body
+        body = await request.json()
+        name = body.get('name')
+        
+        if not name:
+            raise HTTPException(status_code=400, detail="Name parametar je obavezan")
+        
+        # Dohvati postojeće metadata
+        existing_data = supabase_manager.client.table('chat_history').select('metadata').eq('session_id', session_id).limit(1).execute()
+        
+        if existing_data.data:
+            existing_metadata = existing_data.data[0].get('metadata', {})
+            if not isinstance(existing_metadata, dict):
+                existing_metadata = {}
+        else:
+            existing_metadata = {}
+        
+        # Ažuriraj metadata sa novim session_name
+        updated_metadata = {**existing_metadata, 'session_name': name}
+        
+        # Ažuriraj metadata u chat_history tabeli
         supabase_manager.client.table('chat_history').update({
-            'metadata': {'session_name': name}
+            'metadata': updated_metadata
         }).eq('session_id', session_id).execute()
         
         return {"status": "success", "message": "Sesija preimenovana", "name": name}
@@ -1086,7 +1112,8 @@ async def create_share_link(session_id: str, permissions: str = 'read', expires_
         # Generiši unique share link
         share_link = f"share_{session_id}_{int(time.time())}"
         
-        # Izračunaj expiry date
+        # Izračunaj expires_at
+        from datetime import datetime, timedelta
         expires_at = None
         if expires_in != 'never':
             if expires_in == '1h':

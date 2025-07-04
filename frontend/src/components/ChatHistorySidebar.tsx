@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { FaHistory, FaTrash, FaEye, FaTimes, FaSearch, FaFilter, FaCalendar, FaSort, FaDownload, FaComments, FaClock, FaUser, FaRobot, FaStar, FaBookmark, FaShare, FaEllipsisH, FaEdit, FaTags, FaArchive, FaPlay } from 'react-icons/fa';
 import { formatDate } from '../utils/dateUtils';
-import { CHAT_SESSIONS_ENDPOINT, CHAT_HISTORY_ENDPOINT, apiRequest } from '../utils/api';
+import { CHAT_SESSIONS_ENDPOINT, CHAT_HISTORY_ENDPOINT, API_BASE, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
 import ExportModal from './ExportModal';
 import SessionRenameModal from './SessionManagement/SessionRenameModal';
@@ -171,7 +171,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
     if (!confirm('Da li ste sigurni da želite da obrišete ovu sesiju?')) return;
     
     try {
-      const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${sessionId}`, {
+      const data = await apiRequest(`${API_BASE}/chat/session/${sessionId}`, {
         method: 'DELETE',
       });
       if (data.status === 'success') {
@@ -254,14 +254,17 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
   // Session Management Functions
   const handleRenameSession = async (sessionId: string, newName: string) => {
     try {
-      const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${sessionId}/rename?name=${encodeURIComponent(newName)}`, {
+      const data = await apiRequest(`${API_BASE}/chat/sessions/${sessionId}/rename`, {
         method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newName }),
       });
       
       if (data.status === 'success') {
-        setSessions(prev => prev.map(s => 
-          s.session_id === sessionId ? { ...s, name: newName } : s
-        ));
+        // Refresh sessions list to show updated name
+        await loadSessions();
         showSuccess('Sesija uspešno preimenovana', 'Preimenovanje');
       } else {
         throw new Error(data.message || 'Greška pri preimenovanju sesije');
@@ -297,18 +300,21 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
   };
 
   const handleArchiveSession = async (sessionId: string) => {
+    if (!confirm('Da li ste sigurni da želite da arhivirate ovu sesiju? Arhivirane sesije se mogu vratiti kasnije.')) return;
+    
     try {
-      const data = await apiRequest(`${CHAT_SESSIONS_ENDPOINT}/${sessionId}/archive`, {
+      const data = await apiRequest(`${API_BASE}/chat/sessions/${sessionId}/archive`, {
         method: 'POST',
       });
       
       if (data.status === 'success') {
+        // Remove from current sessions list
         setSessions(prev => prev.filter(s => s.session_id !== sessionId));
         if (selectedSession === sessionId) {
           setSelectedSession(null);
           setSessionMessages([]);
         }
-        showSuccess('Sesija uspešno arhivirana', 'Arhiviranje');
+        showSuccess('Sesija uspešno arhivirana. Možete je vratiti iz arhive.', 'Arhiviranje');
       } else {
         throw new Error(data.message || 'Greška pri arhiviranju sesije');
       }
@@ -443,6 +449,14 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
                     </h3>
                     <p className="text-sm text-slate-400 font-medium">Pregledajte i upravljajte sesijama</p>
                   </div>
+                  <button
+                    onClick={() => openSessionManagement('archive', { session_id: 'archive-view' } as Session)}
+                    className="flex items-center gap-2 px-4 py-2 bg-orange-500/20 text-orange-400 rounded-xl hover:bg-orange-500/30 hover:text-orange-300 transition-all duration-300 font-semibold border border-orange-500/30"
+                    title="Pogledaj arhivu"
+                  >
+                    <FaArchive size={16} />
+                    <span>Arhiva</span>
+                  </button>
                 </div>
                 <button
                   onClick={onClose}
@@ -582,6 +596,9 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
                       </div>
                       Sesije ({filteredAndSortedSessions.length} od {sessions.length})
                     </h4>
+                    <div className="text-xs text-slate-400 bg-slate-800/50 px-3 py-2 rounded-lg border border-white/10">
+                      <span className="font-semibold">Action dugmad:</span> ▶️ Povrati | 👁️ Pogledaj | ✏️ Preimenuj | 🏷️ Kategorije | 🔗 Podeli | 📦 Arhiviraj | 🗑️ Obriši
+                    </div>
                   </div>
                   <div className="flex-1 overflow-y-auto space-y-4 custom-scrollbar">
                     {filteredAndSortedSessions.length === 0 ? (
@@ -617,7 +634,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
                               <div className="flex items-center gap-3 mb-3">
                                 <div className="w-3 h-3 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full animate-pulse"></div>
                                 <div className="text-lg font-bold text-white">
-                                  {session.session_id.slice(0, 8)}...
+                                  {session.name || `${session.session_id.slice(0, 8)}...`}
                                 </div>
                                 <div className="px-2 py-1 bg-blue-500/20 text-blue-400 text-xs font-semibold rounded-lg">
                                   {session.message_count} poruka
@@ -642,7 +659,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
                                   handleResumeSession(session.session_id);
                                 }}
                                 className="p-3 text-green-400 hover:text-green-300 hover:bg-green-500/20 rounded-xl icon-hover-profi"
-                                title="Povrati sesiju u chat"
+                                title="Povrati sesiju u glavni chat za nastavak razgovora"
                               >
                                 <FaPlay size={16} />
                               </button>
@@ -652,7 +669,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
                                   loadSessionMessages(session.session_id);
                                 }}
                                 className="p-3 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-xl icon-hover-profi"
-                                title="Pogledaj poruke"
+                                title="Pogledaj sve poruke iz sesije"
                               >
                                 <FaEye size={16} />
                               </button>
@@ -662,7 +679,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
                                   openSessionManagement('rename', session);
                                 }}
                                 className="p-3 text-yellow-400 hover:text-yellow-300 hover:bg-yellow-500/20 rounded-xl icon-hover-profi"
-                                title="Preimenuj sesiju"
+                                title="Preimenuj sesiju (promeni naziv)"
                               >
                                 <FaEdit size={16} />
                               </button>
@@ -672,7 +689,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
                                   openSessionManagement('categories', session);
                                 }}
                                 className="p-3 text-purple-400 hover:text-purple-300 hover:bg-purple-500/20 rounded-xl icon-hover-profi"
-                                title="Kategorije"
+                                title="Upravljaj kategorijama sesije"
                               >
                                 <FaTags size={16} />
                               </button>
@@ -682,7 +699,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
                                   openSessionManagement('sharing', session);
                                 }}
                                 className="p-3 text-green-400 hover:text-green-300 hover:bg-green-500/20 rounded-xl icon-hover-profi"
-                                title="Podeli sesiju"
+                                title="Kreiraj link za deljenje sesije"
                               >
                                 <FaShare size={16} />
                               </button>
@@ -692,7 +709,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
                                   openSessionManagement('archive', session);
                                 }}
                                 className="p-3 text-orange-400 hover:text-orange-300 hover:bg-orange-500/20 rounded-xl icon-hover-profi"
-                                title="Arhiviraj sesiju"
+                                title="Arhiviraj sesiju (možete je vratiti kasnije)"
                               >
                                 <FaArchive size={16} />
                               </button>
@@ -702,7 +719,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
                                   deleteSession(session.session_id);
                                 }}
                                 className="p-3 text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-xl icon-hover-profi"
-                                title="Obriši sesiju"
+                                title="Trajno obriši sesiju (nema povratka)"
                               >
                                 <FaTrash size={16} />
                               </button>
@@ -818,7 +835,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
             isOpen={showRenameModal}
             onClose={() => setShowRenameModal(false)}
             sessionId={selectedSessionForManagement.session_id}
-            currentName={selectedSessionForManagement.name}
+            currentName={selectedSessionForManagement.name || ''}
             onRename={handleRenameSession}
             onDelete={deleteSession}
           />
