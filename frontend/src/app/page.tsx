@@ -207,6 +207,30 @@ export default function Home() {
           </div>
         );
       case 9:
+        return (
+          <div className="h-full flex flex-col">
+            <div className="flex-1 p-4 lg:p-6 overflow-hidden">
+              <div className="mb-4 lg:mb-6">
+                <h2 className="text-xl lg:text-2xl font-bold mb-2">File Sharing</h2>
+                <p className="text-gray-300 text-sm lg:text-base">Deljenje fajlova sa drag & drop funkcionalnostima</p>
+              </div>
+              <FileSharing 
+                onFileUpload={(files) => {
+                  console.log('Files uploaded:', files);
+                  // Handle file upload
+                }}
+                onFileRemove={(fileId) => {
+                  console.log('File removed:', fileId);
+                  // Handle file removal
+                }}
+                maxFiles={10}
+                maxSize={50}
+                acceptedTypes={['image/*', 'application/pdf', 'text/*', 'application/vnd.openxmlformats-officedocument.*']}
+              />
+            </div>
+          </div>
+        );
+      case 10:
         return <VirtualScrollTest />;
       default:
         return <ChatBox />;

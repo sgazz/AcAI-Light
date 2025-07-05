@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaFile, FaTrash, FaEye, FaFileAlt, FaClock, FaHdd, FaLayerGroup, FaRedo, FaSearch, FaDownload, FaExternalLinkAlt, FaMagic, FaTimes, FaImage } from 'react-icons/fa';
+import { FaFile, FaTrash, FaEye, FaFileAlt, FaClock, FaHdd, FaLayerGroup, FaRedo, FaSearch, FaDownload, FaExternalLinkAlt, FaMagic, FaTimes, FaImage, FaLanguage, FaCheck, FaExclamationTriangle } from 'react-icons/fa';
 import DocumentPreview from './DocumentPreview';
 import ImagePreview from './FileHandling/ImagePreview';
 import { formatFileSize, getFileIcon } from '../utils/fileUtils';
@@ -38,7 +38,7 @@ export default function DocumentList() {
   const [loading, setLoading] = useState(true);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [previewDocument, setPreviewDocument] = useState<Document | null>(null);
-  const [ocrModal, setOcrModal] = useState<{ocr: Record<string, unknown> | undefined, doc: Document} | null>(null);
+  const [ocrModal, setOcrModal] = useState<{ocr: Record<string, unknown> | undefined, doc: Document, rect?: DOMRect} | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   
@@ -111,10 +111,11 @@ export default function DocumentList() {
   };
 
   const openDocumentPreview = (document: Document) => {
-    // Ako je slika, otvori u novom prozoru/tabu
+    // Ako je slika, otvori u modal-u
     if (isImageFile(document.filename, document.file_type)) {
       const imageUrl = `http://localhost:8001/documents/${document.id}/preview`;
-      window.open(imageUrl, '_blank', 'noopener,noreferrer');
+      setSelectedImage(imageUrl);
+      setShowImagePreview(true);
     } else {
       // Za ostale dokumente, koristi postojeći DocumentPreview
       setPreviewDocument(document);
@@ -130,9 +131,9 @@ export default function DocumentList() {
     setSelectedImage(null);
   };
 
-  const openOcrPreview = (document: Document) => {
+  const openOcrPreview = (document: Document, rect?: DOMRect) => {
     if (document.metadata?.ocr_info && document.metadata.ocr_info.text) {
-      setOcrModal({ ocr: document.metadata.ocr_info, doc: document });
+      setOcrModal({ ocr: document.metadata.ocr_info, doc: document, rect });
     } else {
       showWarning('Nema OCR rezultata za ovaj dokument', 'OCR Preview');
     }
@@ -382,7 +383,8 @@ export default function DocumentList() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          openOcrPreview(doc);
+                          const rect = (e.target as HTMLElement).getBoundingClientRect();
+                          openOcrPreview(doc, rect);
                         }}
                         className="text-xs text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 px-2 py-1 rounded-lg transition-all duration-200"
                       >
@@ -466,56 +468,73 @@ export default function DocumentList() {
 
       {/* OCR Preview Modal */}
       {ocrModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-[var(--bg-tertiary)] rounded-xl max-w-4xl w-full h-[80vh] flex flex-col">
+        <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-white/80 via-slate-100/90 to-blue-100/80 backdrop-blur-2xl rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] flex flex-col border border-blue-200/40">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-[var(--border-color)]">
+            <div className="flex items-center justify-between p-6 border-b border-blue-200/30 bg-white/60 rounded-t-2xl">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-[var(--accent-green)]/20 rounded-lg">
-                  <FaMagic className="text-[var(--accent-green)]" size={20} />
+                <div className="p-2 bg-blue-500/20 rounded-lg">
+                  <FaMagic className="text-blue-400" size={20} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-[var(--text-primary)]">
-                    OCR Preview - {ocrModal.doc.filename}
-                  </h2>
-                  <p className="text-sm text-[var(--text-secondary)]">
-                    Tekst prepoznat iz slike
-                  </p>
+                  <h2 className="text-xl font-bold text-blue-900">OCR rezultat - {ocrModal.doc.filename}</h2>
+                  <p className="text-sm text-blue-600">Tekst prepoznat iz slike</p>
                 </div>
               </div>
-              
               <button
                 onClick={closeOcrPreview}
-                className="p-2 text-[var(--text-muted)] hover:text-[var(--text-primary)] rounded-lg transition-colors"
+                className="p-2 text-blue-400 hover:text-blue-600 hover:bg-blue-100/60 rounded-lg transition-colors"
                 title="Zatvori"
               >
-                <FaTimes size={16} />
+                <FaTimes size={20} />
               </button>
             </div>
 
             {/* OCR Info */}
-            <div className="p-4 border-b border-[var(--accent-green)] bg-[var(--accent-green)]/10">
-              <div className="flex flex-wrap gap-4 text-sm text-[var(--text-secondary)]">
-                {ocrModal.ocr && typeof ocrModal.ocr === 'object' && 'confidence' in ocrModal.ocr && typeof ocrModal.ocr.confidence === 'number' && (
-                  <span><strong>Pouzdanost:</strong> {ocrModal.ocr.confidence.toFixed(1)}%</span>
-                )}
-                {ocrModal.ocr && typeof ocrModal.ocr === 'object' && 'languages' in ocrModal.ocr && Array.isArray(ocrModal.ocr.languages) && (
-                  <span><strong>Jezici:</strong> {ocrModal.ocr.languages.join(', ')}</span>
-                )}
-                {ocrModal.ocr && typeof ocrModal.ocr === 'object' && 'status' in ocrModal.ocr && typeof ocrModal.ocr.status === 'string' && (
-                  <span><strong>Status:</strong> {ocrModal.ocr.status}</span>
-                )}
-                {ocrModal.ocr && typeof ocrModal.ocr === 'object' && 'message' in ocrModal.ocr && typeof ocrModal.ocr.message === 'string' && (
-                  <span><strong>Poruka:</strong> {ocrModal.ocr.message}</span>
-                )}
-              </div>
+            <div className="p-4 border-b border-blue-200/30 bg-blue-50/40 flex flex-wrap gap-4 items-center">
+              {ocrModal.ocr && typeof ocrModal.ocr === 'object' && 'confidence' in ocrModal.ocr && typeof ocrModal.ocr.confidence === 'number' && (
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-200/60 text-blue-900 font-semibold text-xs">
+                  <FaMagic className="text-blue-400" size={14} />
+                  Pouzdanost: {ocrModal.ocr.confidence.toFixed(1)}%
+                </span>
+              )}
+              {ocrModal.ocr && typeof ocrModal.ocr === 'object' && 'languages' in ocrModal.ocr && Array.isArray(ocrModal.ocr.languages) && (
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-green-200/60 text-green-900 font-semibold text-xs">
+                  <FaLanguage className="text-green-400" size={14} />
+                  Jezici: {ocrModal.ocr.languages.join(', ')}
+                </span>
+              )}
+              {ocrModal.ocr && typeof ocrModal.ocr === 'object' && 'status' in ocrModal.ocr && typeof ocrModal.ocr.status === 'string' && (
+                <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full font-semibold text-xs ${ocrModal.ocr.status === 'success' ? 'bg-emerald-200/60 text-emerald-900' : 'bg-yellow-200/60 text-yellow-900'}`}>
+                  <FaCheck className="text-emerald-400" size={14} />
+                  Status: {ocrModal.ocr.status}
+                </span>
+              )}
+              {ocrModal.ocr && typeof ocrModal.ocr === 'object' && 'message' in ocrModal.ocr && typeof ocrModal.ocr.message === 'string' && (
+                <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-200/60 text-yellow-900 font-semibold text-xs">
+                  <FaExclamationTriangle className="text-yellow-400" size={14} />
+                  {ocrModal.ocr.message}
+                </span>
+              )}
             </div>
 
             {/* OCR Text Content */}
             <div className="flex-1 p-6 overflow-y-auto">
-              <div className="bg-[var(--bg-secondary)] rounded-lg p-4">
-                <h3 className="text-lg font-bold text-[var(--text-primary)] mb-4">Prepoznati tekst:</h3>
-                <div className="text-[var(--text-primary)] whitespace-pre-line leading-relaxed">
+              <div className="bg-white/80 rounded-lg p-4 shadow-inner flex flex-col gap-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-lg font-bold text-blue-900">Prepoznati tekst:</h3>
+                  <button
+                    onClick={() => {
+                      if (ocrModal.ocr && typeof ocrModal.ocr === 'object' && 'text' in ocrModal.ocr && typeof ocrModal.ocr.text === 'string') {
+                        navigator.clipboard.writeText(ocrModal.ocr.text);
+                      }
+                    }}
+                    className="px-3 py-1 bg-blue-200/60 hover:bg-blue-300/80 text-blue-900 rounded-lg text-xs font-semibold transition-colors"
+                  >
+                    Kopiraj tekst
+                  </button>
+                </div>
+                <div className="text-blue-900 whitespace-pre-line leading-relaxed text-sm max-h-64 overflow-y-auto font-mono bg-blue-50/60 rounded p-3">
                   {ocrModal.ocr && typeof ocrModal.ocr === 'object' && 'text' in ocrModal.ocr && typeof ocrModal.ocr.text === 'string' 
                     ? ocrModal.ocr.text 
                     : 'Nema prepoznatog teksta'}

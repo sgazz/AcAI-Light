@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useCallback } from 'react';
-import { useDropzone } from 'react-dropzone';
+import { useDropzone, FileRejection } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFileOperations } from '../../utils/fileOperations';
 import { useStatusIcons } from '../../utils/statusIcons';
@@ -44,7 +44,7 @@ const FileSharing: React.FC<FileSharingProps> = ({
   acceptedTypes = ['image/*', 'application/pdf', 'text/*']
 }) => {
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [isDragActive, setIsDragActive] = useState(false);
+  const [isDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Preview states
@@ -93,7 +93,7 @@ const FileSharing: React.FC<FileSharingProps> = ({
     }
   };
 
-  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: any[]) => {
+  const onDrop = useCallback((acceptedFiles: File[]) => {
     setError(null);
 
     // Provera broja fajlova
@@ -164,7 +164,27 @@ const FileSharing: React.FC<FileSharingProps> = ({
   };
 
   return (
-    <div className="w-full space-y-4">
+    <div className="relative w-full space-y-6 p-8 bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 rounded-2xl shadow-2xl border border-white/10 overflow-hidden">
+      {/* Animated Background Pattern */}
+      <div className="absolute inset-0 opacity-10 pointer-events-none select-none">
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse"></div>
+        <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-blue-400/10 rounded-full blur-xl animate-bounce"></div>
+        <div className="absolute bottom-1/4 left-1/4 w-24 h-24 bg-purple-400/10 rounded-full blur-xl animate-pulse"></div>
+      </div>
+
+      {/* Premium Header */}
+      <div className="relative z-10 flex items-center gap-3 mb-6 mt-2 flex-shrink-0">
+        <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
+          <Upload className="text-white" size={28} />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold tracking-wide bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+            File Sharing
+          </h2>
+          <p className="text-xs text-slate-400 font-medium">Premium drag & drop deljenje fajlova</p>
+        </div>
+      </div>
+
       {/* Error Message */}
       <AnimatePresence>
         {error && (
@@ -172,7 +192,7 @@ const FileSharing: React.FC<FileSharingProps> = ({
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="p-4 bg-red-50 border border-red-200 rounded-lg backdrop-blur-sm"
+            className="p-4 bg-red-50/80 border border-red-200 rounded-xl backdrop-blur-md shadow-lg relative z-10"
           >
             <div className="flex items-center space-x-2 text-red-700">
               <X className="w-4 h-4" />
@@ -185,33 +205,31 @@ const FileSharing: React.FC<FileSharingProps> = ({
       {/* Drop Zone */}
       <div
         {...getRootProps()}
-        className={`
-          relative border-2 border-dashed rounded-xl p-8 text-center transition-all duration-300
+        className={
+          `relative border-2 border-dashed rounded-2xl p-10 text-center transition-all duration-300 cursor-pointer z-10
           ${isDragActive || dropzoneDragActive
-            ? 'border-blue-400 bg-blue-50/50 backdrop-blur-sm'
-            : 'border-gray-300 hover:border-gray-400 bg-gray-50/30 backdrop-blur-sm'
-          }
-        `}
+            ? 'border-blue-400 bg-gradient-to-br from-blue-500/10 to-purple-500/10 shadow-xl scale-105'
+            : 'border-white/20 hover:border-blue-400 bg-white/5 hover:bg-blue-50/10 shadow-lg'
+          }`
+        }
       >
         <input {...getInputProps()} />
-        
         <motion.div
           initial={{ scale: 1 }}
           animate={{ scale: isDragActive || dropzoneDragActive ? 1.05 : 1 }}
           className="space-y-4"
         >
-          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-            <Upload className="w-8 h-8 text-white" />
+          <div className="mx-auto w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
+            <Upload className="w-10 h-10 text-white" />
           </div>
-          
           <div className="space-y-2">
-            <h3 className="text-lg font-semibold text-gray-800">
+            <h3 className="text-lg font-semibold text-white drop-shadow">
               {isDragActive || dropzoneDragActive ? 'Spustite fajlove ovde' : 'Prevučite fajlove ovde'}
             </h3>
-            <p className="text-sm text-gray-600">
+            <p className="text-sm text-slate-200/80">
               ili kliknite za odabir fajlova
             </p>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-slate-400">
               Maksimalno {maxFiles} fajlova, {maxSize}MB po fajlu
             </p>
           </div>
@@ -223,10 +241,9 @@ const FileSharing: React.FC<FileSharingProps> = ({
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="space-y-3"
+          className="space-y-3 relative z-10"
         >
-          <h4 className="text-sm font-medium text-gray-700">Uploadovani fajlovi ({files.length}/{maxFiles})</h4>
-          
+          <h4 className="text-sm font-semibold text-slate-200 mb-2">Uploadovani fajlovi <span className="text-xs text-slate-400">({files.length}/{maxFiles})</span></h4>
           <div className="space-y-2">
             {files.map((fileItem) => (
               <motion.div
@@ -234,71 +251,55 @@ const FileSharing: React.FC<FileSharingProps> = ({
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="
-                  flex items-center space-x-3 p-4 bg-white/70 backdrop-blur-sm 
-                  border border-gray-200 rounded-lg shadow-sm hover:shadow-md 
-                  transition-all duration-200
-                "
+                className="flex items-center space-x-3 p-4 bg-gradient-to-br from-white/60 via-slate-100/60 to-blue-50/60 backdrop-blur-xl border border-white/20 rounded-2xl shadow-md hover:shadow-xl transition-all duration-200"
               >
                 {/* File Icon */}
                 <div className="flex-shrink-0">
                   {getFileIcon(fileItem.type)}
                 </div>
-
                 {/* File Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center space-x-2">
-                    <p className="text-sm font-medium text-gray-800 truncate">
+                    <p className="text-sm font-medium text-slate-900 truncate">
                       {fileItem.file.name}
                     </p>
                     <div className="flex items-center space-x-1">
                       {fileItem.status && (
-                        <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(fileItem.status)}`}>
+                        <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(fileItem.status)} bg-white/80 shadow-sm`}>
                           {getStatusIcon(fileItem.status)}
                           <span className="ml-1">{getStatusText(fileItem.status)}</span>
                         </div>
                       )}
                     </div>
                   </div>
-                  <p className="text-xs text-gray-500">{fileItem.size}</p>
+                  <p className="text-xs text-slate-500">{fileItem.size}</p>
                 </div>
-
                 {/* Actions */}
                 <div className="flex items-center space-x-2">
                   {fileItem.type === 'image' && fileItem.preview && (
                     <button
                       onClick={() => handleImagePreview(fileItem)}
-                      className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      className="p-2 text-blue-600 hover:text-white hover:bg-blue-500/80 rounded-xl transition-colors shadow-sm"
                       title="Pregledaj sliku"
                     >
                       <Eye className="w-4 h-4" />
                     </button>
                   )}
-                  
                   {fileItem.type === 'document' && (
                     <button
                       onClick={() => handleDocumentPreview(fileItem)}
-                      className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      className="p-2 text-green-600 hover:text-white hover:bg-green-500/80 rounded-xl transition-colors shadow-sm"
                       title="Pregledaj dokument"
                     >
                       <FileText className="w-4 h-4" />
                     </button>
                   )}
-                  
-                  <button
-                    onClick={() => downloadFile(URL.createObjectURL(fileItem.file), fileItem.file.name)}
-                    className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
-                    title="Preuzmi"
-                  >
-                    <Download className="w-4 h-4" />
-                  </button>
-                  
                   <button
                     onClick={() => removeFile(fileItem.id)}
-                    className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Ukloni"
+                    className="p-2 text-red-500 hover:text-white hover:bg-red-500/80 rounded-xl transition-colors shadow-sm"
+                    title="Obriši fajl"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               </motion.div>
