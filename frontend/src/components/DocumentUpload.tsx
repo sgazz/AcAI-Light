@@ -1,12 +1,13 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { FaUpload, FaTrash, FaCheck, FaSpinner, FaEye, FaCog, FaCloudUploadAlt, FaTimes, FaFileAlt, FaImage, FaCogs, FaMagic, FaLanguage, FaShieldAlt } from 'react-icons/fa';
+import { FaUpload, FaTrash, FaCloudUploadAlt, FaTimes, FaFileAlt, FaCogs, FaMagic, FaLanguage, FaShieldAlt, FaSpinner, FaCheck } from 'react-icons/fa';
 import ImagePreview from './ImagePreview';
 import { formatFileSize, getFileIcon, isImageFile, validateFile } from '../utils/fileUtils';
 import { DOCUMENTS_ENDPOINT, UPLOAD_ENDPOINT, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
 import { useFileOperations } from '../utils/fileOperations';
+
 
 interface Document {
   id: string;
@@ -57,6 +58,7 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
   } | null>(null);
   const { showError, showSuccess, showWarning } = useErrorToast();
   const { deleteFile } = useFileOperations();
+
   
   // Refs
   const dropRef = useRef<HTMLDivElement>(null);
@@ -306,16 +308,7 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
     }
   };
 
-  const getStatusIcon = (status: Document['status']) => {
-    switch (status) {
-      case 'uploading':
-        return <FaSpinner className="text-blue-400 animate-spin" size={16} />;
-      case 'uploaded':
-        return <FaCheck className="text-green-400" size={16} />;
-      case 'error':
-        return <FaTrash className="text-red-400" size={16} />;
-    }
-  };
+
 
   const startUpload = useCallback(async () => {
     setIsUploading(true);
