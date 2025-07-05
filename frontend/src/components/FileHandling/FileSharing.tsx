@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useFileOperations } from '../../utils/fileOperations';
 import { 
   Upload, 
   File, 
@@ -49,6 +50,7 @@ const FileSharing: React.FC<FileSharingProps> = ({
   const [selectedDocument, setSelectedDocument] = useState<File | null>(null);
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [showDocumentPreview, setShowDocumentPreview] = useState(false);
+  const { downloadFile } = useFileOperations();
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -277,7 +279,7 @@ const FileSharing: React.FC<FileSharingProps> = ({
                   )}
                   
                   <button
-                    onClick={() => window.open(URL.createObjectURL(fileItem.file), '_blank')}
+                    onClick={() => downloadFile(URL.createObjectURL(fileItem.file), fileItem.file.name)}
                     className="p-2 text-gray-600 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
                     title="Preuzmi"
                   >
