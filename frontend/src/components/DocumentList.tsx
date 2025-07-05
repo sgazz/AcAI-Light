@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaFile, FaTrash, FaEye, FaFileAlt, FaClock, FaHdd, FaLayerGroup, FaRedo, FaSearch, FaDownload, FaExternalLinkAlt, FaMagic, FaTimes } from 'react-icons/fa';
+import { FaFile, FaTrash, FaEye, FaFileAlt, FaClock, FaHdd, FaLayerGroup, FaRedo, FaSearch, FaDownload, FaExternalLinkAlt, FaMagic, FaTimes, FaImage } from 'react-icons/fa';
 import DocumentPreview from './DocumentPreview';
+import ImagePreview from './FileHandling/ImagePreview';
 import { formatFileSize, getFileIcon } from '../utils/fileUtils';
 import { formatDate } from '../utils/dateUtils';
 import { DOCUMENTS_ENDPOINT, apiRequest } from '../utils/api';
@@ -40,6 +41,11 @@ export default function DocumentList() {
   const [ocrModal, setOcrModal] = useState<{ocr: Record<string, unknown> | undefined, doc: Document} | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
+  
+  // Image preview states
+  const [selectedImage, setSelectedImage] = useState<{src: string, alt: string} | null>(null);
+  const [showImagePreview, setShowImagePreview] = useState(false);
+  
   const { showError, showSuccess, showWarning } = useErrorToast();
   const { previewFromAPI, downloadFromAPI } = useFileOperations();
   const { getStatusIcon, getStatusColor, getStatusText } = useStatusIcons();
@@ -97,12 +103,35 @@ export default function DocumentList() {
     }
   };
 
+  const isImageFile = (filename: string, fileType: string): boolean => {
+    return fileType.startsWith('image/') || 
+           ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'].some(ext => 
+             filename.toLowerCase().endsWith(ext)
+           );
+  };
+
   const openDocumentPreview = (document: Document) => {
-    setPreviewDocument(document);
+    // Ako je slika, otvori ImagePreview
+    if (isImageFile(document.filename, document.file_type)) {
+      const imageUrl = `http://localhost:8001/documents/${document.id}/preview`;
+      setSelectedImage({
+        src: imageUrl,
+        alt: document.filename
+      });
+      setShowImagePreview(true);
+    } else {
+      // Za ostale dokumente, koristi postojeći DocumentPreview
+      setPreviewDocument(document);
+    }
   };
 
   const closeDocumentPreview = () => {
     setPreviewDocument(null);
+  };
+
+  const closeImagePreview = () => {
+    setShowImagePreview(false);
+    setSelectedImage(null);
   };
 
   const openOcrPreview = (document: Document) => {
@@ -310,10 +339,18 @@ export default function DocumentList() {
                         e.stopPropagation();
                         openDocumentPreview(doc);
                       }}
-                      className="p-2 lg:p-3 text-blue-400 hover:text-blue-300 hover:bg-blue-500/20 rounded-lg lg:rounded-xl icon-hover-profi"
-                      title="Pregledaj sadržaj"
+                      className={`p-2 lg:p-3 rounded-lg lg:rounded-xl icon-hover-profi ${
+                        isImageFile(doc.filename, doc.file_type)
+                          ? 'text-purple-400 hover:text-purple-300 hover:bg-purple-500/20'
+                          : 'text-blue-400 hover:text-blue-300 hover:bg-blue-500/20'
+                      }`}
+                      title={isImageFile(doc.filename, doc.file_type) ? "Pregledaj sliku" : "Pregledaj sadržaj"}
                     >
-                      <FaEye size={14} />
+                      {isImageFile(doc.filename, doc.file_type) ? (
+                        <FaImage size={14} />
+                      ) : (
+                        <FaEye size={14} />
+                      )}
                     </button>
                     <button
                       onClick={(e) => {
@@ -492,6 +529,16 @@ export default function DocumentList() {
           </div>
         </div>
       )}
+
+              {/* Image Preview Modal */}
+        {showImagePreview && selectedImage && (
+          <ImagePreview
+            src={selectedImage.src}
+            alt={selectedImage.alt}
+            isOpen={showImagePreview}
+            onClose={closeImagePreview}
+          />
+        )}
     </div>
   );
 } 
