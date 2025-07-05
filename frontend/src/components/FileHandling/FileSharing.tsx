@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useFileOperations } from '../../utils/fileOperations';
+import { useStatusIcons } from '../../utils/statusIcons';
 import { 
   Upload, 
   File, 
@@ -24,6 +25,7 @@ interface FileItem {
   type: 'image' | 'document' | 'other';
   size: string;
   uploaded: boolean;
+  status?: 'loading' | 'success' | 'error';
 }
 
 interface FileSharingProps {
@@ -51,6 +53,7 @@ const FileSharing: React.FC<FileSharingProps> = ({
   const [showImagePreview, setShowImagePreview] = useState(false);
   const [showDocumentPreview, setShowDocumentPreview] = useState(false);
   const { downloadFile } = useFileOperations();
+  const { getStatusIcon, getStatusColor, getStatusText } = useStatusIcons();
 
   const formatFileSize = (bytes: number): string => {
     if (bytes === 0) return '0 Bytes';
@@ -111,7 +114,8 @@ const FileSharing: React.FC<FileSharingProps> = ({
       file,
       type: getFileType(file),
       size: formatFileSize(file.size),
-      uploaded: false
+      uploaded: false,
+      status: 'loading' as const
     }));
 
     // Kreiranje preview-a za slike
@@ -247,11 +251,14 @@ const FileSharing: React.FC<FileSharingProps> = ({
                     <p className="text-sm font-medium text-gray-800 truncate">
                       {fileItem.file.name}
                     </p>
-                    {fileItem.uploaded && (
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Uploaded
-                      </span>
-                    )}
+                    <div className="flex items-center space-x-1">
+                      {fileItem.status && (
+                        <div className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(fileItem.status)}`}>
+                          {getStatusIcon(fileItem.status)}
+                          <span className="ml-1">{getStatusText(fileItem.status)}</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
                   <p className="text-xs text-gray-500">{fileItem.size}</p>
                 </div>
