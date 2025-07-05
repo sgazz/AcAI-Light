@@ -6,6 +6,7 @@ import ImagePreview from './ImagePreview';
 import { formatFileSize, getFileIcon, isImageFile, validateFile } from '../utils/fileUtils';
 import { DOCUMENTS_ENDPOINT, UPLOAD_ENDPOINT, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
+import { useFileOperations } from '../utils/fileOperations';
 
 interface Document {
   id: string;
@@ -55,6 +56,7 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
     filename: string;
   } | null>(null);
   const { showError, showSuccess, showWarning } = useErrorToast();
+  const { deleteFile } = useFileOperations();
   
   // Refs
   const dropRef = useRef<HTMLDivElement>(null);
@@ -282,25 +284,25 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
   }, [handleFileSelect]);
 
   const deleteDocument = async (docId: string) => {
-    try {
-      const result = await apiRequest(`${DOCUMENTS_ENDPOINT}/${docId}`, {
-        method: 'DELETE',
-      });
-      
-      if (result.status === 'success') {
-        setDocuments(prev => prev.filter(doc => doc.id !== docId));
-        showSuccess('Dokument uspešno obrisan', 'Brisanje');
-      } else {
-        throw new Error(result.message || 'Greška pri brisanju dokumenta');
-      }
-    } catch (error: any) {
-      console.error('Greška pri brisanju dokumenta:', error);
-      showError(
-        error.message || 'Greška pri brisanju dokumenta',
-        'Greška brisanja',
-        true,
-        () => deleteDocument(docId)
-      );
+    const success = await deleteFile(
+      async () => {
+        const result = await apiRequest(`${DOCUMENTS_ENDPOINT}/${docId}`, {
+          method: 'DELETE',
+        });
+        
+        if (result.status === 'success') {
+          setDocuments(prev => prev.filter(doc => doc.id !== docId));
+          showSuccess('Dokument uspešno obrisan', 'Brisanje');
+          return true;
+        } else {
+          throw new Error(result.message || 'Greška pri brisanju dokumenta');
+        }
+      },
+      'Da li ste sigurni da želite da obrišete ovaj dokument?'
+    );
+    
+    if (!success) {
+      showError('Greška pri brisanju dokumenta', 'Greška brisanja');
     }
   };
 
