@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaFile, FaTrash, FaEye, FaSpinner, FaFileAlt, FaClock, FaHdd, FaLayerGroup, FaCheckCircle, FaExclamationTriangle, FaCog, FaRedo, FaSearch, FaFilter, FaMagic, FaTimes, FaDownload, FaExternalLinkAlt } from 'react-icons/fa';
+import { FaFile, FaTrash, FaEye, FaFileAlt, FaClock, FaHdd, FaLayerGroup, FaRedo, FaSearch, FaDownload, FaExternalLinkAlt, FaMagic, FaTimes } from 'react-icons/fa';
 import DocumentPreview from './DocumentPreview';
 import { formatFileSize, getFileIcon } from '../utils/fileUtils';
 import { formatDate } from '../utils/dateUtils';
 import { DOCUMENTS_ENDPOINT, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
 import { useFileOperations } from '../utils/fileOperations';
+import { useStatusIcons } from '../utils/statusIcons';
 
 interface Document {
   id: string;
@@ -41,6 +42,7 @@ export default function DocumentList() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const { showError, showSuccess, showWarning } = useErrorToast();
   const { previewFromAPI, downloadFromAPI } = useFileOperations();
+  const { getStatusIcon, getStatusColor, getStatusText } = useStatusIcons();
 
   useEffect(() => {
     fetchDocuments();
@@ -129,17 +131,7 @@ export default function DocumentList() {
     }
   };
 
-  const getStatusColor = (): string => {
-    return 'text-green-400'; // Dokumenti su uvek "uploaded" kada su u bazi
-  };
 
-  const getStatusText = (): string => {
-    return 'Učitano';
-  };
-
-  const getStatusIcon = () => {
-    return <FaCheckCircle className="text-green-400" size={16} />;
-  };
 
   // Filter documents
   const filteredDocuments = documents.filter(doc => {
@@ -281,9 +273,9 @@ export default function DocumentList() {
                             <FaLayerGroup size={12} />
                             <span>{doc.metadata?.embedding_count || 0} delova</span>
                           </div>
-                          <div className={`flex items-center gap-2 ${getStatusColor()}`}>
-                            {getStatusIcon()}
-                            <span className="font-semibold">{getStatusText()}</span>
+                          <div className={`flex items-center gap-2 ${getStatusColor('success')}`}>
+                            {getStatusIcon('success')}
+                            <span className="font-semibold">{getStatusText('success')}</span>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -411,9 +403,9 @@ export default function DocumentList() {
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-white font-semibold">Status:</span>
-                <span className={`${getStatusColor()} font-semibold`}>
-                  {getStatusText()}
-                </span>
+                                        <span className={`${getStatusColor('success')} font-semibold`}>
+                          {getStatusText('success')}
+                        </span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-white font-semibold">Uploadovano:</span>
