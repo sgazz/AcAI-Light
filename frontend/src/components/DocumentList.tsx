@@ -43,7 +43,7 @@ export default function DocumentList() {
   const [filterStatus, setFilterStatus] = useState<string>('all');
   
   // Image preview states
-  const [selectedImage, setSelectedImage] = useState<{src: string, alt: string} | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showImagePreview, setShowImagePreview] = useState(false);
   
   const { showError, showSuccess, showWarning } = useErrorToast();
@@ -111,14 +111,10 @@ export default function DocumentList() {
   };
 
   const openDocumentPreview = (document: Document) => {
-    // Ako je slika, otvori ImagePreview
+    // Ako je slika, otvori u novom prozoru/tabu
     if (isImageFile(document.filename, document.file_type)) {
       const imageUrl = `http://localhost:8001/documents/${document.id}/preview`;
-      setSelectedImage({
-        src: imageUrl,
-        alt: document.filename
-      });
-      setShowImagePreview(true);
+      window.open(imageUrl, '_blank', 'noopener,noreferrer');
     } else {
       // Za ostale dokumente, koristi postojeći DocumentPreview
       setPreviewDocument(document);
@@ -190,9 +186,9 @@ export default function DocumentList() {
   }
 
   return (
-    <div className="bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-2xl p-8 h-full relative">
+    <div className="bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 backdrop-blur-2xl rounded-2xl p-4 sm:p-6 lg:p-8 max-h-screen overflow-y-auto relative">
       {/* Animated Background Pattern */}
-      <div className="absolute inset-0 opacity-5">
+      <div className="absolute inset-0 opacity-5 pointer-events-none select-none z-0 hidden sm:block">
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-pulse"></div>
         <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-blue-400/10 rounded-full blur-xl animate-bounce"></div>
         <div className="absolute bottom-1/4 left-1/4 w-24 h-24 bg-purple-400/10 rounded-full blur-xl animate-pulse"></div>
@@ -533,8 +529,8 @@ export default function DocumentList() {
               {/* Image Preview Modal */}
         {showImagePreview && selectedImage && (
           <ImagePreview
-            src={selectedImage.src}
-            alt={selectedImage.alt}
+            src={selectedImage}
+            alt="Image preview"
             isOpen={showImagePreview}
             onClose={closeImagePreview}
           />
