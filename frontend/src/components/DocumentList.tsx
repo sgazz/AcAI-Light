@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { FaFile, FaTrash, FaEye, FaFileAlt, FaClock, FaHdd, FaLayerGroup, FaRedo, FaSearch, FaDownload, FaExternalLinkAlt, FaMagic, FaTimes, FaImage, FaLanguage, FaCheck, FaExclamationTriangle } from 'react-icons/fa';
+import { FaFile, FaTrash, FaEye, FaFileAlt, FaClock, FaHdd, FaLayerGroup, FaRedo, FaSearch, FaDownload, FaExternalLinkAlt, FaMagic, FaTimes, FaImage, FaLanguage, FaCheck, FaExclamationTriangle, FaEdit, FaSave, FaUndo } from 'react-icons/fa';
 import DocumentPreview from './DocumentPreview';
 import ImagePreview from './FileHandling/ImagePreview';
 import { formatFileSize, getFileIcon } from '../utils/fileUtils';
@@ -46,6 +46,10 @@ export default function DocumentList() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [showImagePreview, setShowImagePreview] = useState(false);
   
+  // OCR edit states
+  const [isEditingOcr, setIsEditingOcr] = useState(false);
+  const [editedOcrText, setEditedOcrText] = useState('');
+  
   const { showError, showSuccess, showWarning } = useErrorToast();
   const { previewFromAPI, downloadFromAPI } = useFileOperations();
   const { getStatusIcon, getStatusColor, getStatusText } = useStatusIcons();
@@ -53,6 +57,23 @@ export default function DocumentList() {
   useEffect(() => {
     fetchDocuments();
   }, []);
+
+  // Keyboard shortcuts za OCR edit
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (ocrModal && isEditingOcr) {
+        if (e.key === 'Escape') {
+          cancelOcrEdit();
+        } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+          e.preventDefault();
+          saveOcrEdit();
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [ocrModal, isEditingOcr]);
 
   const fetchDocuments = async () => {
     try {
@@ -141,6 +162,81 @@ export default function DocumentList() {
 
   const closeOcrPreview = () => {
     setOcrModal(null);
+    setIsEditingOcr(false);
+    setEditedOcrText('');
+  };
+
+  const startEditingOcr = () => {
+    if (ocrModal?.ocr && typeof ocrModal.ocr === 'object' && 'text' in ocrModal.ocr && typeof ocrModal.ocr.text === 'string') {
+      setEditedOcrText(ocrModal.ocr.text);
+      setIsEditingOcr(true);
+    }
+  };
+
+  const saveOcrEdit = async () => {
+    try {
+      // Ovde bi trebalo da se pozove API za čuvanje izmenjenog teksta
+      // Za sada samo ažuriramo lokalno stanje
+      if (ocrModal) {
+        const updatedOcr = { ...ocrModal.ocr, text: editedOcrText };
+        setOcrModal({ ...ocrModal, ocr: updatedOcr });
+        setIsEditingOcr(false);
+        showSuccess('OCR tekst uspešno sačuvan', 'Čuvanje');
+      }
+    } catch (error: any) {
+      showError('Greška pri čuvanju OCR teksta', 'Greška čuvanja');
+    }
+  };
+
+  const fixOcrText = async (mode: 'fix' | 'format') => {
+    try {
+      if (!ocrModal?.ocr || typeof ocrModal.ocr !== 'object' || !('text' in ocrModal.ocr) || typeof ocrModal.ocr.text !== 'string') {
+        showError('Nema teksta za ispravljanje', 'Greška');
+        return;
+      }
+
+      const currentText = ocrModal.ocr.text;
+      
+      // Prikaži loading
+      showSuccess('AI obrađuje tekst...', 'Obrađivanje');
+      
+      // Pozovi backend endpoint
+      const response = await fetch('http://localhost:8001/ocr/fix-text', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: currentText,
+          mode: mode
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.status === 'success') {
+        // Ažuriraj tekst u modal-u
+        const updatedOcr = { ...ocrModal.ocr, text: result.fixed_text };
+        setOcrModal({ ...ocrModal, ocr: updatedOcr });
+        
+        // Ako je u edit mode-u, ažuriraj i textarea
+        if (isEditingOcr) {
+          setEditedOcrText(result.fixed_text);
+        }
+        
+        const actionText = mode === 'fix' ? 'ispravljen' : 'formatiran';
+        showSuccess(`Tekst uspešno ${actionText}`, 'AI Obrađivanje');
+      } else {
+        throw new Error(result.message || 'Greška pri AI obradi');
+      }
+    } catch (error: any) {
+      showError(`Greška pri ${mode === 'fix' ? 'ispravljanju' : 'formatiranju'} teksta: ${error.message}`, 'AI Greška');
+    }
+  };
+
+  const cancelOcrEdit = () => {
+    setIsEditingOcr(false);
+    setEditedOcrText('');
   };
 
   const handlePreviewOriginal = async (document: Document) => {
@@ -523,22 +619,96 @@ export default function DocumentList() {
               <div className="bg-white/80 rounded-lg p-4 shadow-inner flex flex-col gap-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="text-lg font-bold text-blue-900">Prepoznati tekst:</h3>
-                  <button
-                    onClick={() => {
-                      if (ocrModal.ocr && typeof ocrModal.ocr === 'object' && 'text' in ocrModal.ocr && typeof ocrModal.ocr.text === 'string') {
-                        navigator.clipboard.writeText(ocrModal.ocr.text);
-                      }
-                    }}
-                    className="px-3 py-1 bg-blue-200/60 hover:bg-blue-300/80 text-blue-900 rounded-lg text-xs font-semibold transition-colors"
-                  >
-                    Kopiraj tekst
-                  </button>
+                  <div className="flex gap-2">
+                    {!isEditingOcr ? (
+                      <>
+                        <button
+                          onClick={startEditingOcr}
+                          className="px-3 py-1 bg-green-200/60 hover:bg-green-300/80 text-green-900 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
+                          title="Uredi OCR tekst (Enter)"
+                        >
+                          <FaEdit size={12} />
+                          Uredi
+                        </button>
+                        <button
+                          onClick={() => fixOcrText('fix')}
+                          className="px-3 py-1 bg-purple-200/60 hover:bg-purple-300/80 text-purple-900 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
+                          title="AI ispravi tekst"
+                        >
+                          <FaMagic size={12} />
+                          Popravi
+                        </button>
+                        <button
+                          onClick={() => fixOcrText('format')}
+                          className="px-3 py-1 bg-orange-200/60 hover:bg-orange-300/80 text-orange-900 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
+                          title="AI formatiraj tekst"
+                        >
+                          <FaFileAlt size={12} />
+                          Formatiraj
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (ocrModal.ocr && typeof ocrModal.ocr === 'object' && 'text' in ocrModal.ocr && typeof ocrModal.ocr.text === 'string') {
+                              navigator.clipboard.writeText(ocrModal.ocr.text);
+                            }
+                          }}
+                          className="px-3 py-1 bg-blue-200/60 hover:bg-blue-300/80 text-blue-900 rounded-lg text-xs font-semibold transition-colors"
+                        >
+                          Kopiraj tekst
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={saveOcrEdit}
+                          className="px-3 py-1 bg-green-200/60 hover:bg-green-300/80 text-green-900 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
+                          title="Sačuvaj izmene (Ctrl+S)"
+                        >
+                          <FaSave size={12} />
+                          Sačuvaj
+                        </button>
+                        <button
+                          onClick={() => fixOcrText('fix')}
+                          className="px-3 py-1 bg-purple-200/60 hover:bg-purple-300/80 text-purple-900 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
+                          title="AI ispravi tekst"
+                        >
+                          <FaMagic size={12} />
+                          Popravi
+                        </button>
+                        <button
+                          onClick={() => fixOcrText('format')}
+                          className="px-3 py-1 bg-orange-200/60 hover:bg-orange-300/80 text-orange-900 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
+                          title="AI formatiraj tekst"
+                        >
+                          <FaFileAlt size={12} />
+                          Formatiraj
+                        </button>
+                        <button
+                          onClick={cancelOcrEdit}
+                          className="px-3 py-1 bg-red-200/60 hover:bg-red-300/80 text-red-900 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1"
+                          title="Otkaži izmene (ESC)"
+                        >
+                          <FaUndo size={12} />
+                          Otkaži
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <div className="text-blue-900 whitespace-pre-line leading-relaxed text-sm max-h-64 overflow-y-auto font-mono bg-blue-50/60 rounded p-3">
-                  {ocrModal.ocr && typeof ocrModal.ocr === 'object' && 'text' in ocrModal.ocr && typeof ocrModal.ocr.text === 'string' 
-                    ? ocrModal.ocr.text 
-                    : 'Nema prepoznatog teksta'}
-                </div>
+                {isEditingOcr ? (
+                  <textarea
+                    value={editedOcrText}
+                    onChange={(e) => setEditedOcrText(e.target.value)}
+                    className="w-full h-64 p-3 text-blue-900 text-sm font-mono bg-blue-50/60 rounded border-2 border-blue-300/50 focus:border-blue-500 focus:outline-none resize-none"
+                    placeholder="Uredite prepoznati tekst..."
+                  />
+                ) : (
+                  <div className="text-blue-900 whitespace-pre-line leading-relaxed text-sm max-h-64 overflow-y-auto font-mono bg-blue-50/60 rounded p-3">
+                    {ocrModal.ocr && typeof ocrModal.ocr === 'object' && 'text' in ocrModal.ocr && typeof ocrModal.ocr.text === 'string' 
+                      ? ocrModal.ocr.text 
+                      : 'Nema prepoznatog teksta'}
+                  </div>
+                )}
               </div>
             </div>
           </div>

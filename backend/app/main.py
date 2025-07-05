@@ -21,6 +21,7 @@ import asyncio
 import hashlib
 import aiohttp
 from contextlib import asynccontextmanager
+from pydantic import BaseModel
 
 # Konfiguracija logging-a
 logger = logging.getLogger(__name__)
@@ -3133,3 +3134,32 @@ async def get_user_career_insights(user_id: str):
     """Dohvati sveobuhvatne career insights za korisnika"""
     result = await career_guidance_service.get_user_career_insights(user_id)
     return JSONResponse(result)
+
+class FixTextRequest(BaseModel):
+    text: str
+    mode: str = "fix"  # 'fix' ili 'format'
+
+@app.post("/ocr/fix-text")
+async def fix_text(request: FixTextRequest):
+    """
+    Ispravi ili formatiraj tekst koristeći LLM (Ollama/OpenAI).
+    mode: 'fix' - pravopis/gramatika, 'format' - formatiranje
+    """
+    prompt = ""
+    if request.mode == "fix":
+        prompt = f"Ispravi pravopisne i gramatičke greške u sledećem tekstu na srpskom jeziku:\n\n{request.text}\n\nIspravljeni tekst:"
+    elif request.mode == "format":
+        prompt = f"Formatiraj sledeći tekst tako da bude čitljiv, sa paragrafima i velikim slovima gde treba (srpski jezik):\n\n{request.text}\n\nFormatiran tekst:"
+    else:
+        return {"status": "error", "message": "Nepoznat mod."}
+
+    try:
+        response = ollama_client.generate(
+            model="mistral",
+            prompt=prompt,
+            options={"temperature": 0.2, "max_tokens": 2048}
+        )
+        fixed_text = response['response'].strip()
+        return {"status": "success", "fixed_text": fixed_text}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
