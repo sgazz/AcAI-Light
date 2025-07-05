@@ -135,15 +135,31 @@ class AsyncSupabaseManager:
             
             async with session.post(url, json=chat_data) as response:
                 if response.status == 201:
-                    result = await response.json()
+                    # Proveri da li response ima content
+                    content = await response.read()
+                    if content:
+                        try:
+                            result = await response.json()
+                            self._update_stats(True, asyncio.get_event_loop().time() - start_time)
+                            return result[0]['id'] if result and len(result) > 0 else None
+                        except Exception as json_error:
+                            # Ako ne može da parsira JSON, ali je 201, smatraj da je uspešno
+                            print(f"Upozorenje: Ne mogu da parsira JSON za 201 odgovor: {json_error}")
+                            self._update_stats(True, asyncio.get_event_loop().time() - start_time)
+                            return None
+                    else:
+                        # 201 bez content-a - smatraj da je uspešno
+                        self._update_stats(True, asyncio.get_event_loop().time() - start_time)
+                        return None
+                elif response.status == 204:
                     self._update_stats(True, asyncio.get_event_loop().time() - start_time)
-                    return result[0]['id']
+                    return None
                 else:
+                    error_text = await response.text()
                     self._update_stats(False, asyncio.get_event_loop().time() - start_time)
-                    raise Exception(f"Greška pri čuvanju poruke: {response.status}")
+                    raise Exception(f"HTTP {response.status}: {error_text}")
                     
         except Exception as e:
-            print(f"Greška pri async čuvanju chat poruke: {e}")
             raise
     
     async def get_chat_history(self, session_id: str, limit: int = 50) -> List[Dict]:
