@@ -41,6 +41,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [imageError, setImageError] = useState(false);
+  const [imageLoading, setImageLoading] = useState(true);
   
   const imageRef = useRef<HTMLImageElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -73,6 +75,8 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
     setScale(1);
     setRotation(0);
     setPosition({ x: 0, y: 0 });
+    setImageError(false);
+    setImageLoading(true);
   }, [src]);
 
   const handleZoomIn = () => {
@@ -142,9 +146,9 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
   };
 
   const buttonClass = `
-    p-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg
-    hover:bg-white hover:shadow-lg transition-all duration-200
-    text-gray-700 hover:text-gray-900
+    p-3 bg-gray-700/80 backdrop-blur-sm border border-gray-600 rounded-lg
+    hover:bg-gray-600 hover:shadow-lg transition-all duration-200
+    text-white hover:text-gray-100
   `;
 
   return (
@@ -154,12 +158,13 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 bg-black/90 backdrop-blur-sm"
+          className="fixed inset-0 z-50 bg-black bg-opacity-50 flex items-center justify-center p-4"
           ref={containerRef}
         >
+          <div className="bg-white rounded-xl max-w-7xl w-full h-[95vh] flex flex-col relative overflow-hidden">
           {/* Header Controls */}
           <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10">
-            <div className="flex items-center space-x-2 bg-white/80 backdrop-blur-sm rounded-lg p-2 border border-gray-200">
+            <div className="flex items-center space-x-2 bg-gray-800/90 backdrop-blur-sm rounded-lg p-2 border border-gray-600">
               <button
                 onClick={handleZoomOut}
                 disabled={scale <= 0.1}
@@ -215,7 +220,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           {/* Close Button */}
           <button
             onClick={onClose}
-            className="absolute top-4 right-4 z-10 p-3 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg hover:bg-white hover:shadow-lg transition-all duration-200 text-gray-700 hover:text-gray-900"
+            className="absolute top-4 right-4 z-10 p-3 bg-gray-800/90 backdrop-blur-sm border border-gray-600 rounded-lg hover:bg-gray-700 hover:shadow-lg transition-all duration-200 text-white hover:text-gray-100"
             title="Zatvori (ESC)"
           >
             <X className="w-6 h-6" />
@@ -225,7 +230,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           {hasPrevious && (
             <button
               onClick={onPrevious}
-              className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 p-4 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg hover:bg-white hover:shadow-lg transition-all duration-200 text-gray-700 hover:text-gray-900"
+              className="absolute left-4 top-1/2 transform -translate-y-1/2 z-10 p-4 bg-gray-800/90 backdrop-blur-sm border border-gray-600 rounded-lg hover:bg-gray-700 hover:shadow-lg transition-all duration-200 text-white hover:text-gray-100"
               title="Prethodna slika (←)"
             >
               <ArrowLeft className="w-6 h-6" />
@@ -235,7 +240,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
           {hasNext && (
             <button
               onClick={onNext}
-              className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 p-4 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-lg hover:bg-white hover:shadow-lg transition-all duration-200 text-gray-700 hover:text-gray-900"
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 z-10 p-4 bg-gray-800/90 backdrop-blur-sm border border-gray-600 rounded-lg hover:bg-gray-700 hover:shadow-lg transition-all duration-200 text-white hover:text-gray-100"
               title="Sledeća slika (→)"
             >
               <ArrowRight className="w-6 h-6" />
@@ -252,11 +257,39 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
             onWheel={handleWheel}
             style={{ cursor: isDragging ? 'grabbing' : scale > 1 ? 'grab' : 'default' }}
           >
+            {imageLoading && (
+              <div className="flex items-center justify-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+                <span className="ml-3 text-white">Učitavanje slike...</span>
+              </div>
+            )}
+            
+            {imageError && (
+              <div className="flex flex-col items-center justify-center text-white">
+                <div className="text-6xl mb-4">❌</div>
+                <h3 className="text-lg font-bold mb-2">Greška pri učitavanju slike</h3>
+                <p className="text-sm opacity-75 mb-4">Nije moguće učitati sliku sa URL-a:</p>
+                <p className="text-xs opacity-50 break-all max-w-md">{src}</p>
+                <button
+                  onClick={() => {
+                    setImageError(false);
+                    setImageLoading(true);
+                    if (imageRef.current) {
+                      imageRef.current.src = src;
+                    }
+                  }}
+                  className="mt-4 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                >
+                  Pokušaj ponovo
+                </button>
+              </div>
+            )}
+            
             <motion.img
               ref={imageRef}
               src={src}
               alt={alt}
-              className="max-w-full max-h-full object-contain select-none"
+              className={`max-w-full max-h-full object-contain select-none ${imageLoading ? 'hidden' : ''}`}
               style={{
                 transform: `scale(${scale}) rotate(${rotation}deg) translate(${position.x}px, ${position.y}px)`,
                 transformOrigin: 'center',
@@ -265,13 +298,21 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
               drag={scale > 1}
               dragConstraints={containerRef}
               dragElastic={0.1}
+              onLoad={() => {
+                setImageLoading(false);
+                setImageError(false);
+              }}
+              onError={() => {
+                setImageLoading(false);
+                setImageError(true);
+              }}
             />
           </div>
 
           {/* Zoom Info */}
           <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-            <div className="bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-gray-200">
-              <span className="text-sm font-medium text-gray-700">
+            <div className="bg-gray-800/90 backdrop-blur-sm rounded-lg px-4 py-2 border border-gray-600">
+              <span className="text-sm font-medium text-white">
                 {Math.round(scale * 100)}% | Rotacija: {rotation}°
               </span>
             </div>
@@ -279,14 +320,15 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({
 
           {/* Keyboard Shortcuts Info */}
           <div className="absolute bottom-4 right-4 z-10">
-            <div className="bg-white/80 backdrop-blur-sm rounded-lg px-4 py-2 border border-gray-200">
-              <div className="text-xs text-gray-600 space-y-1">
+            <div className="bg-gray-800/90 backdrop-blur-sm rounded-lg px-4 py-2 border border-gray-600">
+              <div className="text-xs text-gray-300 space-y-1">
                 <div>ESC - Zatvori</div>
                 <div>← → - Navigacija</div>
                 <div>Scroll - Zoom</div>
                 <div>F - Fullscreen</div>
               </div>
             </div>
+          </div>
           </div>
         </motion.div>
       )}
