@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { FaCopy, FaCheck } from 'react-icons/fa';
 import MessageReactions from './MessageReactions';
+import { useClipboard } from '../utils/clipboard';
 
 interface MessageRendererProps {
   content: string;
@@ -24,22 +24,12 @@ export default function MessageRenderer({
   onReaction,
   initialReaction 
 }: MessageRendererProps) {
-  const [copied, setCopied] = useState(false);
+  const { copyToClipboard, copied } = useClipboard();
 
   // Debug logging
   if (sender === 'ai') {
     console.log('AI message renderer:', { messageId, sender, hasOnReaction: !!onReaction });
   }
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (error) {
-      console.error('Greška pri kopiranju:', error);
-    }
-  };
 
   const markdownComponents = {
     code({ node, inline, className, children, ...props }: any) {
