@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { FaUsers, FaPlus, FaSignInAlt, FaSignOutAlt, FaCopy, FaCrown, FaUser } from 'react-icons/fa';
 import { useErrorToast } from './ErrorToastProvider';
+import { useClipboard } from '../utils/clipboard';
 import { 
   createStudyRoom, 
   listStudyRooms, 
@@ -69,6 +70,7 @@ export default function StudyRoom() {
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { showError, showSuccess } = useErrorToast();
+  const { copyToClipboard } = useClipboard();
 
   useEffect(() => {
     loadRooms();
@@ -356,8 +358,7 @@ export default function StudyRoom() {
   };
 
   const copyInviteCode = (code: string) => {
-    navigator.clipboard.writeText(code);
-    showSuccess('Kod sobe kopiran', 'Kopiranje');
+    copyToClipboard(code, 'Kod sobe kopiran');
   };
 
   useEffect(() => {
