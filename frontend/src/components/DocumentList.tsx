@@ -7,6 +7,7 @@ import { formatFileSize, getFileIcon } from '../utils/fileUtils';
 import { formatDate } from '../utils/dateUtils';
 import { DOCUMENTS_ENDPOINT, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
+import { useFileOperations } from '../utils/fileOperations';
 
 interface Document {
   id: string;
@@ -39,6 +40,7 @@ export default function DocumentList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const { showError, showSuccess, showWarning } = useErrorToast();
+  const { previewFromAPI, downloadFromAPI } = useFileOperations();
 
   useEffect(() => {
     fetchDocuments();
@@ -114,37 +116,15 @@ export default function DocumentList() {
   };
 
   const handlePreviewOriginal = async (document: Document) => {
-    try {
-      const response = await fetch(`http://localhost:8001/documents/${document.id}/preview`);
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        window.open(url, '_blank');
-      } else {
-        showError('Greška pri otvaranju preview-a', 'Preview greška');
-      }
-    } catch (error) {
+    const success = await previewFromAPI(`http://localhost:8001/documents/${document.id}/preview`);
+    if (!success) {
       showError('Greška pri otvaranju preview-a', 'Preview greška');
     }
   };
 
   const handleDownloadOriginal = async (document: Document) => {
-    try {
-      const response = await fetch(`http://localhost:8001/documents/${document.id}/download`);
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = URL.createObjectURL(blob);
-        const a = window.document.createElement('a');
-        a.href = url;
-        a.download = document.filename;
-        window.document.body.appendChild(a);
-        a.click();
-        window.document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      } else {
-        showError('Greška pri preuzimanju fajla', 'Download greška');
-      }
-    } catch (error) {
+    const success = await downloadFromAPI(`http://localhost:8001/documents/${document.id}/download`, document.filename);
+    if (!success) {
       showError('Greška pri preuzimanju fajla', 'Download greška');
     }
   };
