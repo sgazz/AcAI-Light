@@ -1,5 +1,5 @@
 """
-Supabase klijent za AcAIA projekat - App modul
+Supabase klijent za AcAIA projekat
 Omogućava povezivanje sa Supabase bazom podataka i operacije sa tabelama
 """
 
@@ -16,7 +16,7 @@ try:
     from dotenv import load_dotenv
     
     # Pokušaj da učitaš .env iz backend direktorijuma
-    backend_env_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+    backend_env_path = os.path.join(os.path.dirname(__file__), '.env')
     if os.path.exists(backend_env_path):
         load_dotenv(backend_env_path)
     else:
@@ -115,50 +115,127 @@ class AsyncSupabaseManager:
             "stats": self._connection_stats.copy(),
             "session_active": self.http_session is not None
         }
-
-    async def save_chat_message(self, session_id: str, user_message: str, assistant_message: str, sources: list = None) -> str:
+    
+    async def save_chat_message(self, session_id: str, user_message: str, 
+                               assistant_message: str, sources: List[Dict] = None) -> str:
         """Čuva chat poruku u istoriju asinhrono"""
         try:
             start_time = asyncio.get_event_loop().time()
-            session = await self.get_http_session()
-            url = f"{self.supabase_url}/rest/v1/chat_history"
+            
             chat_data = {
                 'session_id': session_id,
                 'user_message': user_message,
                 'assistant_message': assistant_message,
                 'sources': sources or []
             }
+            
+            # Koristi async HTTP poziv
+            session = await self.get_http_session()
+            url = f"{self.supabase_url}/rest/v1/chat_history"
+            
             async with session.post(url, json=chat_data) as response:
                 if response.status == 201:
-                    # Proveri da li response ima content
-                    content = await response.read()
-                    if content:
-                        try:
-                            result = await response.json()
-                            self._update_stats(True, asyncio.get_event_loop().time() - start_time)
-                            return result[0]['id'] if result and len(result) > 0 else None
-                        except Exception as json_error:
-                            # Ako ne može da parsira JSON, ali je 201, smatraj da je uspešno
-                            print(f"Upozorenje: Ne mogu da parsira JSON za 201 odgovor: {json_error}")
-                            self._update_stats(True, asyncio.get_event_loop().time() - start_time)
-                            return None
-                    else:
-                        # 201 bez content-a - smatraj da je uspešno
-                        self._update_stats(True, asyncio.get_event_loop().time() - start_time)
-                        return None
-                elif response.status == 204:
+                    result = await response.json()
                     self._update_stats(True, asyncio.get_event_loop().time() - start_time)
-                    return None
+                    return result[0]['id']
                 else:
-                    error_text = await response.text()
                     self._update_stats(False, asyncio.get_event_loop().time() - start_time)
-                    raise Exception(f"HTTP {response.status}: {error_text}")
+                    raise Exception(f"Greška pri čuvanju poruke: {response.status}")
+                    
         except Exception as e:
             print(f"Greška pri async čuvanju chat poruke: {e}")
             raise
+    
+    async def get_chat_history(self, session_id: str, limit: int = 50) -> List[Dict]:
+        """Dohvata chat istoriju za sesiju asinhrono"""
+        try:
+            start_time = asyncio.get_event_loop().time()
+            
+            # Koristi async HTTP poziv
+            session = await self.get_http_session()
+            url = f"{self.supabase_url}/rest/v1/chat_history"
+            params = {
+                'session_id': f'eq.{session_id}',
+                'order': 'created_at.desc',
+                'limit': str(limit)
+            }
+            
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    self._update_stats(True, asyncio.get_event_loop().time() - start_time)
+                    return result
+                else:
+                    self._update_stats(False, asyncio.get_event_loop().time() - start_time)
+                    return []
+                    
+        except Exception as e:
+            print(f"Greška pri async dohvatanju chat istorije: {e}")
+            return []
+    
+    async def insert_document(self, filename: str, file_path: str, file_type: str, 
+                             file_size: int, content: str = None, metadata: Dict = None) -> str:
+        """Ubacuje novi dokument u bazu asinhrono"""
+        try:
+            start_time = asyncio.get_event_loop().time()
+            
+            document_data = {
+                'filename': filename,
+                'file_path': file_path,
+                'file_type': file_type,
+                'file_size': file_size,
+                'content': content,
+                'metadata': metadata or {}
+            }
+            
+            # Koristi async HTTP poziv
+            session = await self.get_http_session()
+            url = f"{self.supabase_url}/rest/v1/documents"
+            
+            async with session.post(url, json=document_data) as response:
+                if response.status == 201:
+                    result = await response.json()
+                    self._update_stats(True, asyncio.get_event_loop().time() - start_time)
+                    return result[0]['id']
+                else:
+                    self._update_stats(False, asyncio.get_event_loop().time() - start_time)
+                    raise Exception(f"Greška pri ubacivanju dokumenta: {response.status}")
+                    
+        except Exception as e:
+            print(f"Greška pri async ubacivanju dokumenta: {e}")
+            raise
+    
+    async def get_all_documents(self) -> List[Dict]:
+        """Dohvata sve dokumente asinhrono"""
+        try:
+            start_time = asyncio.get_event_loop().time()
+            
+            # Koristi async HTTP poziv
+            session = await self.get_http_session()
+            url = f"{self.supabase_url}/rest/v1/documents"
+            params = {'order': 'created_at.desc'}
+            
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    self._update_stats(True, asyncio.get_event_loop().time() - start_time)
+                    return result
+                else:
+                    self._update_stats(False, asyncio.get_event_loop().time() - start_time)
+                    return []
+                    
+        except Exception as e:
+            print(f"Greška pri async dohvatanju dokumenata: {e}")
+            return []
+    
+    async def close(self):
+        """Zatvori HTTP session"""
+        if self.http_session:
+            await self.http_session.close()
+            self.http_session = None
 
 class SupabaseManager:
-    """Glavni manager klasa za Supabase operacije"""
+    """Manager klasa za Supabase operacije"""
     
     def __init__(self):
         self.supabase_url = os.getenv('SUPABASE_URL')
@@ -172,49 +249,38 @@ class SupabaseManager:
     def test_connection(self) -> bool:
         """Testira povezivanje sa Supabase"""
         try:
-            # Jednostavan test poziv
+            # Pokušaj da dohvatiš jedan red iz documents tabele
             result = self.client.table('documents').select('id').limit(1).execute()
             return True
         except Exception as e:
             print(f"Greška pri povezivanju sa Supabase: {e}")
             return False
     
+    # Dokument operacije
     def insert_document(self, filename: str, file_path: str, file_type: str, 
                        file_size: int, content: str = None, metadata: Dict = None) -> str:
         """Ubacuje novi dokument u bazu"""
-        try:
-            document_data = {
-                'filename': filename,
-                'file_path': file_path,
-                'file_type': file_type,
-                'file_size': file_size,
-                'content': content,
-                'metadata': metadata or {}
-            }
-            
-            result = self.client.table('documents').insert(document_data).execute()
-            return result.data[0]['id']
-        except Exception as e:
-            print(f"Greška pri ubacivanju dokumenta: {e}")
-            raise
+        document_data = {
+            'filename': filename,
+            'file_path': file_path,
+            'file_type': file_type,
+            'file_size': file_size,
+            'content': content,
+            'metadata': metadata or {}
+        }
+        
+        result = self.client.table('documents').insert(document_data).execute()
+        return result.data[0]['id']
     
     def get_document(self, document_id: str) -> Optional[Dict]:
         """Dohvata dokument po ID-u"""
-        try:
-            result = self.client.table('documents').select('*').eq('id', document_id).execute()
-            return result.data[0] if result.data else None
-        except Exception as e:
-            print(f"Greška pri dohvatanju dokumenta: {e}")
-            return None
+        result = self.client.table('documents').select('*').eq('id', document_id).execute()
+        return result.data[0] if result.data else None
     
     def get_all_documents(self) -> List[Dict]:
         """Dohvata sve dokumente"""
-        try:
-            result = self.client.table('documents').select('*').execute()
-            return result.data
-        except Exception as e:
-            print(f"Greška pri dohvatanju dokumenata: {e}")
-            return []
+        result = self.client.table('documents').select('*').order('created_at', desc=True).execute()
+        return result.data
     
     def get_chat_history(self, session_id: str, limit: int = 50) -> List[Dict]:
         """Dohvata chat istoriju za sesiju"""
@@ -243,7 +309,7 @@ class SupabaseManager:
             raise
     
     def delete_document(self, document_id: str) -> bool:
-        """Briše dokument po ID-u"""
+        """Briše dokument i sve povezane vektore"""
         try:
             self.client.table('documents').delete().eq('id', document_id).execute()
             return True
@@ -251,12 +317,13 @@ class SupabaseManager:
             print(f"Greška pri brisanju dokumenta: {e}")
             return False
     
+    # Vektor operacije
     def insert_document_vectors(self, document_id: str, vectors: List[Dict]) -> bool:
-        """Ubacuje vektore dokumenta"""
+        """Ubacuje vektore za dokument"""
         try:
-            for vector in vectors:
-                vector['document_id'] = document_id
-                self.client.table('document_vectors').insert(vector).execute()
+            for vector_data in vectors:
+                vector_data['document_id'] = document_id
+                self.client.table('document_vectors').insert(vector_data).execute()
             return True
         except Exception as e:
             print(f"Greška pri ubacivanju vektora: {e}")
@@ -265,9 +332,9 @@ class SupabaseManager:
     def search_similar_vectors(self, query_embedding: List[float], 
                              match_threshold: float = 0.7, 
                              match_count: int = 10) -> List[Dict]:
-        """Pretražuje slične vektore"""
+        """Pretražuje slične vektore koristeći pgvector"""
         try:
-            # Koristi pgvector funkciju za pretragu
+            # Koristi custom funkciju match_documents iz SQL skripte
             result = self.client.rpc('match_documents', {
                 'query_embedding': query_embedding,
                 'match_threshold': match_threshold,
@@ -278,113 +345,99 @@ class SupabaseManager:
             print(f"Greška pri pretraživanju vektora: {e}")
             return []
     
+    # OCR operacije
     def save_ocr_image(self, original_filename: str, original_path: str,
-                     processed_filename: str = None, processed_path: str = None,
-                     ocr_text: str = None, confidence_score: float = None,
-                     language: str = 'srp+eng') -> str:
-        """Čuva OCR obrađenu sliku"""
-        try:
-            ocr_data = {
-                'original_filename': original_filename,
-                'original_path': original_path,
-                'processed_filename': processed_filename,
-                'processed_path': processed_path,
-                'ocr_text': ocr_text,
-                'confidence_score': confidence_score,
-                'language': language
-            }
-            
-            result = self.client.table('ocr_images').insert(ocr_data).execute()
-            return result.data[0]['id']
-        except Exception as e:
-            print(f"Greška pri čuvanju OCR slike: {e}")
-            raise
+                      processed_filename: str = None, processed_path: str = None,
+                      ocr_text: str = None, confidence_score: float = None,
+                      language: str = 'srp+eng') -> str:
+        """Čuva informacije o OCR obrađenoj slici"""
+        ocr_data = {
+            'original_filename': original_filename,
+            'original_path': original_path,
+            'processed_filename': processed_filename,
+            'processed_path': processed_path,
+            'ocr_text': ocr_text,
+            'confidence_score': confidence_score,
+            'language': language
+        }
+        
+        result = self.client.table('ocr_images').insert(ocr_data).execute()
+        return result.data[0]['id']
     
     def get_ocr_images(self) -> List[Dict]:
-        """Dohvata sve OCR slike"""
-        try:
-            result = self.client.table('ocr_images').select('*').execute()
-            return result.data
-        except Exception as e:
-            print(f"Greška pri dohvatanju OCR slika: {e}")
-            return []
+        """Dohvata sve OCR obrađene slike"""
+        result = self.client.table('ocr_images').select('*').order('created_at', desc=True).execute()
+        return result.data
     
+    # Multi-step retrieval operacije
     def save_retrieval_session(self, session_id: str, query: str, 
                               steps: List[Dict] = None, final_results: List[Dict] = None) -> str:
-        """Čuva retrieval sesiju"""
-        try:
-            session_data = {
-                'session_id': session_id,
-                'query': query,
-                'steps': steps or [],
-                'final_results': final_results or []
-            }
-            
-            result = self.client.table('retrieval_sessions').insert(session_data).execute()
-            return result.data[0]['id']
-        except Exception as e:
-            print(f"Greška pri čuvanju retrieval sesije: {e}")
-            raise
+        """Čuva multi-step retrieval sesiju"""
+        session_data = {
+            'session_id': session_id,
+            'query': query,
+            'steps': steps or [],
+            'final_results': final_results or []
+        }
+        
+        result = self.client.table('retrieval_sessions').insert(session_data).execute()
+        return result.data[0]['id']
     
     def get_retrieval_sessions(self, session_id: str = None) -> List[Dict]:
         """Dohvata retrieval sesije"""
-        try:
-            query = self.client.table('retrieval_sessions').select('*')
-            if session_id:
-                query = query.eq('session_id', session_id)
-            result = query.execute()
-            return result.data
-        except Exception as e:
-            print(f"Greška pri dohvatanju retrieval sesija: {e}")
-            return []
+        query = self.client.table('retrieval_sessions').select('*')
+        
+        if session_id:
+            query = query.eq('session_id', session_id)
+        
+        result = query.order('created_at', desc=True).execute()
+        return result.data
     
+    # Statistike i analitika
     def get_database_stats(self) -> Dict[str, Any]:
         """Dohvata statistike baze podataka"""
+        stats = {}
+        
         try:
-            stats = {}
-            
             # Broj dokumenata
             docs_result = self.client.table('documents').select('id', count='exact').execute()
-            stats['total_documents'] = docs_result.count or 0
-            
-            # Broj chat poruka
-            chat_result = self.client.table('chat_history').select('id', count='exact').execute()
-            stats['total_chat_messages'] = chat_result.count or 0
-            
-            # Broj OCR slika
-            ocr_result = self.client.table('ocr_images').select('id', count='exact').execute()
-            stats['total_ocr_images'] = ocr_result.count or 0
-            
-            # Broj retrieval sesija
-            retrieval_result = self.client.table('retrieval_sessions').select('id', count='exact').execute()
-            stats['total_retrieval_sessions'] = retrieval_result.count or 0
+            stats['total_documents'] = docs_result.count
             
             # Broj vektora
             vectors_result = self.client.table('document_vectors').select('id', count='exact').execute()
-            stats['total_vectors'] = vectors_result.count or 0
+            stats['total_vectors'] = vectors_result.count
             
-            return stats
+            # Broj chat poruka
+            chat_result = self.client.table('chat_history').select('id', count='exact').execute()
+            stats['total_chat_messages'] = chat_result.count
+            
+            # Broj OCR slika
+            ocr_result = self.client.table('ocr_images').select('id', count='exact').execute()
+            stats['total_ocr_images'] = ocr_result.count
+            
+            # Broj retrieval sesija
+            retrieval_result = self.client.table('retrieval_sessions').select('id', count='exact').execute()
+            stats['total_retrieval_sessions'] = retrieval_result.count
+            
         except Exception as e:
             print(f"Greška pri dohvatanju statistika: {e}")
-            return {}
+            stats['error'] = str(e)
+        
+        return stats
 
-# Globalne instance
-_supabase_manager = None
-_async_supabase_manager = None
+# Globalna instanca za korišćenje u aplikaciji
+supabase_manager = None
 
 def get_supabase_manager() -> SupabaseManager:
-    """Dohvati globalnu instancu SupabaseManager-a"""
-    global _supabase_manager
-    if _supabase_manager is None:
-        _supabase_manager = SupabaseManager()
-    return _supabase_manager
+    """Dohvata globalnu instancu Supabase manager-a"""
+    global supabase_manager
+    if supabase_manager is None:
+        supabase_manager = SupabaseManager()
+    return supabase_manager
 
 def get_async_supabase_manager() -> AsyncSupabaseManager:
-    """Dohvati globalnu instancu AsyncSupabaseManager-a"""
-    global _async_supabase_manager
-    if _async_supabase_manager is None:
-        _async_supabase_manager = AsyncSupabaseManager()
-    return _async_supabase_manager
+    """Dohvati instancu async Supabase manager-a"""
+    return AsyncSupabaseManager()
 
 def init_supabase() -> bool:
     """Inicijalizuj Supabase konekciju"""
@@ -401,5 +454,5 @@ async def init_async_supabase() -> bool:
         manager = get_async_supabase_manager()
         return await manager.test_connection()
     except Exception as e:
-        print(f"Greška pri async inicijalizaciji Supabase: {e}")
-        return False
+        print(f"Greška pri inicijalizaciji async Supabase: {e}")
+        return False 

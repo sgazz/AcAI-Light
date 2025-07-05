@@ -425,16 +425,14 @@ async def chat_endpoint(message: dict):
             print(f"Greška pri async čuvanju poruke: {e}")
             # Fallback na background task ako async ne radi
             await add_background_task(
-                func=lambda: None,  # Dummy funkcija
-                task_type="save_chat_message",
+                func=lambda **kwargs: None,  # Dummy funkcija koja prihvata kwargs
                 priority=TaskPriority.LOW,
-                data={
-                    "session_id": session_id,
-                    "user_message": user_message,
-                    "assistant_message": ai_response,
-                    "model": model_name,
-                    "response_time": response_time
-                }
+                description="save_chat_message",
+                session_id=session_id,
+                user_message=user_message,
+                assistant_message=ai_response,
+                model=model_name,
+                response_time=response_time
             )
         
         return {
@@ -1605,9 +1603,10 @@ async def add_background_task_endpoint(task_data: dict):
         data = task_data.get("data", {})
         
         task_id = await add_background_task(
-            task_type=task_type,
+            func=lambda **kwargs: None,
             priority=TaskPriority(priority),
-            data=data
+            description=task_type,
+            **data
         )
         
         return {
