@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { FaShare, FaCopy, FaLink, FaTimes, FaSave, FaUser, FaEnvelope, FaCalendar, FaClock, FaEye, FaDownload, FaQrcode, FaGlobe } from 'react-icons/fa';
 import { formatDate } from '../../utils/dateUtils';
 import { useErrorToast } from '../ErrorToastProvider';
+import { useClipboard } from '../../utils/clipboard';
 
 interface ShareLink {
   id: string;
@@ -56,6 +57,7 @@ export default function SessionSharing({
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'links' | 'settings' | 'analytics'>('links');
   const { showError, showSuccess } = useErrorToast();
+  const { copyToClipboard } = useClipboard();
 
   useEffect(() => {
     if (isOpen) {
@@ -125,14 +127,7 @@ export default function SessionSharing({
     }
   };
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-      showSuccess('Link kopiran u clipboard', 'Kopiranje');
-    } catch (error) {
-      showError('Greška pri kopiranju linka', 'Greška');
-    }
-  };
+
 
   const generateQRCode = (url: string) => {
     // U realnoj aplikaciji bi ovo generisalo QR kod
