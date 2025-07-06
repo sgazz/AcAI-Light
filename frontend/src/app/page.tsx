@@ -242,8 +242,10 @@ export default function Home() {
       <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
         <OfflineDetector />
         <div className="flex min-h-screen p-4 gap-4">
-          <Sidebar selectedMenu={selectedMenu} onMenuSelect={setSelectedMenu} />
-          <main className="flex-1 overflow-y-auto">
+          <div className="fixed left-4 top-4 h-[calc(100vh-2rem)] z-40">
+            <Sidebar selectedMenu={selectedMenu} onMenuSelect={setSelectedMenu} />
+          </div>
+          <main className="flex-1 overflow-y-auto" style={{ marginLeft: 340 }}>
             {renderContent()}
           </main>
         </div>
