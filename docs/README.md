@@ -45,28 +45,6 @@ sudo apt-get install redis-server
 sudo systemctl start redis
 ```
 
-## 📖 Dokumentacija
-
-Sva detaljna dokumentacija se nalazi u [`docs/`](docs/) folderu:
-
-### **📋 Master Planovi:**
-- **[ACAI_MASTER_ROADMAP.md](docs/ACAI_MASTER_ROADMAP.md)** - Sveobuhvatni master roadmap sa detaljnim planom implementacije za 2025
-- **[FRONTEND_REFACTORING_PLAN.md](docs/FRONTEND_REFACTORING_PLAN.md)** - Plan refaktorisanja frontend-a
-- **[QA_TEST_PLAN.md](docs/QA_TEST_PLAN.md)** - Kompletan QA test plan
-
-### **🎯 Implementacijski Planovi:**
-- **[PROBLEM_GENERATOR_PLAN.md](docs/PROBLEM_GENERATOR_PLAN.md)** - Plan za Problem Generator
-- **[PROBLEM_GENERATOR_IMPLEMENTATION.md](docs/PROBLEM_GENERATOR_IMPLEMENTATION.md)** - Implementacija Problem Generator-a
-- **[EXAM_DELETE_IMPLEMENTATION.md](docs/EXAM_DELETE_IMPLEMENTATION.md)** - Implementacija brisanja ispita
-- **[PDF_INTEGRATION_MVP.md](docs/PDF_INTEGRATION_MVP.md)** - PDF integracija MVP
-
-### **📚 Funkcionalni Planovi:**
-- **[STUDY_JOURNAL_PLAN.md](docs/STUDY_JOURNAL_PLAN.md)** - Plan za Study Journal
-- **[CAREER_GUIDANCE_PLAN.md](docs/CAREER_GUIDANCE_PLAN.md)** - Plan za Career Guidance
-
-### **📖 Detaljna Dokumentacija:**
-- **[README.md](docs/README.md)** - Kompletna dokumentacija sa svim funkcionalnostima
-
 ## 🏗️ Arhitektura
 
 ```
@@ -152,8 +130,12 @@ Mobile Responsive Virtual Scrolling    Code Highlighting
 - **Color Contrast** - WCAG 2.1 compliant kontrast
 - **Screen Reader Support** - Puna podrška za VoiceOver/NVDA
 
-## 📁 Struktura Projekta
+## 📖 Dokumentacija
 
+### **📋 Master Roadmap:**
+- **[ACAI_MASTER_ROADMAP.md](ACAI_MASTER_ROADMAP.md)** - Sveobuhvatni master roadmap sa detaljnim planom implementacije za 2025
+
+### **📁 Struktura Projekta:**
 ```
 AcAIA/
 ├── backend/               # FastAPI backend
@@ -166,14 +148,118 @@ AcAIA/
 │   │   ├── hooks/        # Custom hooks
 │   │   └── utils/        # Utility funkcije
 │   └── package.json      # Node.js dependencies
-├── docs/                 # Dokumentacija
-│   ├── README.md         # Kompletna dokumentacija
-│   ├── ACAI_MASTER_ROADMAP.md
-│   ├── FRONTEND_REFACTORING_PLAN.md
-│   └── ...               # Ostali .md fajlovi
-├── tests/                # Test fajlovi
-└── scripts/              # Utility skripte
+└── docs/                 # Dokumentacija
 ```
+
+## 🎯 Ključne Komponente
+
+### **ChatBox.tsx:**
+- Modern chat interface sa virtual scrolling-om
+- Debounced input sa auto-resize
+- Mobile responsive design
+- Accessibility improvements
+
+### **MessageRenderer.tsx:**
+- Full-width message layout
+- Code syntax highlighting
+- Message actions (copy, edit, reactions)
+- Avatar system
+
+### **Sidebar.tsx:**
+- Responsive navigation
+- Mobile hamburger menu
+- Touch-friendly design
+- Keyboard navigation
+
+### **page.tsx:**
+- Mobile header sa hamburger menu-om
+- Responsive layout management
+- Overlay system za mobile
+- Focus management
+
+## 📄 Advanced Document Preview
+
+### **Funkcionalnosti:**
+- **Napredni zoom** - Uvećavanje/smanjivanje (10% - 500%) sa smooth animacijama
+- **Pan/Drag** - Pomeranje povećanog sadržaja mišem
+- **Rotacija** - Rotiranje dokumenta za 90° korakove
+- **Fullscreen** - Modal i browser fullscreen režim
+- **Napredna pretraga** - Real-time search sa highlighting, regex, case-sensitive opcije
+- **Bookmark-ovi** - Čuvanje i navigacija do označenih stranica
+- **Theme switching** - Light, dark i sepia teme
+- **Font kontrola** - Veličina fonta i line spacing
+- **Text selection** - Selekcija teksta sa copy funkcionalnostima
+- **History** - Undo/redo funkcionalnost
+- **Keyboard shortcuts** - Kompletna keyboard navigacija
+- **Export** - Preuzimanje u različitim formatima
+
+### **Podržani formati:**
+- **Tekstualni fajlovi** - TXT, MD, JSON, XML, CSV, LOG
+- **PDF dokumenti** - Sa PDF.js integracijom
+- **DOCX dokumenti** - Sa Mammoth.js integracijom
+- **Slike** - PNG, JPG, JPEG, GIF, WebP, BMP
+
+### **Keyboard Shortcuts:**
+```bash
+ESC          - Zatvori preview
+F            - Toggle fullscreen
+Ctrl+F       - Otvori search
+Ctrl+=       - Zoom in
+Ctrl+-       - Zoom out
+Ctrl+0       - Reset zoom
+Ctrl+R       - Rotiraj dokument
+Ctrl+B       - Toggle bookmark-ovi
+Ctrl+S       - Sačuvaj bookmark
+Strelice     - Navigacija stranica/dokumenata
+```
+
+## 🎓 Exam Simulation
+
+### **Funkcionalnosti:**
+- **Kreiranje ispita** - Ručno kreiranje ili AI generisanje
+- **Fizika ispiti** - Predefinisana pitanja iz fizike (20 pitanja)
+- **PDF integracija** - Kreiranje ispita iz PDF dokumenata (MVP)
+- **Brisanje ispita** - Sigurno brisanje sa potvrdom
+- **Real-time polaganje** - Timer, napredak, automatsko završavanje
+- **Rezultati** - Detaljni rezultati sa procentima i statusom
+
+### **Backend Endpoints:**
+```bash
+# Kreiranje ispita
+POST /exam/create
+POST /exam/physics/create
+POST /exam/create-from-pdf  # Coming Soon
+
+# Listanje ispita
+GET /exams
+
+# Dohvatanje ispita
+GET /exam/{exam_id}
+
+# Brisanje ispita
+DELETE /exam/{exam_id}
+
+# Polaganje ispita
+POST /exam/{exam_id}/start
+POST /exam/{exam_id}/submit
+POST /exam/{exam_id}/finish
+```
+
+## 🧮 Problem Generator
+
+### **Funkcionalnosti:**
+- **AI-powered generisanje** - Inteligentno generisanje problema sa Ollama
+- **Multi-subject podrška** - Matematika, Fizika, Hemija, Programiranje
+- **Adaptivna težina** - Početnik, Srednji, Napredni nivoi
+- **Interaktivno rešavanje** - Korak-po-korak vodič i hints
+- **Validacija odgovora** - Instant feedback sa objašnjenjima
+- **Personalizovani dashboard** - Praćenje napretka i statistike
+
+### **Podržani predmeti:**
+- **Matematika** - Algebra, Geometrija, Kalkulus, Trigonometrija
+- **Fizika** - Mehanika, Elektromagnetizam, Termodinamika
+- **Hemija** - Stehiometrija, Organska hemija, Analitička hemija
+- **Programiranje** - Algoritmi, Strukture podataka, Logika
 
 ## 🧪 Testiranje
 
@@ -212,6 +298,18 @@ Escape - Zatvaranje modala/sidebar-a
 # Screen Reader
 Uključite VoiceOver (Mac) ili NVDA (Windows)
 Proverite da li čita ARIA labels
+```
+
+### **Backend Testovi:**
+```bash
+cd backend
+python -m pytest test_*.py
+```
+
+### **Frontend Testovi:**
+```bash
+cd frontend
+npm test
 ```
 
 ## 📈 Metrike Uspeha
@@ -274,7 +372,7 @@ Ovaj projekat je licenciran pod MIT licencom - pogledaj [LICENSE](LICENSE) fajl 
 ## 📞 Kontakt
 
 - **Projekat:** [AcAIA Repository](https://github.com/sgazz/AcAI-Light)
-- **Dokumentacija:** [Master Roadmap](docs/ACAI_MASTER_ROADMAP.md)
+- **Dokumentacija:** [Master Roadmap](ACAI_MASTER_ROADMAP.md)
 - **Issues:** [GitHub Issues](https://github.com/sgazz/AcAI-Light/issues)
 
 ---
