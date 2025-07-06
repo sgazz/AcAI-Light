@@ -22,6 +22,8 @@ import hashlib
 import aiohttp
 from contextlib import asynccontextmanager
 from pydantic import BaseModel
+import numpy as np
+import psutil
 
 # Konfiguracija logging-a
 logger = logging.getLogger(__name__)
@@ -52,10 +54,11 @@ from .error_handler import (
     AcAIAException, ValidationError, ExternalServiceError, RAGError, OCRError,
     ErrorHandlingMiddleware
 )
-from .query_rewriter import query_rewriter, QueryEnhancement
-from .fact_checker import fact_checker, FactCheckResult, VerificationStatus
+from .query_rewriter import QueryRewriter
+from .fact_checker import FactChecker, FactCheckResult
 from .study_journal_service import study_journal_service
 from .career_guidance_service import CareerGuidanceService
+from .rag_analytics import RAGAnalytics, QueryMetrics, QueryType, SystemMetrics
 
 # Kreiraj FastAPI aplikaciju
 app = FastAPI(
@@ -111,6 +114,11 @@ rag_service = RAGService(use_supabase=True)
 ocr_service = OCRService()
 ollama_client = Client(host="http://localhost:11434")
 career_guidance_service = CareerGuidanceService()
+
+# RAG Unapređenja - Inicijalizuj nove servise
+query_rewriter = QueryRewriter()
+fact_checker = FactChecker()
+rag_analytics = RAGAnalytics()
 
 # Globalni keš za preload-ovane modele
 preloaded_models = {}
@@ -811,6 +819,267 @@ async def rag_chat_endpoint(message: dict):
             "context_length": rag_response.get('context_length', 0),
             "cached": rag_response.get('cached', False),
             "response_time": response_time
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/chat/rag-optimized")
+async def optimized_rag_chat_endpoint(message: dict):
+    """Optimizovani RAG chat endpoint sa performance monitoring-om"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
+        
+        user_message = message.get("message", "")
+        session_id = message.get("session_id", str(uuid.uuid4()))
+        use_rerank = message.get("use_rerank", True)
+        max_results = message.get("max_results", 3)
+        
+        if not user_message.strip():
+            raise HTTPException(status_code=400, detail="Poruka ne može biti prazna")
+        
+        # Generiši query ID
+        query_id = f"{session_id}_{int(time.time())}"
+        
+        # Track session start ako je nova sesija
+        if session_id not in rag_analytics.session_metrics:
+            rag_analytics.track_session_start(session_id)
+        
+        # Meri vreme odgovora
+        start_time = time.time()
+        
+        # Query rewriting
+        rewrite_result = query_rewriter.rewrite_query(user_message)
+        rewritten_queries = rewrite_result.get('rewritten_queries', [user_message])
+        
+        # Koristi optimizovani RAG
+        rag_response = await rag_service.generate_rag_response_optimized(
+            query=user_message,
+            context="",
+            max_results=max_results,
+            use_rerank=use_rerank,
+            session_id=session_id
+        )
+        
+        response_time = time.time() - start_time
+        
+        # Fact checking
+        fact_check_result = await fact_checker.check_facts(
+            rag_response['response'],
+            rag_response.get('sources', [])
+        )
+        
+        # Sačuvaj poruke u Supabase
+        supabase_manager.save_chat_message(
+            session_id=session_id,
+            user_message=user_message,
+            assistant_message=rag_response['response']
+        )
+        
+        # Track query metrics
+        query_metrics = QueryMetrics(
+            query_id=query_id,
+            query_text=user_message,
+            query_type=QueryType(rewrite_result.get('analysis', {}).get('query_type', 'general')),
+            query_length=len(user_message),
+            word_count=len(user_message.split()),
+            processing_time=response_time,
+            cache_hit=rag_response.get('cached', False),
+            sources_count=len(rag_response.get('sources', [])),
+            response_length=len(rag_response['response']),
+            quality_score=fact_check_result.confidence
+        )
+        rag_analytics.track_query(query_metrics)
+        
+        # Track system metrics
+        system_metrics = SystemMetrics(
+            timestamp=datetime.now(),
+            total_requests=rag_analytics.performance_data['total_requests'],
+            avg_response_time=np.mean(rag_analytics.performance_data['response_times']) if rag_analytics.performance_data['response_times'] else 0,
+            cache_hit_rate=rag_analytics.performance_data['cache_hits'] / max(rag_analytics.performance_data['total_requests'], 1),
+            memory_usage=psutil.virtual_memory().percent,
+            cpu_usage=psutil.cpu_percent(),
+            active_sessions=len(rag_analytics.session_metrics),
+            error_rate=rag_analytics.performance_data['errors'] / max(rag_analytics.performance_data['total_requests'], 1)
+        )
+        rag_analytics.track_system_metrics(system_metrics)
+        
+        return {
+            "status": "success",
+            "response": rag_response['response'],
+            "sources": rag_response.get('sources', []),
+            "session_id": session_id,
+            "model": rag_response.get('model', 'mistral'),
+            "context_length": rag_response.get('context_length', 0),
+            "cached": rag_response.get('cached', False),
+            "response_time": response_time,
+            "fact_check": {
+                "is_factual": fact_check_result.is_factual,
+                "confidence": fact_check_result.confidence,
+                "verified_claims": len(fact_check_result.verified_claims),
+                "unverified_claims": len(fact_check_result.unverified_claims),
+                "contradictions": len(fact_check_result.contradictions)
+            },
+            "query_rewriting": {
+                "original_query": user_message,
+                "rewritten_queries": rewritten_queries,
+                "strategy_used": rewrite_result.get('strategy_used', 'auto'),
+                "confidence": rewrite_result.get('confidence', 0.0)
+            }
+        }
+        
+    except Exception as e:
+        rag_analytics.performance_data['errors'] += 1
+        return {"status": "error", "message": str(e)}
+
+@app.get("/analytics/performance")
+async def get_performance_analytics(time_range: str = "24h"):
+    """Dohvata performance analytics"""
+    try:
+        analytics = rag_analytics.get_performance_analytics(time_range)
+        return {
+            "status": "success",
+            "time_range": time_range,
+            "data": analytics
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/analytics/user-behavior")
+async def get_user_behavior_analytics(time_range: str = "24h"):
+    """Dohvata user behavior analytics"""
+    try:
+        analytics = rag_analytics.get_user_behavior_analytics(time_range)
+        return {
+            "status": "success",
+            "time_range": time_range,
+            "data": analytics
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/analytics/quality")
+async def get_quality_analytics(time_range: str = "24h"):
+    """Dohvata quality analytics"""
+    try:
+        analytics = rag_analytics.get_quality_analytics(time_range)
+        return {
+            "status": "success",
+            "time_range": time_range,
+            "data": analytics
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/analytics/system-health")
+async def get_system_health_analytics(time_range: str = "24h"):
+    """Dohvata system health analytics"""
+    try:
+        analytics = rag_analytics.get_system_health_analytics(time_range)
+        return {
+            "status": "success",
+            "time_range": time_range,
+            "data": analytics
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/feedback")
+async def submit_feedback(feedback_data: dict):
+    """Submit korisnički feedback"""
+    try:
+        query_id = feedback_data.get("query_id")
+        feedback = feedback_data.get("feedback")
+        score = feedback_data.get("score", 0.5)
+        
+        if not query_id or not feedback:
+            raise HTTPException(status_code=400, detail="Query ID i feedback su obavezni")
+        
+        rag_analytics.track_user_feedback(query_id, feedback, score)
+        
+        return {
+            "status": "success",
+            "message": "Feedback uspešno sačuvan"
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/session/end")
+async def end_session(session_data: dict):
+    """Završava sesiju i sačuvava analytics"""
+    try:
+        session_id = session_data.get("session_id")
+        user_feedback = session_data.get("user_feedback")
+        
+        if not session_id:
+            raise HTTPException(status_code=400, detail="Session ID je obavezan")
+        
+        rag_analytics.track_session_end(session_id, user_feedback)
+        
+        return {
+            "status": "success",
+            "message": "Sesija uspešno završena"
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/rag/performance-metrics")
+async def get_rag_performance_metrics():
+    """Dohvata RAG performance metrike"""
+    try:
+        metrics = rag_service.get_performance_metrics()
+        return {
+            "status": "success",
+            "data": metrics
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/rag/query-rewrite")
+async def rewrite_query_endpoint(query_data: dict):
+    """Query rewriting endpoint"""
+    try:
+        query = query_data.get("query")
+        strategy = query_data.get("strategy", "auto")
+        
+        if not query:
+            raise HTTPException(status_code=400, detail="Query je obavezan")
+        
+        result = query_rewriter.rewrite_query(query, strategy)
+        
+        return {
+            "status": "success",
+            "data": result
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/rag/fact-check")
+async def fact_check_endpoint(fact_check_data: dict):
+    """Fact checking endpoint"""
+    try:
+        text = fact_check_data.get("text")
+        sources = fact_check_data.get("sources", [])
+        
+        if not text:
+            raise HTTPException(status_code=400, detail="Text je obavezan")
+        
+        result = await fact_checker.check_facts(text, sources)
+        
+        return {
+            "status": "success",
+            "data": {
+                "is_factual": result.is_factual,
+                "confidence": result.confidence,
+                "verified_claims": len(result.verified_claims),
+                "unverified_claims": len(result.unverified_claims),
+                "contradictions": len(result.contradictions),
+                "processing_time": result.processing_time
+            }
         }
         
     except Exception as e:
@@ -3431,3 +3700,8 @@ async def update_ocr_text(request: UpdateOcrTextRequest):
         
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+# Dodaj globalne instance nakon postojećih
+rag_analytics = RAGAnalytics()
+query_rewriter = QueryRewriter()
+fact_checker = FactChecker()

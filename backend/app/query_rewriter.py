@@ -5,421 +5,387 @@ Ovaj servis poboljšava korisničke upite za pretragu koristeći LLM integraciju
 Pomaže u generisanju boljih upita za RAG sistem.
 """
 
-import asyncio
-import json
+import re
 import logging
-from typing import List, Dict, Optional, Tuple
-from dataclasses import dataclass
-from datetime import datetime
-
-from .config import Config
-from ollama import Client
-
-logger = logging.getLogger(__name__)
-
-@dataclass
-class QueryEnhancement:
-    """Struktura za poboljšani upit"""
-    original_query: str
-    enhanced_query: str
-    confidence: float
-    reasoning: str
-    synonyms: List[str]
-    context_hints: List[str]
-    timestamp: datetime
-
-@dataclass
-class QueryAnalysis:
-    """Analiza upita"""
-    intent: str
-    entities: List[str]
-    complexity: str  # 'simple', 'moderate', 'complex'
-    domain: str
-    language: str
+from typing import List, Dict, Any, Optional, Tuple
+from collections import Counter
+import numpy as np
+from sentence_transformers import SentenceTransformer
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 class QueryRewriter:
-    """
-    Query Rewriter servis za poboljšavanje upita
-    """
+    """Napredni sistem za query rewriting i optimization"""
     
-    def __init__(self):
-        self.ollama_client = Client()
-        self.cache = {}  # Simple in-memory cache
-        self.max_cache_size = 1000
+    def __init__(self, model_name: str = "all-MiniLM-L6-v2"):
+        self.model_name = model_name
+        self.model = None
+        self.logger = logging.getLogger(__name__)
+        self.executor = ThreadPoolExecutor(max_workers=2)
         
-    async def enhance_query(
-        self, 
-        query: str, 
-        context: str = "", 
-        domain: str = "general",
-        max_enhancements: int = 3
-    ) -> QueryEnhancement:
-        """
-        Poboljšaj upit za pretragu
+        # Query patterns
+        self.query_patterns = {
+            'definition': r'\b(šta je|šta znači|definiši|objasni)\b',
+            'comparison': r'\b(uporedi|razlika|sličnost|različit|sličan)\b',
+            'process': r'\b(kako|korak|proces|metoda|tehnika)\b',
+            'example': r'\b(primer|primeri|instanca|slučaj)\b',
+            'application': r'\b(gde se koristi|aplikacija|primenjuje)\b'
+        }
         
-        Args:
-            query: Originalni upit
-            context: Dodatni kontekst
-            domain: Domena (general, technical, academic, etc.)
-            max_enhancements: Maksimalan broj poboljšanja
-            
-        Returns:
-            QueryEnhancement objekat
-        """
-        try:
-            # Proveri cache
-            cache_key = f"{query}:{context}:{domain}"
-            if cache_key in self.cache:
-                logger.info(f"Query enhancement found in cache: {query}")
-                return self.cache[cache_key]
-            
-            # Analiziraj upit
-            analysis = await self._analyze_query(query, domain)
-            
-            # Generiši poboljšani upit
-            enhanced_query = await self._generate_enhanced_query(
-                query, context, analysis, domain
-            )
-            
-            # Generiši sinonime
-            synonyms = await self._generate_synonyms(query, domain)
-            
-            # Generiši context hints
-            context_hints = await self._generate_context_hints(
-                query, analysis, domain
-            )
-            
-            # Izračunaj confidence
-            confidence = self._calculate_confidence(analysis, enhanced_query)
-            
-            # Kreiraj reasoning
-            reasoning = self._generate_reasoning(analysis, enhanced_query)
-            
-            # Kreiraj enhancement objekat
-            enhancement = QueryEnhancement(
-                original_query=query,
-                enhanced_query=enhanced_query,
-                confidence=confidence,
-                reasoning=reasoning,
-                synonyms=synonyms,
-                context_hints=context_hints,
-                timestamp=datetime.now()
-            )
-            
-            # Sačuvaj u cache
-            self._add_to_cache(cache_key, enhancement)
-            
-            logger.info(f"Query enhanced successfully: {query} -> {enhanced_query}")
-            return enhancement
-            
-        except Exception as e:
-            logger.error(f"Error enhancing query '{query}': {str(e)}")
-            # Vrati fallback enhancement
-            return QueryEnhancement(
-                original_query=query,
-                enhanced_query=query,  # Koristi originalni upit
-                confidence=0.5,
-                reasoning="Fallback: using original query due to enhancement error",
-                synonyms=[],
-                context_hints=[],
-                timestamp=datetime.now()
-            )
-    
-    async def expand_query(self, query: str, domain: str = "general") -> List[str]:
-        """
-        Proširi upit sa različitim varijantama
+        # Stop words za srpski jezik
+        self.stop_words = {
+            'je', 'su', 'i', 'ili', 'ali', 'takođe', 'pored', 'uz',
+            'koji', 'koja', 'koje', 'šta', 'kako', 'zašto', 'kada', 'gde',
+            'u', 'na', 'sa', 'za', 'od', 'do', 'pre', 'nakon', 'tokom',
+            'ovo', 'to', 'ono', 'moj', 'moja', 'moje', 'tvoj', 'tvoja', 'tvoje'
+        }
         
-        Args:
-            query: Originalni upit
-            domain: Domena
-            
-        Returns:
-            Lista proširenih upita
-        """
+        self._load_model()
+    
+    def _load_model(self):
+        """Učitava sentence transformer model"""
         try:
-            prompt = f"""
-            Proširi sledeći upit sa različitim varijantama i sinonimima:
+            self.model = SentenceTransformer(self.model_name)
+            self.logger.info(f"Query rewriter model {self.model_name} uspešno učitan")
+        except Exception as e:
+            self.logger.error(f"Greška pri učitavanju modela: {e}")
+            self.model = None
+    
+    def analyze_query(self, query: str) -> Dict[str, Any]:
+        """Analizira upit i vraća detaljne informacije"""
+        try:
+            query_lower = query.lower()
             
-            Upit: {query}
-            Domena: {domain}
+            # Detektuj tip upita
+            query_type = self._detect_query_type(query_lower)
             
-            Generiši 5 različitih varijanti upita koji imaju isti smisao:
-            1. Direktna varijanta
-            2. Sinonimna varijanta
-            3. Detaljnija varijanta
-            4. Opštija varijanta
-            5. Tehnička varijanta
+            # Ekstraktuj ključne reči
+            keywords = self._extract_keywords(query)
             
-            Vrati samo listu upita, jedan po liniji, bez numeracije.
-            """
+            # Izračunaj složenost
+            complexity = self._calculate_complexity(query)
             
-            response = await self.ollama_client.generate(prompt)
-            expanded_queries = [
-                line.strip() for line in response.strip().split('\n') 
-                if line.strip() and not line.strip().startswith(('1.', '2.', '3.', '4.', '5.'))
-            ]
+            # Detektuj entitete
+            entities = self._extract_entities(query)
             
-            # Dodaj originalni upit ako nije u listi
-            if query not in expanded_queries:
-                expanded_queries.insert(0, query)
+            # Analiziraj sentiment
+            sentiment = self._analyze_sentiment(query)
             
-            logger.info(f"Query expanded: {query} -> {len(expanded_queries)} variants")
-            return expanded_queries[:5]  # Maksimalno 5 varijanti
+            return {
+                'original_query': query,
+                'query_type': query_type,
+                'keywords': keywords,
+                'complexity_score': complexity,
+                'entities': entities,
+                'sentiment': sentiment,
+                'word_count': len(query.split()),
+                'has_questions': '?' in query,
+                'has_comparison': bool(re.search(self.query_patterns['comparison'], query_lower)),
+                'has_definition': bool(re.search(self.query_patterns['definition'], query_lower))
+            }
             
         except Exception as e:
-            logger.error(f"Error expanding query '{query}': {str(e)}")
-            return [query]  # Vrati originalni upit
+            self.logger.error(f"Greška pri analizi upita: {e}")
+            return {'error': str(e)}
     
-    async def _analyze_query(self, query: str, domain: str) -> QueryAnalysis:
-        """Analiziraj upit za intent, entitete i kompleksnost"""
-        try:
-            prompt = f"""
-            Analiziraj sledeći upit i vrati JSON sa analizom:
-            
-            Upit: {query}
-            Domena: {domain}
-            
-            Analiziraj:
-            1. Intent (šta korisnik traži)
-            2. Entiteti (ključne reči, imena, koncepti)
-            3. Kompleksnost (simple/moderate/complex)
-            4. Domena (tehnička, akademska, opšta, itd.)
-            5. Jezik (srpski, engleski, itd.)
-            
-            Vrati JSON format:
-            {{
-                "intent": "string",
-                "entities": ["string"],
-                "complexity": "simple|moderate|complex",
-                "domain": "string",
-                "language": "string"
-            }}
-            """
-            
-            response = await self.ollama_client.generate(prompt)
-            
-            # Pokušaj parsirati JSON
-            try:
-                analysis_data = json.loads(response.strip())
-                return QueryAnalysis(
-                    intent=analysis_data.get('intent', 'unknown'),
-                    entities=analysis_data.get('entities', []),
-                    complexity=analysis_data.get('complexity', 'simple'),
-                    domain=analysis_data.get('domain', domain),
-                    language=analysis_data.get('language', 'srpski')
-                )
-            except json.JSONDecodeError:
-                # Fallback analiza
-                return QueryAnalysis(
-                    intent='search',
-                    entities=query.split(),
-                    complexity='simple',
-                    domain=domain,
-                    language='srpski'
-                )
-                
-        except Exception as e:
-            logger.error(f"Error analyzing query: {str(e)}")
-            return QueryAnalysis(
-                intent='search',
-                entities=query.split(),
-                complexity='simple',
-                domain=domain,
-                language='srpski'
-            )
+    def _detect_query_type(self, query: str) -> str:
+        """Detektuje tip upita na osnovu patterns"""
+        for pattern_name, pattern in self.query_patterns.items():
+            if re.search(pattern, query):
+                return pattern_name
+        
+        # Dodatna logika za detekciju
+        if '?' in query:
+            return 'question'
+        elif any(word in query for word in ['primer', 'primeri', 'instanca']):
+            return 'example'
+        else:
+            return 'general'
     
-    async def _generate_enhanced_query(
-        self, 
-        query: str, 
-        context: str, 
-        analysis: QueryAnalysis,
-        domain: str
-    ) -> str:
-        """Generiši poboljšani upit"""
-        try:
-            prompt = f"""
-            Poboljšaj sledeći upit za pretragu u dokumentima:
-            
-            Original upit: {query}
-            Kontekst: {context}
-            Intent: {analysis.intent}
-            Entiteti: {', '.join(analysis.entities)}
-            Kompleksnost: {analysis.complexity}
-            Domena: {analysis.domain}
-            
-            Poboljšani upit treba da:
-            1. Bude jasniji i precizniji
-            2. Uključi ključne entitete
-            3. Bude optimizovan za pretragu
-            4. Zadrži originalni smisao
-            
-            Vrati samo poboljšani upit, bez objašnjenja.
-            """
-            
-            response = await self.ollama_client.generate(prompt)
-            enhanced_query = response.strip().strip('"').strip("'")
-            
-            # Ako je response prazan ili previše dugačak, koristi original
-            if not enhanced_query or len(enhanced_query) > 500:
-                return query
-                
-            return enhanced_query
-            
-        except Exception as e:
-            logger.error(f"Error generating enhanced query: {str(e)}")
-            return query
+    def _extract_keywords(self, query: str) -> List[str]:
+        """Ekstraktuje ključne reči iz upita"""
+        # Ukloni interpunkciju i konvertuj u mala slova
+        clean_query = re.sub(r'[^\w\s]', ' ', query.lower())
+        words = clean_query.split()
+        
+        # Filtriraj stop reči i kratke reči
+        keywords = [word for word in words if word not in self.stop_words and len(word) > 2]
+        
+        # Vrati top 10 ključnih reči
+        return keywords[:10]
     
-    async def _generate_synonyms(self, query: str, domain: str) -> List[str]:
-        """Generiši sinonime za upit"""
-        try:
-            prompt = f"""
-            Generiši sinonime za sledeći upit:
-            
-            Upit: {query}
-            Domena: {domain}
-            
-            Vrati samo listu sinonima, jedan po liniji.
-            """
-            
-            response = await self.ollama_client.generate(prompt)
-            synonyms = [
-                line.strip() for line in response.strip().split('\n') 
-                if line.strip()
-            ]
-            
-            return synonyms[:5]  # Maksimalno 5 sinonima
-            
-        except Exception as e:
-            logger.error(f"Error generating synonyms: {str(e)}")
-            return []
+    def _calculate_complexity(self, query: str) -> float:
+        """Računa složenost upita"""
+        score = 0.0
+        
+        # Dužina upita
+        word_count = len(query.split())
+        score += min(word_count / 15.0, 1.0) * 0.3
+        
+        # Broj pitanja
+        question_count = query.count('?')
+        score += min(question_count / 2.0, 1.0) * 0.2
+        
+        # Broj ključnih reči
+        keywords = self._extract_keywords(query)
+        score += min(len(keywords) / 8.0, 1.0) * 0.3
+        
+        # Broj konjunkcija
+        conjunctions = [' i ', ' ili ', ' ali ', ' takođe ', ' pored ', ' uz ']
+        conj_count = sum(1 for conj in conjunctions if conj in query)
+        score += min(conj_count / 3.0, 1.0) * 0.2
+        
+        return float(min(score, 1.0))
     
-    async def _generate_context_hints(
-        self, 
-        query: str, 
-        analysis: QueryAnalysis,
-        domain: str
-    ) -> List[str]:
-        """Generiši context hints za upit"""
-        try:
-            prompt = f"""
-            Generiši context hints za sledeći upit:
-            
-            Upit: {query}
-            Intent: {analysis.intent}
-            Domena: {domain}
-            
-            Context hints su ključne reči ili koncepti koji mogu pomoći u pretrazi.
-            
-            Vrati samo listu hints, jedan po liniji.
-            """
-            
-            response = await self.ollama_client.generate(prompt)
-            hints = [
-                line.strip() for line in response.strip().split('\n') 
-                if line.strip()
-            ]
-            
-            return hints[:3]  # Maksimalno 3 hints
-            
-        except Exception as e:
-            logger.error(f"Error generating context hints: {str(e)}")
-            return []
+    def _extract_entities(self, query: str) -> List[str]:
+        """Ekstraktuje entitete iz upita"""
+        entities = []
+        
+        # Imena (velika slova)
+        names = re.findall(r'\b[A-Z][a-z]+\b', query)
+        entities.extend(names)
+        
+        # Datumi
+        dates = re.findall(r'\b\d{1,2}[./]\d{1,2}[./]\d{2,4}\b', query)
+        entities.extend(dates)
+        
+        # Brojevi
+        numbers = re.findall(r'\b\d+\b', query)
+        entities.extend(numbers)
+        
+        # Tehnički termini (camelCase ili snake_case)
+        tech_terms = re.findall(r'\b[a-z]+[A-Z][a-z]*\b|\b[a-z]+_[a-z]+\b', query)
+        entities.extend(tech_terms)
+        
+        return list(set(entities))
     
-    def _calculate_confidence(self, analysis: QueryAnalysis, enhanced_query: str) -> float:
-        """Izračunaj confidence score za enhancement"""
-        try:
-            confidence = 0.7  # Base confidence
-            
-            # Povećaj confidence na osnovu kompleksnosti
-            if analysis.complexity == 'simple':
-                confidence += 0.1
-            elif analysis.complexity == 'moderate':
-                confidence += 0.05
-            
-            # Povećaj confidence ako ima entiteta
-            if len(analysis.entities) > 0:
-                confidence += min(0.1, len(analysis.entities) * 0.02)
-            
-            # Smanji confidence ako je enhancement previše dugačak
-            if len(enhanced_query) > len(analysis.entities) * 50:
-                confidence -= 0.1
-            
-            return max(0.1, min(1.0, confidence))
-            
-        except Exception as e:
-            logger.error(f"Error calculating confidence: {str(e)}")
-            return 0.5
+    def _analyze_sentiment(self, query: str) -> str:
+        """Analizira sentiment upita (pojednostavljena verzija)"""
+        positive_words = {'dobro', 'odlično', 'korisno', 'pomoći', 'hvala', 'super'}
+        negative_words = {'loše', 'problem', 'greška', 'ne radi', 'ne radi', 'teško'}
+        
+        query_lower = query.lower()
+        
+        positive_count = sum(1 for word in positive_words if word in query_lower)
+        negative_count = sum(1 for word in negative_words if word in query_lower)
+        
+        if positive_count > negative_count:
+            return 'positive'
+        elif negative_count > positive_count:
+            return 'negative'
+        else:
+            return 'neutral'
     
-    def _generate_reasoning(self, analysis: QueryAnalysis, enhanced_query: str) -> str:
-        """Generiši reasoning za enhancement"""
+    def rewrite_query(self, query: str, strategy: str = 'auto') -> Dict[str, Any]:
+        """Glavna metoda za query rewriting"""
         try:
-            reasoning_parts = []
+            analysis = self.analyze_query(query)
             
-            if analysis.intent != 'unknown':
-                reasoning_parts.append(f"Intent: {analysis.intent}")
+            if strategy == 'auto':
+                strategy = self._determine_rewrite_strategy(analysis)
             
-            if analysis.entities:
-                reasoning_parts.append(f"Entiteti: {', '.join(analysis.entities[:3])}")
+            rewritten_queries = []
             
-            if analysis.complexity != 'simple':
-                reasoning_parts.append(f"Kompleksnost: {analysis.complexity}")
-            
-            if analysis.domain != 'general':
-                reasoning_parts.append(f"Domena: {analysis.domain}")
-            
-            if reasoning_parts:
-                return "; ".join(reasoning_parts)
+            if strategy == 'expansion':
+                rewritten_queries = self._expand_query(query, analysis)
+            elif strategy == 'reformulation':
+                rewritten_queries = self._reformulate_query(query, analysis)
+            elif strategy == 'simplification':
+                rewritten_queries = self._simplify_query(query, analysis)
+            elif strategy == 'specialization':
+                rewritten_queries = self._specialize_query(query, analysis)
             else:
-                return "Standardno poboljšanje upita"
-                
-        except Exception as e:
-            logger.error(f"Error generating reasoning: {str(e)}")
-            return "Poboljšanje upita"
-    
-    def _add_to_cache(self, key: str, enhancement: QueryEnhancement):
-        """Dodaj enhancement u cache"""
-        try:
-            # Ako je cache pun, obriši najstariji entry
-            if len(self.cache) >= self.max_cache_size:
-                oldest_key = min(self.cache.keys(), key=lambda k: self.cache[k].timestamp)
-                del self.cache[oldest_key]
-            
-            self.cache[key] = enhancement
-            
-        except Exception as e:
-            logger.error(f"Error adding to cache: {str(e)}")
-    
-    async def get_enhancement_stats(self) -> Dict:
-        """Vrati statistike enhancement-a"""
-        try:
-            total_enhancements = len(self.cache)
-            avg_confidence = sum(e.confidence for e in self.cache.values()) / total_enhancements if total_enhancements > 0 else 0
+                rewritten_queries = [query]  # Fallback
             
             return {
-                'total_enhancements': total_enhancements,
-                'cache_size': len(self.cache),
-                'avg_confidence': round(avg_confidence, 3),
-                'cache_hit_rate': 0.8,  # Placeholder
-                'last_enhancement': max(e.timestamp for e in self.cache.values()).isoformat() if self.cache else None
+                'original_query': query,
+                'rewritten_queries': rewritten_queries,
+                'strategy_used': strategy,
+                'analysis': analysis,
+                'confidence': self._calculate_rewrite_confidence(analysis, strategy)
             }
             
         except Exception as e:
-            logger.error(f"Error getting enhancement stats: {str(e)}")
+            self.logger.error(f"Greška pri query rewriting-u: {e}")
             return {
-                'total_enhancements': 0,
-                'cache_size': 0,
-                'avg_confidence': 0,
-                'cache_hit_rate': 0,
-                'last_enhancement': None
+                'original_query': query,
+                'rewritten_queries': [query],
+                'strategy_used': 'fallback',
+                'error': str(e)
             }
     
-    def clear_cache(self):
-        """Očisti cache"""
+    def _determine_rewrite_strategy(self, analysis: Dict[str, Any]) -> str:
+        """Određuje najbolju strategiju za rewriting"""
+        complexity = analysis.get('complexity_score', 0)
+        query_type = analysis.get('query_type', 'general')
+        word_count = analysis.get('word_count', 0)
+        
+        if complexity > 0.7:
+            return 'simplification'
+        elif word_count < 3:
+            return 'expansion'
+        elif query_type in ['comparison', 'process']:
+            return 'specialization'
+        elif query_type == 'definition':
+            return 'reformulation'
+        else:
+            return 'expansion'
+    
+    def _expand_query(self, query: str, analysis: Dict[str, Any]) -> List[str]:
+        """Proširuje upit sa sinonimima i povezanim terminima"""
+        expanded_queries = [query]
+        keywords = analysis.get('keywords', [])
+        
+        # Sinonimi za česte termine
+        synonyms = {
+            'mašinsko učenje': ['ML', 'machine learning', 'AI', 'artificial intelligence'],
+            'veštačka inteligencija': ['AI', 'artificial intelligence', 'mašinska inteligencija'],
+            'algoritam': ['algoritmi', 'metoda', 'tehnika', 'pristup'],
+            'model': ['modeli', 'sistem', 'rešenje'],
+            'podaci': ['data', 'informacije', 'dataset', 'skup podataka'],
+            'obuka': ['training', 'treniranje', 'učenje', 'obrazovanje'],
+            'testiranje': ['testing', 'evaluacija', 'provera', 'validacija']
+        }
+        
+        # Dodaj sinonime za ključne reči
+        for keyword in keywords[:3]:  # Koristi top 3 ključne reči
+            for term, syns in synonyms.items():
+                if keyword in term or term in keyword:
+                    for syn in syns:
+                        expanded_query = query.replace(keyword, syn)
+                        if expanded_query != query:
+                            expanded_queries.append(expanded_query)
+        
+        # Dodaj varijante sa različitim formulacijama
+        if analysis.get('has_definition'):
+            expanded_queries.extend([
+                f"definicija {query}",
+                f"šta znači {query}",
+                f"objasni {query}"
+            ])
+        
+        if analysis.get('has_comparison'):
+            expanded_queries.extend([
+                f"uporedi {query}",
+                f"razlika {query}",
+                f"sličnost {query}"
+            ])
+        
+        return list(set(expanded_queries))[:5]  # Vrati max 5 varijanti
+    
+    def _reformulate_query(self, query: str, analysis: Dict[str, Any]) -> List[str]:
+        """Reformuliše upit sa različitim strukturama"""
+        reformulated = [query]
+        
+        # Različite formulacije za pitanja
+        if '?' in query:
+            question_variants = [
+                query.replace('?', ''),
+                query.replace('šta je', 'definicija'),
+                query.replace('kako', 'metoda za'),
+                query.replace('zašto', 'razlog za')
+            ]
+            reformulated.extend(question_variants)
+        
+        # Različite formulacije za definicije
+        if analysis.get('query_type') == 'definition':
+            definition_variants = [
+                f"definicija {query}",
+                f"šta znači {query}",
+                f"objasni {query}",
+                f"opis {query}"
+            ]
+            reformulated.extend(definition_variants)
+        
+        return list(set(reformulated))[:5]
+    
+    def _simplify_query(self, query: str, analysis: Dict[str, Any]) -> List[str]:
+        """Pojednostavljuje složene upite"""
+        simplified = [query]
+        
+        # Ukloni nepotrebne reči
+        words = query.split()
+        if len(words) > 5:
+            # Zadrži samo ključne reči
+            keywords = analysis.get('keywords', [])
+            simplified_query = ' '.join([word for word in words if word.lower() in keywords])
+            if simplified_query and simplified_query != query:
+                simplified.append(simplified_query)
+        
+        # Razbiji složene upite
+        if analysis.get('complexity_score', 0) > 0.7:
+            # Razbiji po konjunkcijama
+            conjunctions = [' i ', ' ili ', ' ali ']
+            for conj in conjunctions:
+                if conj in query:
+                    parts = query.split(conj)
+                    simplified.extend([part.strip() for part in parts if len(part.strip()) > 3])
+        
+        return list(set(simplified))[:5]
+    
+    def _specialize_query(self, query: str, analysis: Dict[str, Any]) -> List[str]:
+        """Specializuje upit za specifične tipove"""
+        specialized = [query]
+        
+        query_type = analysis.get('query_type', 'general')
+        
+        if query_type == 'comparison':
+            specialized.extend([
+                f"uporedi {query}",
+                f"razlika između {query}",
+                f"sličnost {query}"
+            ])
+        elif query_type == 'process':
+            specialized.extend([
+                f"koraci za {query}",
+                f"proces {query}",
+                f"metoda {query}"
+            ])
+        elif query_type == 'example':
+            specialized.extend([
+                f"primer {query}",
+                f"instanca {query}",
+                f"slučaj {query}"
+            ])
+        
+        return list(set(specialized))[:5]
+    
+    def _calculate_rewrite_confidence(self, analysis: Dict[str, Any], strategy: str) -> float:
+        """Računa confidence score za rewriting"""
+        confidence = 0.5  # Base confidence
+        
+        # Povećaj na osnovu analize
+        if analysis.get('complexity_score', 0) > 0.5:
+            confidence += 0.2
+        
+        if analysis.get('keywords'):
+            confidence += 0.1
+        
+        if strategy in ['expansion', 'reformulation']:
+            confidence += 0.1
+        
+        return min(confidence, 1.0)
+    
+    async def batch_rewrite_queries(self, queries: List[str]) -> List[Dict[str, Any]]:
+        """Batch rewriting za više upita"""
         try:
-            self.cache.clear()
-            logger.info("Query rewriter cache cleared")
+            loop = asyncio.get_event_loop()
+            tasks = [
+                loop.run_in_executor(self.executor, self.rewrite_query, query)
+                for query in queries
+            ]
+            results = await asyncio.gather(*tasks)
+            return results
         except Exception as e:
-            logger.error(f"Error clearing cache: {str(e)}")
-
-# Global instance
-query_rewriter = QueryRewriter() 
+            self.logger.error(f"Greška pri batch rewriting-u: {e}")
+            return [{'original_query': q, 'rewritten_queries': [q], 'error': str(e)} for q in queries]
+    
+    def get_rewrite_statistics(self) -> Dict[str, Any]:
+        """Vraća statistike o query rewriting-u"""
+        return {
+            'model_loaded': self.model is not None,
+            'model_name': self.model_name,
+            'patterns_count': len(self.query_patterns),
+            'stop_words_count': len(self.stop_words),
+            'max_workers': self.executor._max_workers
+        } 

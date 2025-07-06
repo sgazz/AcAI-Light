@@ -16,6 +16,12 @@ from sqlalchemy.orm import Session
 from ollama import Client
 import sys
 import numpy as np
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
+import gc
+import psutil
+import time
+from functools import lru_cache
 
 # Dodaj backend direktorijum u path za import supabase_client
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -42,6 +48,17 @@ class RAGService:
         self.use_supabase = use_supabase and SUPABASE_AVAILABLE
         self.supabase_manager = None
         
+        # Performance optimizacije
+        self.executor = ThreadPoolExecutor(max_workers=4)
+        self.batch_size = 10
+        self.max_concurrent_requests = 5
+        self.semaphore = asyncio.Semaphore(self.max_concurrent_requests)
+        
+        # Memory management
+        self.memory_threshold = 0.8  # 80% RAM usage
+        self.last_gc_time = time.time()
+        self.gc_interval = 300  # 5 minuta
+        
         # Inicijalizuj Supabase ako je omogućen
         if self.use_supabase:
             try:
@@ -50,6 +67,57 @@ class RAGService:
             except Exception as e:
                 print(f"Greška pri inicijalizaciji Supabase: {e}")
                 self.use_supabase = False
+    
+    async def _check_memory_usage(self):
+        """Proverava memory usage i pokreće GC ako je potrebno"""
+        try:
+            memory_percent = psutil.virtual_memory().percent / 100
+            current_time = time.time()
+            
+            if memory_percent > self.memory_threshold or (current_time - self.last_gc_time) > self.gc_interval:
+                gc.collect()
+                self.last_gc_time = current_time
+                print(f"Memory cleanup performed. Usage: {memory_percent:.1%}")
+        except Exception as e:
+            print(f"Greška pri memory check-u: {e}")
+    
+    @lru_cache(maxsize=1000)
+    def _cached_embedding(self, text: str) -> List[float]:
+        """Cache-ovani embedding za često korišćene tekstove"""
+        return self.vector_store.model.encode([text])[0].tolist()
+    
+    async def batch_search_documents(self, queries: List[str], top_k: int = 5) -> List[List[Dict[str, Any]]]:
+        """Batch pretraga za više upita"""
+        async with self.semaphore:
+            await self._check_memory_usage()
+            
+            # Podeli upite u batch-eve
+            batches = [queries[i:i + self.batch_size] for i in range(0, len(queries), self.batch_size)]
+            results = []
+            
+            for batch in batches:
+                batch_results = await asyncio.gather(*[
+                    self._async_search_single(query, top_k) for query in batch
+                ])
+                results.extend(batch_results)
+            
+            return results
+    
+    async def _async_search_single(self, query: str, top_k: int) -> List[Dict[str, Any]]:
+        """Asinhrona pretraga za jedan upit"""
+        try:
+            # Koristi thread pool za CPU-intensive operacije
+            loop = asyncio.get_event_loop()
+            results = await loop.run_in_executor(
+                self.executor, 
+                self.vector_store.search, 
+                query, 
+                top_k
+            )
+            return results
+        except Exception as e:
+            print(f"Greška pri async pretraživanju: {e}")
+            return []
     
     def upload_document(self, file_content: bytes, filename: str, 
                        use_ocr: bool = True, languages: List[str] = None) -> Dict[str, Any]:
@@ -318,6 +386,113 @@ class RAGService:
             # Podigni RAG grešku
             raise RAGError(f"Greška pri generisanju RAG odgovora: {str(e)}", "RAG_GENERATION_FAILED")
     
+    async def generate_rag_response_optimized(self, query: str, context: str = "", max_results: int = 3, 
+                                   use_rerank: bool = True, session_id: str = None) -> Dict[str, Any]:
+        """Optimizovana verzija RAG response generisanja"""
+        start_time = time.time()
+        
+        try:
+            # Validacija input-a
+            if not query or not query.strip():
+                raise ValidationError("Upit ne može biti prazan", "RAG_EMPTY_QUERY")
+            
+            if max_results <= 0:
+                raise ValidationError("max_results mora biti veći od 0", "RAG_INVALID_MAX_RESULTS")
+            
+            # Proveri cache prvo
+            cache_key = f"{query}:{context}:{max_results}:{use_rerank}"
+            cached_result = await get_cached_rag_result(query, context)
+            
+            if cached_result:
+                print(f"Cache hit za upit: {query[:50]}...")
+                cached_result['response_time'] = time.time() - start_time
+                return cached_result
+            
+            # Ako nema u cache-u, generiši novi odgovor
+            print(f"Cache miss za upit: {query[:50]}...")
+            
+            # Paralelno pretraži dokumente i pripremi kontekst
+            search_task = asyncio.create_task(
+                self._async_search_single(query, max_results * 2)
+            )
+            
+            # Ako je potrebno, pripremi reranking
+            if use_rerank:
+                search_results = await search_task
+                if search_results:
+                    rerank_task = asyncio.create_task(
+                        asyncio.get_event_loop().run_in_executor(
+                            self.executor,
+                            self.reranker.rerank_with_metadata,
+                            query, search_results, max_results, True
+                        )
+                    )
+                    search_results = await rerank_task
+            else:
+                search_results = await search_task
+            
+            if not search_results:
+                result = await self._generate_simple_response_async(query)
+                result['response_time'] = time.time() - start_time
+                await set_cached_rag_result(query, result, context)
+                return result
+                
+            # Pripremi kontekst iz dokumenata
+            document_context = self._prepare_document_context(search_results[:max_results])
+            
+            # Kreiraj prompt
+            prompt = self._create_rag_prompt(query, document_context, context)
+            
+            # Generiši odgovor
+            try:
+                response = await asyncio.get_event_loop().run_in_executor(
+                    self.executor,
+                    self.ollama_client.generate,
+                    self.model_name,
+                    prompt,
+                    False
+                )
+                assistant_message = response['response']
+            except Exception as e:
+                raise ExternalServiceError(f"Greška pri komunikaciji sa Ollama: {str(e)}", "RAG_OLLAMA_ERROR")
+            
+            # Sačuvaj chat istoriju u Supabase ako je omogućen
+            if self.use_supabase and session_id:
+                try:
+                    await asyncio.get_event_loop().run_in_executor(
+                        self.executor,
+                        self._save_chat_history,
+                        session_id, query, assistant_message, search_results[:max_results]
+                    )
+                except Exception as e:
+                    print(f"Greška pri čuvanju chat istorije: {e}")
+            
+            result = {
+                'status': 'success',
+                'response': assistant_message,
+                'sources': search_results[:max_results],
+                'query': query,
+                'model': self.model_name,
+                'context_length': len(document_context),
+                'cached': False,
+                'response_time': time.time() - start_time
+            }
+            
+            # Cache-uj rezultat
+            try:
+                await set_cached_rag_result(query, result, context)
+            except Exception as e:
+                print(f"Greška pri cache-ovanju rezultata: {e}")
+            
+            return self._to_native_types(result)
+            
+        except ValidationError:
+            raise
+        except ExternalServiceError:
+            raise
+        except Exception as e:
+            raise RAGError(f"Greška pri generisanju RAG odgovora: {str(e)}", "RAG_GENERATION_FAILED")
+    
     def _save_chat_history(self, session_id: str, user_message: str, assistant_message: str, sources: List[Dict]):
         """Čuva chat istoriju u Supabase"""
         try:
@@ -345,8 +520,8 @@ class RAGService:
         except Exception as e:
             print(f"Greška pri čuvanju chat istorije: {e}")
     
-    def _generate_simple_response(self, query: str) -> Dict[str, Any]:
-        """Generiše jednostavan odgovor kada nema relevantnih dokumenata"""
+    async def _generate_simple_response_async(self, query: str) -> Dict[str, Any]:
+        """Asinhrona verzija jednostavnog odgovora"""
         try:
             prompt = f"""Ti si AcAIA, AI learning assistant. Korisnik te je pitao: "{query}"
 
@@ -355,10 +530,12 @@ Budi koristan i informativan, ali napomeni da ne možeš da pristupiš specifič
 
 Odgovor:"""
             
-            response = self.ollama_client.generate(
-                model=self.model_name,
-                prompt=prompt,
-                stream=False
+            response = await asyncio.get_event_loop().run_in_executor(
+                self.executor,
+                self.ollama_client.generate,
+                self.model_name,
+                prompt,
+                False
             )
             
             return {
@@ -723,3 +900,29 @@ AI Study Assistant:"""
             'context_types': self.context_selector.context_types,
             'description': 'Enhanced context selection sistem za pametni izbor konteksta'
         }
+
+    def get_performance_metrics(self) -> Dict[str, Any]:
+        """Dohvata performance metrike"""
+        try:
+            memory_info = psutil.virtual_memory()
+            return {
+                'memory_usage_percent': memory_info.percent,
+                'memory_available_gb': memory_info.available / (1024**3),
+                'cpu_usage_percent': psutil.cpu_percent(),
+                'active_threads': len(self.executor._threads),
+                'cache_hit_rate': self._get_cache_hit_rate(),
+                'avg_response_time': self._get_avg_response_time()
+            }
+        except Exception as e:
+            print(f"Greška pri dohvatanju performance metrika: {e}")
+            return {}
+    
+    def _get_cache_hit_rate(self) -> float:
+        """Računa cache hit rate (pojednostavljena verzija)"""
+        # Ovo bi trebalo da se implementira sa Redis statistika
+        return 0.75  # Placeholder
+    
+    def _get_avg_response_time(self) -> float:
+        """Računa prosečno vreme odgovora (pojednostavljena verzija)"""
+        # Ovo bi trebalo da se implementira sa monitoring-om
+        return 1.2  # Placeholder

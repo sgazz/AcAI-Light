@@ -46,3 +46,6 @@ redis==6.2.0
 python-dateutil==2.8.2
 pytz==2023.3
 aiofiles==23.2.1
+
+# RAG Unapređenja - Performance i Analytics
+psutil>=5.9.0
