@@ -49,6 +49,8 @@ sudo systemctl start redis
 
 Sva detaljna dokumentacija se nalazi u [`docs/`](docs/) folderu:
 
+**📚 [Dokumentacija Index](docs/INDEX.md)** - Centralni index svih dokumenata
+
 ### **📋 Master Planovi:**
 - **[ACAI_MASTER_ROADMAP.md](docs/ACAI_MASTER_ROADMAP.md)** - Sveobuhvatni master roadmap sa detaljnim planom implementacije za 2025
 - **[FRONTEND_REFACTORING_PLAN.md](docs/FRONTEND_REFACTORING_PLAN.md)** - Plan refaktorisanja frontend-a
