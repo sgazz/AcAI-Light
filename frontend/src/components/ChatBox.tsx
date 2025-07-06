@@ -402,8 +402,8 @@ export default function ChatBox() {
       </div>
 
       <div className="relative flex flex-col h-full p-6">
-        {/* Premium Header */}
-        <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl p-4 backdrop-blur-sm">
+        {/* Premium Header - sada sticky */}
+        <div className="sticky top-0 z-30 flex items-center justify-between mb-6 pb-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl p-4 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             <div className="relative">
               <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
@@ -448,90 +448,25 @@ export default function ChatBox() {
               <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </button>
             
-            {/* Premium Toggle Controls */}
-            <div className="flex items-center gap-3">
-              {/* Query Rewriting Toggle */}
-              <div className="group relative">
-                <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
-                  <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Query Rewriting</span>
-                  <button
-                    onClick={() => setUseQueryRewriting(!useQueryRewriting)}
-                    className="flex items-center gap-1 text-sm icon-hover-profi"
-                  >
-                    {useQueryRewriting ? (
-                      <>
-                        <FaToggleOn className="text-orange-400" size={16} />
-                        <span className="text-orange-300 font-medium">Uključen</span>
-                      </>
-                    ) : (
-                      <>
-                        <FaToggleOff className="text-slate-500" size={16} />
-                        <span className="text-slate-400">Isključen</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-              
-              {/* Fact Checking Toggle */}
-              <div className="group relative">
-                <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
-                  <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Fact Checking</span>
-                  <button
-                    onClick={() => setUseFactChecking(!useFactChecking)}
-                    className="flex items-center gap-1 text-sm icon-hover-profi"
-                  >
-                    {useFactChecking ? (
-                      <>
-                        <FaToggleOn className="text-yellow-400" size={16} />
-                        <span className="text-yellow-300 font-medium">Uključen</span>
-                      </>
-                    ) : (
-                      <>
-                        <FaToggleOff className="text-slate-500" size={16} />
-                        <span className="text-slate-400">Isključen</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-              
-              {/* Enhanced Context Toggle */}
-              <div className="group relative">
-                <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
-                  <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Enhanced Context</span>
-                  <button
-                    onClick={() => setUseEnhancedContext(!useEnhancedContext)}
-                    className="flex items-center gap-1 text-sm icon-hover-profi"
-                  >
-                    {useEnhancedContext ? (
-                      <>
-                        <FaToggleOn className="text-cyan-400" size={16} />
-                        <span className="text-cyan-300 font-medium">Uključen</span>
-                      </>
-                    ) : (
-                      <>
-                        <FaToggleOff className="text-slate-500" size={16} />
-                        <span className="text-slate-400">Isključen</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Re-ranking Toggle */}
-              {useRAG && (
+            {/* Settings Dropdown */}
+            <div className="relative group">
+              <button className="p-2 rounded-full bg-slate-800/60 hover:bg-slate-700 transition" title="Podešavanja">
+                <svg width="20" height="20" fill="none" stroke="currentColor"><path d="M10 2a1 1 0 0 1 1 1v1.09a7.001 7.001 0 0 1 3.39 1.36l.77-.77a1 1 0 1 1 1.42 1.42l-.77.77A7.001 7.001 0 0 1 17.91 9H19a1 1 0 1 1 0 2h-1.09a7.001 7.001 0 0 1-1.36 3.39l.77.77a1 1 0 1 1-1.42 1.42l-.77-.77A7.001 7.001 0 0 1 11 17.91V19a1 1 0 1 1-2 0v-1.09a7.001 7.001 0 0 1-3.39-1.36l-.77.77a1 1 0 1 1-1.42-1.42l.77-.77A7.001 7.001 0 0 1 2.09 11H1a1 1 0 1 1 0-2h1.09a7.001 7.001 0 0 1 1.36-3.39l-.77-.77a1 1 0 1 1 1.42-1.42l.77.77A7.001 7.001 0 0 1 9 2.09V1a1 1 0 0 1 1-1z"/></svg>
+              </button>
+              <div className="hidden group-hover:block absolute right-0 mt-2 w-64 bg-slate-900 border border-white/10 rounded-xl shadow-xl p-4 z-50">
+                {/* Toggle kontrole premeštene ovde */}
+                {/* Query Rewriting Toggle */}
                 <div className="group relative">
                   <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
-                    <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Re-ranking</span>
+                    <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Query Rewriting</span>
                     <button
-                      onClick={() => setUseRerank(!useRerank)}
+                      onClick={() => setUseQueryRewriting(!useQueryRewriting)}
                       className="flex items-center gap-1 text-sm icon-hover-profi"
                     >
-                      {useRerank ? (
+                      {useQueryRewriting ? (
                         <>
-                          <FaToggleOn className="text-purple-500" size={16} />
-                          <span className="text-purple-400 font-medium">Uključen</span>
+                          <FaToggleOn className="text-orange-400" size={16} />
+                          <span className="text-orange-300 font-medium">Uključen</span>
                         </>
                       ) : (
                         <>
@@ -542,28 +477,99 @@ export default function ChatBox() {
                     </button>
                   </div>
                 </div>
-              )}
+                
+                {/* Fact Checking Toggle */}
+                <div className="group relative">
+                  <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
+                    <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Fact Checking</span>
+                    <button
+                      onClick={() => setUseFactChecking(!useFactChecking)}
+                      className="flex items-center gap-1 text-sm icon-hover-profi"
+                    >
+                      {useFactChecking ? (
+                        <>
+                          <FaToggleOn className="text-yellow-400" size={16} />
+                          <span className="text-yellow-300 font-medium">Uključen</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaToggleOff className="text-slate-500" size={16} />
+                          <span className="text-slate-400">Isključen</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Enhanced Context Toggle */}
+                <div className="group relative">
+                  <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
+                    <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Enhanced Context</span>
+                    <button
+                      onClick={() => setUseEnhancedContext(!useEnhancedContext)}
+                      className="flex items-center gap-1 text-sm icon-hover-profi"
+                    >
+                      {useEnhancedContext ? (
+                        <>
+                          <FaToggleOn className="text-cyan-400" size={16} />
+                          <span className="text-cyan-300 font-medium">Uključen</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaToggleOff className="text-slate-500" size={16} />
+                          <span className="text-slate-400">Isključen</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
 
-              {/* RAG Toggle */}
-              <div className="group relative">
-                <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
-                  <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">RAG Mode</span>
-                  <button
-                    onClick={() => setUseRAG(!useRAG)}
-                    className="flex items-center gap-1 text-sm icon-hover-profi"
-                  >
-                    {useRAG ? (
-                      <>
-                        <FaToggleOn className="text-green-500" size={16} />
-                        <span className="text-green-400 font-medium">Uključen</span>
-                      </>
-                    ) : (
-                      <>
-                        <FaToggleOff className="text-slate-500" size={16} />
-                        <span className="text-slate-400">Isključen</span>
-                      </>
-                    )}
-                  </button>
+                {/* Re-ranking Toggle */}
+                {useRAG && (
+                  <div className="group relative">
+                    <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
+                      <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Re-ranking</span>
+                      <button
+                        onClick={() => setUseRerank(!useRerank)}
+                        className="flex items-center gap-1 text-sm icon-hover-profi"
+                      >
+                        {useRerank ? (
+                          <>
+                            <FaToggleOn className="text-purple-500" size={16} />
+                            <span className="text-purple-400 font-medium">Uključen</span>
+                          </>
+                        ) : (
+                          <>
+                            <FaToggleOff className="text-slate-500" size={16} />
+                            <span className="text-slate-400">Isključen</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* RAG Toggle */}
+                <div className="group relative">
+                  <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
+                    <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">RAG Mode</span>
+                    <button
+                      onClick={() => setUseRAG(!useRAG)}
+                      className="flex items-center gap-1 text-sm icon-hover-profi"
+                    >
+                      {useRAG ? (
+                        <>
+                          <FaToggleOn className="text-green-500" size={16} />
+                          <span className="text-green-400 font-medium">Uključen</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaToggleOff className="text-slate-500" size={16} />
+                          <span className="text-slate-400">Isključen</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

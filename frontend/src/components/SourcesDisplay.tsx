@@ -70,58 +70,16 @@ export default function SourcesDisplay({ sources, isVisible, onSourceClick }: So
               Nema dostupnih izvora
             </div>
           ) : (
-            <div className="space-y-3 max-h-48 overflow-y-auto custom-scrollbar">
-              {sources.map((source, index) => (
-                <div
-                  key={index}
-                  className="group/source relative p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 hover-border-subtle card-hover-profi cursor-pointer"
-                  onClick={() => onSourceClick(source)}
+            <div className="flex flex-wrap gap-2">
+              {sources.map((src, idx) => (
+                <span
+                  key={idx}
+                  className="px-2 py-1 bg-slate-800 text-xs rounded-lg border border-blue-400 cursor-pointer hover:bg-blue-500 hover:text-white transition"
+                  title={`Izvor: ${src.filename}, strana: ${src.page}\n${src.content?.slice(0, 100) || ''}`}
+                  onClick={() => onSourceClick(src)}
                 >
-                  {/* Suptilni hover glow effect */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/3 to-purple-500/3 rounded-2xl opacity-0 group-hover/source:opacity-100 transition-opacity duration-300"></div>
-                  
-                  <div className="relative">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-slate-700/50 rounded-xl border border-white/10">
-                          {getFileIconForSource(source.filename)}
-                        </div>
-                        <span className="text-sm font-medium text-white truncate max-w-32">
-                          {source.filename}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-3 py-1 text-xs font-bold rounded-xl border ${
-                          source.score >= 0.8 
-                            ? 'bg-green-500/20 text-green-400 border-green-500/30' :
-                          source.score >= 0.6 
-                            ? 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30' :
-                            'bg-red-500/20 text-red-400 border-red-500/30'
-                        }`}>
-                          {(source.score * 100).toFixed(0)}%
-                        </span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onSourceClick(source);
-                          }}
-                          className="p-2 text-blue-400 hover:text-white hover:bg-blue-500/20 rounded-xl icon-hover-profi group/eye"
-                          title="Pogledaj izvor"
-                        >
-                          <FaEye size={12} className="group-hover/eye:scale-110 transition-transform duration-300" />
-                        </button>
-                      </div>
-                    </div>
-                    
-                    <div className="text-xs text-slate-400 mb-3 bg-slate-800/30 px-3 py-2 rounded-xl border border-white/10">
-                      Stranica {source.page_number} • Chunk {source.chunk_index}
-                    </div>
-                    
-                    <div className="text-sm text-white leading-relaxed line-clamp-2 bg-slate-800/30 p-3 rounded-xl border border-white/10">
-                      {source.content}
-                    </div>
-                  </div>
-                </div>
+                  {src.filename} (str. {src.page})
+                </span>
               ))}
             </div>
           )}

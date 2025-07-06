@@ -95,81 +95,18 @@ export default function MessageRenderer({
   };
 
   return (
-    <div className={`group relative p-6 rounded-2xl card-hover-profi ${
-      sender === 'user' 
-        ? 'bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/30 ml-8 shadow-lg shadow-blue-500/20' 
-        : 'bg-gradient-to-r from-slate-800/50 to-slate-700/50 border border-white/10 mr-8 shadow-lg hover-glow-subtle'
-    }`}>
-      {/* Suptilni hover glow effect */}
-      <div className={`absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 ${
-        sender === 'user' 
-          ? 'bg-gradient-to-r from-blue-500/3 to-purple-500/3' 
-          : 'bg-gradient-to-r from-slate-700/10 to-slate-600/10'
-      }`}></div>
-
-      <div className="relative">
-        {/* Premium Header sa timestamp i copy button */}
-        <div className="flex justify-between items-start mb-4">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-xl ${
-              sender === 'user' 
-                ? 'bg-gradient-to-br from-blue-500 to-purple-600' 
-                : 'bg-gradient-to-br from-green-500 to-emerald-600'
-            } shadow-lg`}>
-              <span className={`text-sm font-bold text-white`}>
-                {sender === 'user' ? 'Vi' : 'AI'}
-              </span>
-            </div>
-            {timestamp && (
-              <span className="text-xs text-slate-400 bg-slate-800/50 px-2 py-1 rounded-lg border border-white/10">
-                {new Date(timestamp).toLocaleTimeString('sr-RS')}
-              </span>
-            )}
-          </div>
-          
-          {/* Premium Copy button samo za AI poruke */}
-          {sender === 'ai' && (
-            <button
-              onClick={() => copyToClipboard(content)}
-              className={`group/copy relative p-3 rounded-xl transition-all duration-300 hover:scale-110 ${
-                copied 
-                  ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white shadow-lg' 
-                  : 'bg-slate-800/50 text-slate-400 hover:text-white hover:bg-slate-700/50 border border-white/10 hover:border-green-500/30'
-              }`}
-              title={copied ? 'Kopirano!' : 'Kopiraj poruku'}
-            >
-              {copied ? <FaCheck size={14} /> : <FaCopy size={14} />}
-              <div className="absolute inset-0 bg-gradient-to-r from-green-500/20 to-emerald-500/20 rounded-xl opacity-0 group-hover/copy:opacity-100 transition-opacity duration-300"></div>
-            </button>
-          )}
-        </div>
-
-        {/* Premium Message content */}
-        <div className="prose prose-invert max-w-none">
-          {sender === 'user' ? (
-            <div className="text-white whitespace-pre-wrap leading-relaxed font-medium">{content}</div>
-          ) : (
-            <ReactMarkdown components={markdownComponents}>
-              {content}
-            </ReactMarkdown>
-          )}
-        </div>
-
-        {/* Premium Message reactions samo za AI poruke */}
-        {sender === 'ai' && messageId && (
-          <div className="mt-4">
-            <MessageReactions
-              messageId={messageId}
-              initialReactions={initialReaction ? [initialReaction === 'like' ? '👍' : '👎'] : []}
-              onReactionChange={(messageId, reactions) => {
-                const hasLike = reactions.includes('👍');
-                const hasDislike = reactions.includes('👎');
-                if (hasLike && onReaction) onReaction(messageId, 'like');
-                else if (hasDislike && onReaction) onReaction(messageId, 'dislike');
-              }}
-            />
-          </div>
-        )}
+    <div className={`flex ${sender === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
+      <div
+        className={`
+          max-w-xl px-4 py-3 rounded-2xl shadow
+          ${sender === 'user'
+            ? 'bg-blue-600 text-white rounded-br-md ml-auto'
+            : 'bg-slate-700 text-slate-100 rounded-bl-md mr-auto'}
+        `}
+        style={{ wordBreak: 'break-word' }}
+      >
+        {content}
+        {/* ... eventualni timestamp, reakcije ... */}
       </div>
     </div>
   );
