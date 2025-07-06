@@ -3,7 +3,7 @@
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { FaCopy, FaCheck, FaEdit, FaUndo } from 'react-icons/fa';
+import { FaCopy, FaCheck, FaEdit } from 'react-icons/fa';
 import MessageReactions from './MessageReactions';
 import { useClipboard } from '../utils/clipboard';
 import { motion } from 'framer-motion';
@@ -155,7 +155,7 @@ export default function MessageRenderer({
             {content}
           </ReactMarkdown>
         )}
-        {/* Edit/Undo dugmad za poslednju korisničku poruku */}
+        {/* Edit dugme za korisničke poruke */}
         {sender === 'user' && (
           <div className="flex gap-2 mt-2 justify-end">
             <button 
@@ -167,16 +167,6 @@ export default function MessageRenderer({
               title="Izmeni poruku"
             >
               <FaEdit size={14} />
-            </button>
-            <button 
-              onClick={() => {
-                console.log('Undo clicked for message:', messageId);
-                onUndo && messageId && onUndo(messageId);
-              }} 
-              className="p-1 text-red-300 hover:text-red-100 hover:bg-red-900/30 rounded transition-colors"
-              title="Poništi poruku"
-            >
-              <FaUndo size={14} />
             </button>
           </div>
         )}
