@@ -3,7 +3,7 @@
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { FaCopy, FaCheck } from 'react-icons/fa';
+import { FaCopy, FaCheck, FaEdit, FaUndo } from 'react-icons/fa';
 import MessageReactions from './MessageReactions';
 import { useClipboard } from '../utils/clipboard';
 import { motion } from 'framer-motion';
@@ -135,7 +135,7 @@ export default function MessageRenderer({
       )}
       <div
         className={`
-          max-w-4xl px-4 py-3 rounded-2xl shadow
+          ${sender === 'user' ? 'max-w-4xl' : 'max-w-4xl'} px-4 py-3 rounded-2xl shadow
           ${sender === 'user'
             ? 'bg-blue-600 text-white rounded-br-md ml-auto'
             : 'bg-slate-700 text-slate-100 rounded-bl-md mr-auto'}
@@ -163,18 +163,20 @@ export default function MessageRenderer({
                 console.log('Edit clicked for message:', messageId);
                 onEdit && messageId && onEdit(messageId);
               }} 
-              className="text-xs text-yellow-300 hover:underline"
+              className="p-1 text-yellow-300 hover:text-yellow-100 hover:bg-yellow-900/30 rounded transition-colors"
+              title="Izmeni poruku"
             >
-              Izmeni
+              <FaEdit size={14} />
             </button>
             <button 
               onClick={() => {
                 console.log('Undo clicked for message:', messageId);
                 onUndo && messageId && onUndo(messageId);
               }} 
-              className="text-xs text-red-300 hover:underline"
+              className="p-1 text-red-300 hover:text-red-100 hover:bg-red-900/30 rounded transition-colors"
+              title="Poništi poruku"
             >
-              Poništi
+              <FaUndo size={14} />
             </button>
           </div>
         )}
