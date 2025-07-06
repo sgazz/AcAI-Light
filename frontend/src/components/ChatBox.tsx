@@ -7,6 +7,7 @@ import ChatHistorySidebar from './ChatHistorySidebar';
 import MessageRenderer from './MessageRenderer';
 import TypingIndicator from './TypingIndicator';
 import ThemeToggle from './ThemeToggle';
+import { motion, AnimatePresence } from 'framer-motion';
 import { CHAT_NEW_SESSION_ENDPOINT, CHAT_ENDPOINT, CHAT_RAG_ENDPOINT, CHAT_RAG_ENHANCED_CONTEXT_ENDPOINT, QUERY_ENHANCE_ENDPOINT, FACT_CHECK_VERIFY_ENDPOINT, createSessionMetadata, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
 
@@ -67,6 +68,9 @@ export default function ChatBox() {
   const [lastContextAnalysis, setLastContextAnalysis] = useState<any>(null);
   const [queryHistory, setQueryHistory] = useState<Array<{original: string, enhanced: string, timestamp: string}>>([]);
   const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false);
+  const [sourceModal, setSourceModal] = useState<{ open: boolean, source: any } | null>(null);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editInput, setEditInput] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const { showError, showSuccess, showWarning } = useErrorToast();
 
@@ -349,9 +353,7 @@ export default function ChatBox() {
   };
 
   const handleSourceClick = (source: any) => {
-    console.log('Source clicked:', source);
-    // Ovde bi mogli da implementiramo prikaz detalja izvora
-    showSuccess(`Prikazan izvor: ${source.filename}`, 'Izvor');
+    setSourceModal({ open: true, source });
   };
 
   const handleRestoreSessionFromHistory = (sessionId: string, messages: any[]) => {
@@ -387,6 +389,33 @@ export default function ChatBox() {
     
     // Prikaži toast
     showSuccess(`Sesija povraćena: ${sessionId.slice(0, 8)}...`, 'Povratak sesije');
+  };
+
+  const handleEditMessage = (messageId: string) => {
+    const message = messages.find(msg => msg.id === messageId);
+    if (message) {
+      setEditingMessageId(messageId);
+      setEditInput(message.content);
+    }
+  };
+
+  const handleUndoMessage = (messageId: string) => {
+    // Ukloni poslednju korisničku poruku
+    setMessages(prev => prev.filter(msg => msg.id !== messageId));
+    showSuccess('Poruka poništena', 'Undo');
+  };
+
+  const handleSaveEdit = () => {
+    if (editingMessageId && editInput.trim()) {
+      setMessages(prev => prev.map(msg => 
+        msg.id === editingMessageId 
+          ? { ...msg, content: editInput.trim() }
+          : msg
+      ));
+      setEditingMessageId(null);
+      setEditInput('');
+      showSuccess('Poruka izmenjena', 'Edit');
+    }
   };
 
   return (
@@ -634,12 +663,18 @@ export default function ChatBox() {
           )}
           
           {messages.map((msg, idx) => {
+            // Odredi da li je ovo poslednja korisnička poruka
+            const isLastUserMessage = msg.sender === 'user' && 
+              idx === messages.length - 1 && 
+              !isLoading;
+            
             console.log('Rendering message:', { 
               id: msg.id, 
               sender: msg.sender, 
               content: msg.content.substring(0, 50),
               messageIdString: msg.id?.toString(),
-              hasReaction: !!msg.reaction
+              hasReaction: !!msg.reaction,
+              isLastUserMessage
             });
             return (
               <div key={idx} className="mb-4">
@@ -650,6 +685,14 @@ export default function ChatBox() {
                   messageId={msg.id}
                   onReaction={handleReaction}
                   initialReaction={msg.reaction}
+                  isLastUserMessage={isLastUserMessage}
+                  aiTyping={isLoading}
+                  onEdit={handleEditMessage}
+                  onUndo={handleUndoMessage}
+                  editing={editingMessageId === msg.id}
+                  editInput={editInput}
+                  setEditInput={setEditInput}
+                  saveEdit={handleSaveEdit}
                 />
                 
                 {/* Prikaži izvore za AI poruke */}
@@ -770,6 +813,43 @@ export default function ChatBox() {
           </div>
         </div>
       )}
+      {/* Source Modal */}
+      <AnimatePresence>
+        {sourceModal?.open && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+            onClick={() => setSourceModal(null)}
+          >
+            <motion.div
+              initial={{ y: 100 }}
+              animate={{ y: 0 }}
+              exit={{ y: 100 }}
+              className="bg-white rounded-2xl shadow-2xl p-8 max-w-lg w-full relative"
+              onClick={e => e.stopPropagation()}
+            >
+              <button
+                className="absolute top-4 right-4 text-slate-400 hover:text-blue-500 text-xl"
+                onClick={() => setSourceModal(null)}
+                title="Zatvori"
+              >
+                ×
+              </button>
+              <div className="mb-4">
+                <div className="text-xs text-slate-500 mb-1">Izvor iz dokumenta</div>
+                <div className="text-lg font-bold text-blue-900">{sourceModal.source.filename} (str. {sourceModal.source.page})</div>
+              </div>
+              <div className="mb-2 text-xs text-slate-500">Relevantnost: <span className="font-semibold text-blue-700">{Math.round((sourceModal.source.score || 0) * 100)}%</span></div>
+              <div className="mb-4 text-xs text-slate-500">Chunk: <span className="font-semibold">{sourceModal.source.chunk_index}</span></div>
+              <div className="bg-blue-50 rounded-lg p-4 text-slate-800 text-sm whitespace-pre-line max-h-60 overflow-y-auto">
+                {sourceModal.source.content}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 } 

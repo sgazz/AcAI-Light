@@ -6,6 +6,7 @@ import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { FaCopy, FaCheck } from 'react-icons/fa';
 import MessageReactions from './MessageReactions';
 import { useClipboard } from '../utils/clipboard';
+import { motion } from 'framer-motion';
 
 interface MessageRendererProps {
   content: string;
@@ -22,9 +23,37 @@ export default function MessageRenderer({
   timestamp, 
   messageId,
   onReaction,
-  initialReaction 
-}: MessageRendererProps) {
+  initialReaction,
+  isLastUserMessage = false,
+  aiTyping = false,
+  onEdit,
+  onUndo,
+  editing = false,
+  editInput = '',
+  setEditInput,
+  saveEdit
+}: MessageRendererProps & {
+  isLastUserMessage?: boolean;
+  aiTyping?: boolean;
+  onEdit?: (id: string) => void;
+  onUndo?: (id: string) => void;
+  editing?: boolean;
+  editInput?: string;
+  setEditInput?: (v: string) => void;
+  saveEdit?: () => void;
+}) {
   const { copyToClipboard, copied } = useClipboard();
+
+  // Debug logging
+  console.log('MessageRenderer props:', { 
+    messageId, 
+    sender, 
+    isLastUserMessage, 
+    aiTyping, 
+    editing,
+    hasOnEdit: !!onEdit,
+    hasOnUndo: !!onUndo
+  });
 
   // Debug logging
   if (sender === 'ai') {
@@ -95,7 +124,15 @@ export default function MessageRenderer({
   };
 
   return (
-    <div className={`flex ${sender === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+      className={`flex items-end ${sender === 'user' ? 'justify-end' : 'justify-start'} w-full`}
+    >
+      {sender === 'ai' && (
+        <img src="/globe.svg" alt="AI" className="w-8 h-8 rounded-full mr-2" />
+      )}
       <div
         className={`
           max-w-4xl px-4 py-3 rounded-2xl shadow
@@ -105,9 +142,46 @@ export default function MessageRenderer({
         `}
         style={{ wordBreak: 'break-word' }}
       >
-        {content}
-        {/* ... eventualni timestamp, reakcije ... */}
+        {editing ? (
+          <input
+            value={editInput}
+            onChange={e => setEditInput && setEditInput(e.target.value)}
+            onBlur={saveEdit}
+            className="w-full bg-slate-800 text-white rounded p-2 mb-2"
+            autoFocus
+          />
+        ) : (
+          <ReactMarkdown components={markdownComponents}>
+            {content}
+          </ReactMarkdown>
+        )}
+        {/* Edit/Undo dugmad za poslednju korisničku poruku */}
+        {sender === 'user' && (
+          <div className="flex gap-2 mt-2 justify-end">
+            <button 
+              onClick={() => {
+                console.log('Edit clicked for message:', messageId);
+                onEdit && messageId && onEdit(messageId);
+              }} 
+              className="text-xs text-yellow-300 hover:underline"
+            >
+              Izmeni
+            </button>
+            <button 
+              onClick={() => {
+                console.log('Undo clicked for message:', messageId);
+                onUndo && messageId && onUndo(messageId);
+              }} 
+              className="text-xs text-red-300 hover:underline"
+            >
+              Poništi
+            </button>
+          </div>
+        )}
       </div>
-    </div>
+      {sender === 'user' && (
+        <img src="/window.svg" alt="Vi" className="w-8 h-8 rounded-full ml-2" />
+      )}
+    </motion.div>
   );
 } 
