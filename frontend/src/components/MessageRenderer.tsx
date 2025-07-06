@@ -98,7 +98,7 @@ export default function MessageRenderer({
     <div className={`flex ${sender === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
       <div
         className={`
-          max-w-xl px-4 py-3 rounded-2xl shadow
+          max-w-4xl px-4 py-3 rounded-2xl shadow
           ${sender === 'user'
             ? 'bg-blue-600 text-white rounded-br-md ml-auto'
             : 'bg-slate-700 text-slate-100 rounded-bl-md mr-auto'}
