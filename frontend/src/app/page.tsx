@@ -23,10 +23,12 @@ import ExamSimulation from '../components/ExamSimulation';
 import ProblemGenerator from '../components/ProblemGenerator';
 import StudyJournal from '../components/StudyJournal';
 import CareerGuidance from '../components/CareerGuidance';
+import { FaBars, FaTimes } from 'react-icons/fa';
 
 export default function Home() {
   const [selectedMenu, setSelectedMenu] = useState(-1);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { toasts, showError, showSuccess, showInfo } = useToast();
   const [isOnline, setIsOnline] = useState(true);
 
@@ -45,11 +47,43 @@ export default function Home() {
     },
     {
       ...SHORTCUTS.ESCAPE,
-      action: () => setShowShortcutsHelp(false)
+      action: () => {
+        setShowShortcutsHelp(false);
+        setIsSidebarOpen(false);
+      }
     }
   ];
 
   useKeyboardShortcuts(shortcuts);
+
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const sidebar = document.getElementById('sidebar');
+      const hamburger = document.getElementById('hamburger');
+      
+      if (isSidebarOpen && sidebar && !sidebar.contains(event.target as Node) && 
+          hamburger && !hamburger.contains(event.target as Node)) {
+        setIsSidebarOpen(false);
+      }
+    };
+
+    if (isSidebarOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isSidebarOpen]);
+
+  // Close sidebar when menu is selected on mobile
+  const handleMenuSelect = (index: number) => {
+    setSelectedMenu(index);
+    if (window.innerWidth < 1024) { // lg breakpoint
+      setIsSidebarOpen(false);
+    }
+  };
 
   // Health check
   useEffect(() => {
@@ -241,17 +275,55 @@ export default function Home() {
     <ErrorBoundary>
       <div className="min-h-screen bg-[var(--bg-primary)] text-[var(--text-primary)]">
         <OfflineDetector />
-        <div className="flex min-h-screen p-4 gap-4">
-          <div className="fixed left-4 top-4 h-[calc(100vh-2rem)] z-40">
-            <Sidebar selectedMenu={selectedMenu} onMenuSelect={setSelectedMenu} />
+        
+        {/* Mobile Header with Hamburger Menu */}
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-slate-900/95 to-slate-800/95 backdrop-blur-xl border-b border-white/10 p-4">
+          <div className="flex items-center justify-between">
+            <button
+              id="hamburger"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="p-2 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 transition-colors"
+              aria-label="Toggle menu"
+            >
+              {isSidebarOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
+            </button>
+            <h1 className="text-lg font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+              AI Study Assistant
+            </h1>
+            <div className="w-10"></div> {/* Spacer for centering */}
           </div>
-          <main className="flex-1 overflow-y-auto" style={{ marginLeft: 340 }}>
+        </div>
+
+        <div className="flex min-h-screen lg:p-4 lg:gap-4 pt-16 lg:pt-4">
+          {/* Responsive Sidebar */}
+          <div 
+            id="sidebar"
+            className={`
+              fixed inset-y-0 left-0 z-40 transform transition-transform duration-300 ease-in-out
+              ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+              lg:relative lg:translate-x-0 lg:static
+              w-80 lg:w-80
+            `}
+          >
+            <Sidebar selectedMenu={selectedMenu} onMenuSelect={handleMenuSelect} />
+          </div>
+
+          {/* Overlay for mobile */}
+          {isSidebarOpen && (
+            <div 
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-30 lg:hidden"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+          )}
+
+          {/* Main Content */}
+          <main className="flex-1 overflow-y-auto lg:ml-0 w-full">
             {renderContent()}
           </main>
         </div>
 
-        {/* Toast notifications */}
-        <div className="fixed top-4 right-4 z-50 space-y-2">
+        {/* Toast notifications - Responsive positioning */}
+        <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm lg:max-w-md">
           {toasts.map(toast => (
             <ErrorToast
               key={toast.id}

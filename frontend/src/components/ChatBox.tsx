@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { FaGraduationCap, FaToggleOn, FaToggleOff, FaBook, FaKeyboard, FaHistory, FaPlus } from 'react-icons/fa';
 import SourcesDisplay from './SourcesDisplay';
 import ChatHistorySidebar from './ChatHistorySidebar';
@@ -10,6 +10,7 @@ import ThemeToggle from './ThemeToggle';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CHAT_NEW_SESSION_ENDPOINT, CHAT_ENDPOINT, CHAT_RAG_ENDPOINT, CHAT_RAG_ENHANCED_CONTEXT_ENDPOINT, QUERY_ENHANCE_ENDPOINT, FACT_CHECK_VERIFY_ENDPOINT, createSessionMetadata, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
+import { FixedSizeList as List } from 'react-window';
 
 interface Message {
   id?: string;
@@ -76,6 +77,37 @@ export default function ChatBox() {
   const settingsRef = useRef<HTMLDivElement>(null);
   const { showError, showSuccess, showWarning } = useErrorToast();
 
+  // Debounced input handling
+  const [debouncedInput, setDebouncedInput] = useState(input);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedInput(input);
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timer);
+  }, [input]);
+
+  // Auto-resize textarea
+  const resizeTextarea = useCallback(() => {
+    if (inputRef.current) {
+      inputRef.current.style.height = 'auto';
+      const scrollHeight = inputRef.current.scrollHeight;
+      const maxHeight = 200; // max height in pixels
+      const newHeight = Math.min(scrollHeight, maxHeight);
+      inputRef.current.style.height = `${newHeight}px`;
+    }
+  }, []);
+
+  useEffect(() => {
+    resizeTextarea();
+  }, [input, resizeTextarea]);
+
+  // Handle input change with debouncing
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+  }, []);
+
   // Pročitaj session ID iz localStorage ili kreiraj novu sesiju
   useEffect(() => {
     const savedSessionId = localStorage.getItem('currentSessionId');
@@ -124,14 +156,6 @@ export default function ChatBox() {
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [input, isLoading]);
-
-  // Auto-resize textarea
-  useEffect(() => {
-    if (inputRef.current) {
-      inputRef.current.style.height = 'auto';
-      inputRef.current.style.height = `${inputRef.current.scrollHeight}px`;
-    }
-  }, [input]);
 
   // Zatvori settings dropdown na klik van njega
   useEffect(() => {
@@ -440,6 +464,154 @@ export default function ChatBox() {
     }
   };
 
+  // Virtual scrolling setup
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState(600);
+  const [containerWidth, setContainerWidth] = useState(800);
+  const ITEM_HEIGHT = 200; // Approximate height per message
+
+  // Update container dimensions on resize
+  useEffect(() => {
+    const updateDimensions = () => {
+      if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
+        setContainerHeight(rect.height);
+        setContainerWidth(rect.width);
+      }
+    };
+
+    updateDimensions();
+    window.addEventListener('resize', updateDimensions);
+    return () => window.removeEventListener('resize', updateDimensions);
+  }, []);
+
+  // Memoized message renderer for virtual scrolling
+  const MessageRow = useCallback(({ index, style }: { index: number; style: React.CSSProperties }) => {
+    const msg = messages[index];
+    if (!msg) return null;
+
+    const isLastUserMessage = msg.sender === 'user' && 
+      index === messages.length - 1 && 
+      !isLoading;
+
+    return (
+      <div style={style} className="px-4 lg:px-6">
+        <div className="group">
+          <MessageRenderer
+            content={msg.content}
+            sender={msg.sender}
+            timestamp={msg.timestamp}
+            messageId={msg.id}
+            onReaction={handleReaction}
+            initialReaction={msg.reaction}
+            isLastUserMessage={isLastUserMessage}
+            aiTyping={isLoading}
+            onEdit={handleEditMessage}
+            onUndo={handleUndoMessage}
+            editing={editingMessageId === msg.id}
+            editInput={editInput}
+            setEditInput={setEditInput}
+            saveEdit={handleSaveEdit}
+          />
+          
+          {/* Prikaži izvore za AI poruke */}
+          {msg.sender === 'ai' && msg.sources && msg.sources.length > 0 && (
+            <div className="mt-2 ml-4 lg:ml-6">
+              <SourcesDisplay 
+                sources={msg.sources} 
+                isVisible={true} 
+                onSourceClick={handleSourceClick}
+              />
+            </div>
+          )}
+          
+          {/* RAG indicator */}
+          {msg.sender === 'ai' && msg.used_rag && (
+            <div className="mt-2 ml-4 lg:ml-6 flex items-center gap-2 text-xs text-slate-400">
+              <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
+              <span>Korišćeni dokumenti</span>
+            </div>
+          )}
+          
+          {/* Re-ranking indicator */}
+          {msg.sender === 'ai' && msg.reranking_applied && (
+            <div className="mt-1 ml-4 lg:ml-6 flex items-center gap-2 text-xs text-slate-400">
+              <div className="w-2 h-2 bg-purple-400 rounded-full animate-pulse"></div>
+              <span>Re-ranking primenjen</span>
+            </div>
+          )}
+          
+          {/* Query Rewriting indicator */}
+          {msg.sender === 'ai' && msg.query_rewriting_applied && (
+            <div className="mt-1 ml-4 lg:ml-6 flex items-center gap-2 text-xs text-slate-400">
+              <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+              <span>Query rewriting primenjen</span>
+            </div>
+          )}
+          
+          {/* Fact Checking indicator */}
+          {msg.sender === 'ai' && msg.fact_checking_applied && (
+            <div className="mt-1 ml-4 lg:ml-6 flex items-center gap-2 text-xs text-slate-400">
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+              <span>Fact checking primenjen</span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }, [messages, isLoading, editingMessageId, editInput, handleReaction, handleEditMessage, handleUndoMessage, setEditInput, handleSaveEdit, handleSourceClick]);
+
+  // Memoized virtual list
+  const VirtualizedMessageList = useMemo(() => {
+    if (messages.length === 0 && !isLoading) {
+      return (
+        <div className="text-center text-blue-300 text-sm mt-8">
+          <div className="mb-2">
+            {useRAG ? (
+              <p>Počnite razgovor sa AI asistentom koji koristi vaše dokumente!</p>
+            ) : (
+              <p>Počnite razgovor sa AI asistentom!</p>
+            )}
+          </div>
+          {useRAG && (
+            <p className="text-xs text-gray-500">
+              Upload-ujte dokumente da biste omogućili RAG funkcionalnost
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <>
+        <List
+          height={containerHeight}
+          width={containerWidth}
+          itemCount={messages.length}
+          itemSize={ITEM_HEIGHT}
+          itemData={messages}
+          className="custom-scrollbar"
+        >
+          {MessageRow}
+        </List>
+        
+        {/* Typing indicator */}
+        {isLoading && (
+          <div className="flex items-center gap-3 p-4">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-semibold">
+              🤖
+            </div>
+            <div className="flex items-center gap-1">
+              <div className="typing-dot w-2 h-2 bg-blue-400 rounded-full"></div>
+              <div className="typing-dot w-2 h-2 bg-blue-400 rounded-full"></div>
+              <div className="typing-dot w-2 h-2 bg-blue-400 rounded-full"></div>
+            </div>
+          </div>
+        )}
+      </>
+    );
+  }, [messages, containerHeight, containerWidth, MessageRow, useRAG, isLoading]);
+
   return (
     <div className="flex flex-col h-full relative overflow-hidden">
       {/* Premium Glassmorphism Background */}
@@ -672,133 +844,8 @@ export default function ChatBox() {
         )}
 
         {/* Messages Container */}
-        <div className="flex-1 overflow-y-auto pb-4 custom-scrollbar">
-          {messages.length === 0 && !isLoading && (
-            <div className="text-center text-blue-300 text-sm mt-8">
-              <div className="mb-2">
-                {useRAG ? (
-                  <p>Počnite razgovor sa AI asistentom koji koristi vaše dokumente!</p>
-                ) : (
-                  <p>Počnite razgovor sa AI asistentom!</p>
-                )}
-              </div>
-              {useRAG && (
-                <p className="text-xs text-gray-500">
-                  Upload-ujte dokumente da biste omogućili RAG funkcionalnost
-                </p>
-              )}
-            </div>
-          )}
-          
-          {messages.map((msg, idx) => {
-            // Odredi da li je ovo poslednja korisnička poruka
-            const isLastUserMessage = msg.sender === 'user' && 
-              idx === messages.length - 1 && 
-              !isLoading;
-            
-            console.log('Rendering message:', { 
-              id: msg.id, 
-              sender: msg.sender, 
-              content: msg.content.substring(0, 50),
-              messageIdString: msg.id?.toString(),
-              hasReaction: !!msg.reaction,
-              isLastUserMessage
-            });
-            return (
-              <div key={idx} className="mb-4">
-                <MessageRenderer
-                  content={msg.content}
-                  sender={msg.sender}
-                  timestamp={msg.timestamp}
-                  messageId={msg.id}
-                  onReaction={handleReaction}
-                  initialReaction={msg.reaction}
-                  isLastUserMessage={isLastUserMessage}
-                  aiTyping={isLoading}
-                  onEdit={handleEditMessage}
-                  onUndo={handleUndoMessage}
-                  editing={editingMessageId === msg.id}
-                  editInput={editInput}
-                  setEditInput={setEditInput}
-                  saveEdit={handleSaveEdit}
-                />
-                
-                {/* Prikaži izvore za AI poruke */}
-                {msg.sender === 'ai' && msg.sources && msg.sources.length > 0 && (
-                  <div className="mt-2 ml-8">
-                    <SourcesDisplay 
-                      sources={msg.sources} 
-                      isVisible={true} 
-                      onSourceClick={handleSourceClick}
-                    />
-                  </div>
-                )}
-                
-                {/* RAG indicator */}
-                {msg.sender === 'ai' && msg.used_rag && (
-                  <div className="mt-2 ml-8 flex items-center gap-2">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-xs text-green-400">Koristi RAG</span>
-                    
-                    {/* Re-ranking indicator */}
-                    {msg.reranking_applied && (
-                      <>
-                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                        <span className="text-xs text-purple-400">Re-ranking</span>
-                        {msg.reranker_info && (
-                          <span className="text-xs text-gray-500">
-                            ({msg.reranker_info.model_name})
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </div>
-                )}
-                
-                {/* Query Rewriting indicator */}
-                {msg.sender === 'user' && msg.query_rewriting_applied && (
-                  <div className="mt-2 ml-8 p-2 rounded-lg bg-orange-900/30 border border-orange-700">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                      <span className="text-xs text-orange-400 font-semibold">Query Rewriting</span>
-                    </div>
-                    <div className="text-xs text-orange-300">
-                      <div><strong>Original:</strong> {msg.original_query}</div>
-                      <div><strong>Poboljšan:</strong> {msg.enhanced_query}</div>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Fact Checking indicator */}
-                {msg.sender === 'ai' && msg.fact_checking_applied && msg.fact_checker_info && (
-                  <div className="mt-2 ml-8 p-2 rounded-lg bg-yellow-900/30 border border-yellow-700">
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className={`w-2 h-2 rounded-full ${msg.fact_checker_info.verified ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                      <span className="text-xs text-yellow-400 font-semibold">Fact Checking</span>
-                      <span className={`text-xs ${msg.fact_checker_info.verified ? 'text-green-400' : 'text-red-400'}`}>
-                        {msg.fact_checker_info.verified ? 'Verifikovan' : 'Nije verifikovan'}
-                      </span>
-                      <span className="text-xs text-gray-500">
-                        ({Math.round(msg.fact_checker_info.confidence * 100)}% pouzdanost)
-                      </span>
-                    </div>
-                    {msg.fact_checker_info.reasoning && (
-                      <div className="text-xs text-yellow-300 mt-1">
-                        <strong>Obrazloženje:</strong> {msg.fact_checker_info.reasoning}
-                      </div>
-                    )}
-                    {msg.fact_checker_info.sources && msg.fact_checker_info.sources.length > 0 && (
-                      <div className="text-xs text-yellow-300 mt-1">
-                        <strong>Izvori:</strong> {msg.fact_checker_info.sources.join(', ')}
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-          
-          {isLoading && <TypingIndicator />}
+        <div className="flex-1 overflow-y-auto pb-4 custom-scrollbar" ref={containerRef}>
+          {VirtualizedMessageList}
         </div>
         
         {/* Premium Input Form */}
@@ -809,20 +856,34 @@ export default function ChatBox() {
               className="relative w-full px-6 py-4 bg-slate-800/50 border border-white/10 rounded-2xl text-white placeholder-slate-400 focus:outline-none focus:border-blue-500/50 focus:ring-4 focus:ring-blue-500/20 backdrop-blur-sm transition-all duration-300 resize-none overflow-hidden min-h-[60px] max-h-[200px]"
               placeholder={useRAG ? "Pitajte o vašim dokumentima..." : "Upišite poruku..."}
               value={input}
-              onChange={e => setInput(e.target.value)}
+              onChange={handleInputChange}
               disabled={isLoading}
               ref={inputRef}
               rows={1}
+              aria-label="Unesite poruku"
+              aria-describedby="chat-input-help"
+              aria-invalid={false}
+              role="textbox"
+              tabIndex={0}
             />
+            <div id="chat-input-help" className="sr-only">
+              Pritisnite Enter za slanje poruke ili Ctrl+Enter za novi red
+            </div>
           </div>
           <button 
             type="submit" 
             className={`group relative p-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl hover:from-blue-600 hover:to-purple-700 btn-hover-profi shadow-lg ${isLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
             disabled={isLoading}
+            aria-label="Pošalji poruku"
+            aria-describedby="send-button-help"
+            tabIndex={0}
           >
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 transform rotate-180 group-hover:scale-110 icon-hover-profi">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6 transform rotate-180 group-hover:scale-110 icon-hover-profi" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12l15.75-7.5-4.5 7.5 4.5 7.5L2.25 12z" />
             </svg>
+            <div id="send-button-help" className="sr-only">
+              Kliknite ili pritisnite Enter za slanje poruke
+            </div>
           </button>
         </form>
       </div>

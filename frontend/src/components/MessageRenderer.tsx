@@ -1,12 +1,10 @@
 'use client';
 
+import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { FaEdit, FaUndo, FaThumbsUp, FaThumbsDown, FaCopy, FaCheck } from 'react-icons/fa';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
-import { FaCopy, FaCheck, FaEdit } from 'react-icons/fa';
-import MessageReactions from './MessageReactions';
-import { useClipboard } from '../utils/clipboard';
-import { motion } from 'framer-motion';
+import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 interface MessageRendererProps {
   content: string;
@@ -16,6 +14,56 @@ interface MessageRendererProps {
   onReaction?: (messageId: string, reaction: 'like' | 'dislike') => void;
   initialReaction?: 'like' | 'dislike' | null;
 }
+
+const markdownComponents = {
+  code({ node, inline, className, children, ...props }: any) {
+    const match = /language-(\w+)/.exec(className || '');
+    return !inline && match ? (
+      <SyntaxHighlighter
+        style={oneDark}
+        language={match[1]}
+        PreTag="div"
+        className="rounded-lg my-4"
+        {...props}
+      >
+        {String(children).replace(/\n$/, '')}
+      </SyntaxHighlighter>
+    ) : (
+      <code className="bg-slate-800/50 px-2 py-1 rounded text-sm font-mono" {...props}>
+        {children}
+      </code>
+    );
+  },
+  p: ({ children }: any) => <p className="mb-4 last:mb-0 leading-relaxed">{children}</p>,
+  h1: ({ children }: any) => <h1 className="text-2xl font-bold mb-4 mt-6">{children}</h1>,
+  h2: ({ children }: any) => <h2 className="text-xl font-bold mb-3 mt-5">{children}</h2>,
+  h3: ({ children }: any) => <h3 className="text-lg font-bold mb-2 mt-4">{children}</h3>,
+  ul: ({ children }: any) => <ul className="list-disc list-inside mb-4 space-y-1">{children}</ul>,
+  ol: ({ children }: any) => <ol className="list-decimal list-inside mb-4 space-y-1">{children}</ol>,
+  li: ({ children }: any) => <li className="ml-4">{children}</li>,
+  blockquote: ({ children }: any) => (
+    <blockquote className="border-l-4 border-blue-500 pl-4 italic bg-blue-500/10 py-2 rounded-r-lg mb-4">
+      {children}
+    </blockquote>
+  ),
+  table: ({ children }: any) => (
+    <div className="overflow-x-auto mb-4">
+      <table className="min-w-full border border-slate-600 rounded-lg">
+        {children}
+      </table>
+    </div>
+  ),
+  th: ({ children }: any) => (
+    <th className="border border-slate-600 px-4 py-2 bg-slate-700 font-semibold">
+      {children}
+    </th>
+  ),
+  td: ({ children }: any) => (
+    <td className="border border-slate-600 px-4 py-2">
+      {children}
+    </td>
+  ),
+};
 
 export default function MessageRenderer({ 
   content, 
@@ -42,138 +90,173 @@ export default function MessageRenderer({
   setEditInput?: (v: string) => void;
   saveEdit?: () => void;
 }) {
-  const { copyToClipboard, copied } = useClipboard();
+  const [copied, setCopied] = useState(false);
+  const [reaction, setReaction] = useState<'like' | 'dislike' | null>(initialReaction || null);
 
-  // Debug logging
-  console.log('MessageRenderer props:', { 
-    messageId, 
-    sender, 
-    isLastUserMessage, 
-    aiTyping, 
-    editing,
-    hasOnEdit: !!onEdit,
-    hasOnUndo: !!onUndo
-  });
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+    }
+  };
 
-  // Debug logging
-  if (sender === 'ai') {
-    console.log('AI message renderer:', { messageId, sender, hasOnReaction: !!onReaction });
-  }
-
-  const markdownComponents = {
-    code({ node, inline, className, children, ...props }: any) {
-      const match = /language-(\w+)/.exec(className || '');
-      return !inline && match ? (
-        <div className="relative">
-          <div className="flex items-center justify-between p-2 bg-[var(--bg-tertiary)] border-b border-[var(--border-color)] rounded-t-lg">
-            <span className="text-xs text-[var(--text-muted)]">{match[1]}</span>
-            <button
-              onClick={() => copyToClipboard(String(children).replace(/\n$/, ''))}
-              className="p-1 text-[var(--text-muted)] hover:text-[var(--accent-blue)] transition-colors"
-              title="Kopiraj kod"
-            >
-              <FaCopy size={12} />
-            </button>
-          </div>
-          <SyntaxHighlighter
-            style={tomorrow}
-            language={match[1]}
-            PreTag="div"
-            className="rounded-b-lg"
-            customStyle={{
-              margin: 0,
-              backgroundColor: 'var(--bg-secondary)',
-              border: '1px solid var(--border-color)',
-              borderTop: 'none'
-            }}
-            {...props}
-          >
-            {String(children).replace(/\n$/, '')}
-          </SyntaxHighlighter>
-        </div>
-      ) : (
-        <code className="bg-[var(--bg-tertiary)] text-[var(--accent-blue)] px-1 py-0.5 rounded text-sm" {...props}>
-          {children}
-        </code>
-      );
-    },
-    blockquote: ({ children }: any) => (
-      <blockquote className="border-l-4 border-[var(--accent-blue)] bg-[var(--accent-blue)]/10 pl-4 py-2 my-4 rounded-r-lg">
-        {children}
-      </blockquote>
-    ),
-    a: ({ href, children }: any) => (
-      <a 
-        href={href} 
-        target="_blank" 
-        rel="noopener noreferrer"
-        className="text-[var(--accent-blue)] hover:text-[var(--accent-blue)]/80 underline"
-      >
-        {children}
-      </a>
-    ),
-    ul: ({ children }: any) => <ul className="list-disc list-inside space-y-1 text-[var(--text-primary)]">{children}</ul>,
-    ol: ({ children }: any) => <ol className="list-decimal list-inside space-y-1 text-[var(--text-primary)]">{children}</ol>,
-    li: ({ children }: any) => <li className="text-[var(--text-primary)]">{children}</li>,
-    strong: ({ children }: any) => <strong className="font-semibold text-[var(--text-primary)]">{children}</strong>,
-    em: ({ children }: any) => <em className="italic text-[var(--text-primary)]">{children}</em>,
-    h1: ({ children }: any) => <h1 className="text-2xl font-bold text-[var(--text-primary)] mb-4">{children}</h1>,
-    h2: ({ children }: any) => <h2 className="text-xl font-bold text-[var(--text-primary)] mb-3">{children}</h2>,
-    h3: ({ children }: any) => <h3 className="text-lg font-semibold text-[var(--text-primary)] mb-2">{children}</h3>,
-    p: ({ children }: any) => <p className="text-[var(--text-primary)] mb-3 leading-relaxed">{children}</p>,
+  const handleReaction = (newReaction: 'like' | 'dislike') => {
+    const finalReaction = reaction === newReaction ? null : newReaction;
+    setReaction(finalReaction);
+    if (onReaction && messageId && finalReaction) {
+      onReaction(messageId, finalReaction);
+    }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.3 }}
-      className={`flex items-end ${sender === 'user' ? 'justify-end' : 'justify-start'} w-full`}
-    >
-      {sender === 'ai' && (
-        <img src="/globe.svg" alt="AI" className="w-8 h-8 rounded-full mr-2" />
-      )}
-      <div
-        className={`
-          ${sender === 'user' ? 'max-w-4xl' : 'max-w-4xl'} px-4 py-3 rounded-2xl shadow
-          ${sender === 'user'
-            ? 'bg-blue-600 text-white rounded-br-md ml-auto'
-            : 'bg-slate-700 text-slate-100 rounded-bl-md mr-auto'}
-        `}
-        style={{ wordBreak: 'break-word' }}
-      >
-        {editing ? (
-          <input
-            value={editInput}
-            onChange={e => setEditInput && setEditInput(e.target.value)}
-            onBlur={saveEdit}
-            className="w-full bg-slate-800 text-white rounded p-2 mb-2"
-            autoFocus
-          />
-        ) : (
-          <ReactMarkdown components={markdownComponents}>
-            {content}
-          </ReactMarkdown>
-        )}
-        {/* Edit dugme za korisničke poruke */}
-        {sender === 'user' && (
-          <div className="flex gap-2 mt-2 justify-end">
-            <button 
-              onClick={() => {
-                console.log('Edit clicked for message:', messageId);
-                onEdit && messageId && onEdit(messageId);
-              }} 
-              className="p-1 text-yellow-300 hover:text-yellow-100 hover:bg-yellow-900/30 rounded transition-colors"
-              title="Izmeni poruku"
-            >
-              <FaEdit size={14} />
-            </button>
+    <div className="w-full max-w-4xl mx-auto mb-6">
+      <div className={`
+        bg-white/5 backdrop-blur-sm rounded-lg border transition-all duration-300
+        ${sender === 'user' 
+          ? 'border-blue-500/30 bg-blue-500/5' 
+          : 'border-white/10 bg-slate-800/30'
+        }
+        hover:bg-white/10 hover:border-white/20
+      `}>
+        {/* Message Header */}
+        <div className="flex items-center justify-between p-4 pb-2">
+          <div className="flex items-center gap-3">
+            <div className={`
+              w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold
+              ${sender === 'user' 
+                ? 'bg-gradient-to-br from-blue-500 to-purple-600' 
+                : 'bg-gradient-to-br from-green-500 to-emerald-600'
+              }
+            `}>
+              {sender === 'user' ? 'U' : '🤖'}
+            </div>
+            <div>
+              <div className="font-semibold text-white">
+                {sender === 'user' ? 'Vi' : 'AI Asistent'}
+              </div>
+              {timestamp && (
+                <div className="text-xs text-slate-400">
+                  {new Date(timestamp).toLocaleString('sr-RS')}
+                </div>
+              )}
+            </div>
           </div>
-        )}
+          
+          {/* Message Actions */}
+          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Copy Button */}
+            <button
+              onClick={handleCopy}
+              className="p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg transition-colors"
+              title="Kopiraj poruku"
+              aria-label="Kopiraj poruku u clipboard"
+              tabIndex={0}
+            >
+              {copied ? <FaCheck size={14} className="text-green-400" aria-hidden="true" /> : <FaCopy size={14} aria-hidden="true" />}
+            </button>
+            
+            {/* Edit/Undo for user messages */}
+            {sender === 'user' && (
+              <>
+                {onEdit && messageId && (
+                  <button
+                    onClick={() => onEdit(messageId)}
+                    className="p-2 text-slate-400 hover:text-yellow-400 hover:bg-yellow-500/20 rounded-lg transition-colors"
+                    title="Izmeni poruku"
+                    aria-label="Izmeni ovu poruku"
+                    tabIndex={0}
+                  >
+                    <FaEdit size={14} aria-hidden="true" />
+                  </button>
+                )}
+                {onUndo && messageId && (
+                  <button
+                    onClick={() => onUndo(messageId)}
+                    className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/20 rounded-lg transition-colors"
+                    title="Poništi poruku"
+                    aria-label="Poništi ovu poruku"
+                    tabIndex={0}
+                  >
+                    <FaUndo size={14} aria-hidden="true" />
+                  </button>
+                )}
+              </>
+            )}
+            
+            {/* Reactions for AI messages */}
+            {sender === 'ai' && onReaction && messageId && (
+              <div className="flex items-center gap-1" role="group" aria-label="Reakcije na poruku">
+                <button
+                  onClick={() => handleReaction('like')}
+                  className={`p-2 rounded-lg transition-colors ${
+                    reaction === 'like'
+                      ? 'text-green-400 bg-green-500/20'
+                      : 'text-slate-400 hover:text-green-400 hover:bg-green-500/20'
+                  }`}
+                  title="Sviđa mi se"
+                  aria-label={reaction === 'like' ? 'Ukloni sviđa mi se' : 'Sviđa mi se'}
+                  aria-pressed={reaction === 'like'}
+                  tabIndex={0}
+                >
+                  <FaThumbsUp size={14} aria-hidden="true" />
+                </button>
+                <button
+                  onClick={() => handleReaction('dislike')}
+                  className={`p-2 rounded-lg transition-colors ${
+                    reaction === 'dislike'
+                      ? 'text-red-400 bg-red-500/20'
+                      : 'text-slate-400 hover:text-red-400 hover:bg-red-500/20'
+                  }`}
+                  title="Ne sviđa mi se"
+                  aria-label={reaction === 'dislike' ? 'Ukloni ne sviđa mi se' : 'Ne sviđa mi se'}
+                  aria-pressed={reaction === 'dislike'}
+                  tabIndex={0}
+                >
+                  <FaThumbsDown size={14} aria-hidden="true" />
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Message Content */}
+        <div className="px-4 pb-4">
+          {editing ? (
+            <div className="space-y-3">
+              <textarea
+                value={editInput}
+                onChange={e => setEditInput && setEditInput(e.target.value)}
+                className="w-full bg-slate-800 text-white rounded-lg p-3 border border-slate-600 focus:border-blue-500 focus:outline-none resize-none"
+                rows={Math.max(3, editInput.split('\n').length)}
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={saveEdit}
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                >
+                  Sačuvaj
+                </button>
+                <button
+                  onClick={() => onEdit && messageId && onEdit(messageId)}
+                  className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
+                >
+                  Otkaži
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="prose prose-invert max-w-none">
+              <ReactMarkdown components={markdownComponents}>
+                {content}
+              </ReactMarkdown>
+            </div>
+          )}
+        </div>
       </div>
-      {sender === 'user' && (
-        <img src="/window.svg" alt="Vi" className="w-8 h-8 rounded-full ml-2" />
-      )}
-    </motion.div>
+    </div>
   );
 } 
