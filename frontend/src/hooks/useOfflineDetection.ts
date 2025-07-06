@@ -49,7 +49,7 @@ export function useOfflineDetection() {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
     };
-  }, [showError, showSuccess]);
+  }, []);
 
   return { isOffline };
 } 
