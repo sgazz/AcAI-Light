@@ -20,7 +20,7 @@ const menu = [
   { icon: <div><FaSuitcase size={20} /></div>, label: 'Career Guidance' },
   { icon: <div><FaFileAlt size={20} /></div>, label: 'Dokumenti' },
   { icon: <div><FaShareAlt size={20} /></div>, label: 'File Sharing' },
-  { icon: <div><FaTachometerAlt size={20} /></div>, label: 'Performance Test' },
+  // Uklonjen Performance Test
 ];
 
 export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {

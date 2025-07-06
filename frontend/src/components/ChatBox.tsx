@@ -402,334 +402,332 @@ export default function ChatBox() {
       </div>
 
       <div className="relative flex flex-col h-full p-6">
-        <div className="flex-1 flex flex-col overflow-y-auto min-h-0">
-          {/* Premium Header - sada sticky */}
-          <div className="sticky top-0 z-30 flex items-center justify-between pb-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl p-4 backdrop-blur-sm">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
-                  <FaBook className="text-white" size={16} />
-                </div>
-                <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+        {/* Premium Header - sada sticky */}
+        <div className="sticky top-0 z-30 flex items-center justify-between mb-6 pb-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl p-4 backdrop-blur-sm">
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">
+                <FaBook className="text-white" size={16} />
               </div>
-              <div>
-                <h2 className="text-lg font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
-                  AI Chat
-                </h2>
-                <div className="flex items-center gap-2 text-xs text-slate-400">
-                  <FaKeyboard size={12} />
-                  <span>Ctrl+Enter</span>
-                </div>
-              </div>
+              <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
             </div>
-
-            <div className="flex items-center gap-4">
-              {/* Theme Toggle */}
-              <ThemeToggle />
-              
-              {/* Nova Sesija Button */}
-              <button
-                onClick={createNewSession}
-                className="group relative flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
-                title="Kreiraj novu sesiju"
-              >
-                <FaPlus size={14} />
-                <span>Nova sesija</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </button>
-              
-              {/* Premium History Button */}
-              <button
-                onClick={() => setIsHistorySidebarOpen(true)}
-                className="group relative flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
-                title="Prikaži istoriju razgovora"
-              >
-                <FaHistory size={14} />
-                <span>Istorija</span>
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-              </button>
-              
-              {/* Settings Dropdown */}
-              <div className="relative group">
-                <button className="p-2 rounded-full bg-slate-800/60 hover:bg-slate-700 transition" title="Podešavanja">
-                  <svg width="20" height="20" fill="none" stroke="currentColor"><path d="M10 2a1 1 0 0 1 1 1v1.09a7.001 7.001 0 0 1 3.39 1.36l.77-.77a1 1 0 1 1 1.42 1.42l-.77.77A7.001 7.001 0 0 1 17.91 9H19a1 1 0 1 1 0 2h-1.09a7.001 7.001 0 0 1-1.36 3.39l.77.77a1 1 0 1 1-1.42 1.42l-.77-.77A7.001 7.001 0 0 1 11 17.91V19a1 1 0 1 1-2 0v-1.09a7.001 7.001 0 0 1-3.39-1.36l-.77.77a1 1 0 1 1-1.42-1.42l.77-.77A7.001 7.001 0 0 1 2.09 11H1a1 1 0 1 1 0-2h1.09a7.001 7.001 0 0 1 1.36-3.39l-.77-.77a1 1 0 1 1 1.42-1.42l.77.77A7.001 7.001 0 0 1 9 2.09V1a1 1 0 0 1 1-1z"/></svg>
-                </button>
-                <div className="hidden group-hover:block absolute right-0 mt-2 w-64 bg-slate-900 border border-white/10 rounded-xl shadow-xl p-4 z-50">
-                  {/* Toggle kontrole premeštene ovde */}
-                  {/* Query Rewriting Toggle */}
-                  <div className="group relative">
-                    <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
-                      <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Query Rewriting</span>
-                      <button
-                        onClick={() => setUseQueryRewriting(!useQueryRewriting)}
-                        className="flex items-center gap-1 text-sm icon-hover-profi"
-                      >
-                        {useQueryRewriting ? (
-                          <>
-                            <FaToggleOn className="text-orange-400" size={16} />
-                            <span className="text-orange-300 font-medium">Uključen</span>
-                          </>
-                        ) : (
-                          <>
-                            <FaToggleOff className="text-slate-500" size={16} />
-                            <span className="text-slate-400">Isključen</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Fact Checking Toggle */}
-                  <div className="group relative">
-                    <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
-                      <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Fact Checking</span>
-                      <button
-                        onClick={() => setUseFactChecking(!useFactChecking)}
-                        className="flex items-center gap-1 text-sm icon-hover-profi"
-                      >
-                        {useFactChecking ? (
-                          <>
-                            <FaToggleOn className="text-yellow-400" size={16} />
-                            <span className="text-yellow-300 font-medium">Uključen</span>
-                          </>
-                        ) : (
-                          <>
-                            <FaToggleOff className="text-slate-500" size={16} />
-                            <span className="text-slate-400">Isključen</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  
-                  {/* Enhanced Context Toggle */}
-                  <div className="group relative">
-                    <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
-                      <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Enhanced Context</span>
-                      <button
-                        onClick={() => setUseEnhancedContext(!useEnhancedContext)}
-                        className="flex items-center gap-1 text-sm icon-hover-profi"
-                      >
-                        {useEnhancedContext ? (
-                          <>
-                            <FaToggleOn className="text-cyan-400" size={16} />
-                            <span className="text-cyan-300 font-medium">Uključen</span>
-                          </>
-                        ) : (
-                          <>
-                            <FaToggleOff className="text-slate-500" size={16} />
-                            <span className="text-slate-400">Isključen</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Re-ranking Toggle */}
-                  {useRAG && (
-                    <div className="group relative">
-                      <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
-                        <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Re-ranking</span>
-                        <button
-                          onClick={() => setUseRerank(!useRerank)}
-                          className="flex items-center gap-1 text-sm icon-hover-profi"
-                        >
-                          {useRerank ? (
-                            <>
-                              <FaToggleOn className="text-purple-500" size={16} />
-                              <span className="text-purple-400 font-medium">Uključen</span>
-                            </>
-                          ) : (
-                            <>
-                              <FaToggleOff className="text-slate-500" size={16} />
-                              <span className="text-slate-400">Isključen</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* RAG Toggle */}
-                  <div className="group relative">
-                    <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
-                      <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">RAG Mode</span>
-                      <button
-                        onClick={() => setUseRAG(!useRAG)}
-                        className="flex items-center gap-1 text-sm icon-hover-profi"
-                      >
-                        {useRAG ? (
-                          <>
-                            <FaToggleOn className="text-green-500" size={16} />
-                            <span className="text-green-400 font-medium">Uključen</span>
-                          </>
-                        ) : (
-                          <>
-                            <FaToggleOff className="text-slate-500" size={16} />
-                            <span className="text-slate-400">Isključen</span>
-                          </>
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                </div>
+            <div>
+              <h2 className="text-lg font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                AI Chat
+              </h2>
+              <div className="flex items-center gap-2 text-xs text-slate-400">
+                <FaKeyboard size={12} />
+                <span>Ctrl+Enter</span>
               </div>
             </div>
           </div>
 
-          {/* Premium Context Analytics */}
-          {useEnhancedContext && lastContextAnalysis && (
-            <div className="mb-4 p-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-2xl border border-cyan-500/30 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1 bg-cyan-500/20 rounded-lg">
-                  <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
-                </div>
-                <span className="text-sm font-semibold text-cyan-300">Analitika konteksta</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 text-xs text-cyan-200">
-                <div>Tipovi: {lastContextAnalysis.context_types_used?.join(', ') || '-'}</div>
-                <div>Dužina: {lastContextAnalysis.total_context_length} karaktera</div>
-                <div>Složenost upita: {lastContextAnalysis.query_complexity}</div>
-                <div>Relevantnost: {lastContextAnalysis.relevance_score?.toFixed(2)}</div>
-              </div>
-            </div>
-          )}
-
-          {/* Premium Query History */}
-          {useQueryRewriting && queryHistory.length > 0 && (
-            <div className="mb-4 p-4 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 rounded-2xl border border-orange-500/30 backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="p-1 bg-orange-500/20 rounded-lg">
-                  <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
-                </div>
-                <span className="text-sm font-semibold text-orange-300">Istorija poboljšanih upita</span>
-              </div>
-              <div className="max-h-20 overflow-y-auto space-y-2">
-                {queryHistory.slice(-3).map((item, idx) => (
-                  <div key={idx} className="p-2 bg-orange-900/30 rounded-xl border border-orange-700/50">
-                    <div className="text-xs text-orange-300 font-medium">Original: {item.original}</div>
-                    <div className="text-xs text-orange-200">Poboljšan: {item.enhanced}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Messages Container */}
-          <div className="flex-1 overflow-y-auto pb-4 custom-scrollbar">
-            {messages.length === 0 && !isLoading && (
-              <div className="text-center text-blue-300 text-sm mt-8">
-                <div className="mb-2">
-                  {useRAG ? (
-                    <p>Počnite razgovor sa AI asistentom koji koristi vaše dokumente!</p>
-                  ) : (
-                    <p>Počnite razgovor sa AI asistentom!</p>
-                  )}
-                </div>
-                {useRAG && (
-                  <p className="text-xs text-gray-500">
-                    Upload-ujte dokumente da biste omogućili RAG funkcionalnost
-                  </p>
-                )}
-              </div>
-            )}
+          <div className="flex items-center gap-4">
+            {/* Theme Toggle */}
+            <ThemeToggle />
             
-            {messages.map((msg, idx) => {
-              console.log('Rendering message:', { 
-                id: msg.id, 
-                sender: msg.sender, 
-                content: msg.content.substring(0, 50),
-                messageIdString: msg.id?.toString(),
-                hasReaction: !!msg.reaction
-              });
-              return (
-                <div key={idx} className="mb-4">
-                  <MessageRenderer
-                    content={msg.content}
-                    sender={msg.sender}
-                    timestamp={msg.timestamp}
-                    messageId={msg.id}
-                    onReaction={handleReaction}
-                    initialReaction={msg.reaction}
-                  />
-                  
-                  {/* Prikaži izvore za AI poruke */}
-                  {msg.sender === 'ai' && msg.sources && msg.sources.length > 0 && (
-                    <div className="mt-2 ml-8">
-                      <SourcesDisplay 
-                        sources={msg.sources} 
-                        isVisible={true} 
-                        onSourceClick={handleSourceClick}
-                      />
-                    </div>
-                  )}
-                  
-                  {/* RAG indicator */}
-                  {msg.sender === 'ai' && msg.used_rag && (
-                    <div className="mt-2 ml-8 flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                      <span className="text-xs text-green-400">Koristi RAG</span>
-                      
-                      {/* Re-ranking indicator */}
-                      {msg.reranking_applied && (
+            {/* Nova Sesija Button */}
+            <button
+              onClick={createNewSession}
+              className="group relative flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl hover:from-green-600 hover:to-emerald-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+              title="Kreiraj novu sesiju"
+            >
+              <FaPlus size={14} />
+              <span>Nova sesija</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-green-600/20 to-emerald-600/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </button>
+            
+            {/* Premium History Button */}
+            <button
+              onClick={() => setIsHistorySidebarOpen(true)}
+              className="group relative flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl hover:scale-105"
+              title="Prikaži istoriju razgovora"
+            >
+              <FaHistory size={14} />
+              <span>Istorija</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-purple-600/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            </button>
+            
+            {/* Settings Dropdown */}
+            <div className="relative group">
+              <button className="p-2 rounded-full bg-slate-800/60 hover:bg-slate-700 transition" title="Podešavanja">
+                <svg width="20" height="20" fill="none" stroke="currentColor"><path d="M10 2a1 1 0 0 1 1 1v1.09a7.001 7.001 0 0 1 3.39 1.36l.77-.77a1 1 0 1 1 1.42 1.42l-.77.77A7.001 7.001 0 0 1 17.91 9H19a1 1 0 1 1 0 2h-1.09a7.001 7.001 0 0 1-1.36 3.39l.77.77a1 1 0 1 1-1.42 1.42l-.77-.77A7.001 7.001 0 0 1 11 17.91V19a1 1 0 1 1-2 0v-1.09a7.001 7.001 0 0 1-3.39-1.36l-.77.77a1 1 0 1 1-1.42-1.42l.77-.77A7.001 7.001 0 0 1 2.09 11H1a1 1 0 1 1 0-2h1.09a7.001 7.001 0 0 1 1.36-3.39l-.77-.77a1 1 0 1 1 1.42-1.42l.77.77A7.001 7.001 0 0 1 9 2.09V1a1 1 0 0 1 1-1z"/></svg>
+              </button>
+              <div className="hidden group-hover:block absolute right-0 mt-2 w-64 bg-slate-900 border border-white/10 rounded-xl shadow-xl p-4 z-50">
+                {/* Toggle kontrole premeštene ovde */}
+                {/* Query Rewriting Toggle */}
+                <div className="group relative">
+                  <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
+                    <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Query Rewriting</span>
+                    <button
+                      onClick={() => setUseQueryRewriting(!useQueryRewriting)}
+                      className="flex items-center gap-1 text-sm icon-hover-profi"
+                    >
+                      {useQueryRewriting ? (
                         <>
-                          <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                          <span className="text-xs text-purple-400">Re-ranking</span>
-                          {msg.reranker_info && (
-                            <span className="text-xs text-gray-500">
-                              ({msg.reranker_info.model_name})
-                            </span>
-                          )}
+                          <FaToggleOn className="text-orange-400" size={16} />
+                          <span className="text-orange-300 font-medium">Uključen</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaToggleOff className="text-slate-500" size={16} />
+                          <span className="text-slate-400">Isključen</span>
                         </>
                       )}
-                    </div>
-                  )}
-                  
-                  {/* Query Rewriting indicator */}
-                  {msg.sender === 'user' && msg.query_rewriting_applied && (
-                    <div className="mt-2 ml-8 p-2 rounded-lg bg-orange-900/30 border border-orange-700">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                        <span className="text-xs text-orange-400 font-semibold">Query Rewriting</span>
-                      </div>
-                      <div className="text-xs text-orange-300">
-                        <div><strong>Original:</strong> {msg.original_query}</div>
-                        <div><strong>Poboljšan:</strong> {msg.enhanced_query}</div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {/* Fact Checking indicator */}
-                  {msg.sender === 'ai' && msg.fact_checking_applied && msg.fact_checker_info && (
-                    <div className="mt-2 ml-8 p-2 rounded-lg bg-yellow-900/30 border border-yellow-700">
-                      <div className="flex items-center gap-2 mb-1">
-                        <div className={`w-2 h-2 rounded-full ${msg.fact_checker_info.verified ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                        <span className="text-xs text-yellow-400 font-semibold">Fact Checking</span>
-                        <span className={`text-xs ${msg.fact_checker_info.verified ? 'text-green-400' : 'text-red-400'}`}>
-                          {msg.fact_checker_info.verified ? 'Verifikovan' : 'Nije verifikovan'}
-                        </span>
-                        <span className="text-xs text-gray-500">
-                          ({Math.round(msg.fact_checker_info.confidence * 100)}% pouzdanost)
-                        </span>
-                      </div>
-                      {msg.fact_checker_info.reasoning && (
-                        <div className="text-xs text-yellow-300 mt-1">
-                          <strong>Obrazloženje:</strong> {msg.fact_checker_info.reasoning}
-                        </div>
-                      )}
-                      {msg.fact_checker_info.sources && msg.fact_checker_info.sources.length > 0 && (
-                        <div className="text-xs text-yellow-300 mt-1">
-                          <strong>Izvori:</strong> {msg.fact_checker_info.sources.join(', ')}
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    </button>
+                  </div>
                 </div>
-              );
-            })}
-            
-            {isLoading && <TypingIndicator />}
+                
+                {/* Fact Checking Toggle */}
+                <div className="group relative">
+                  <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
+                    <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Fact Checking</span>
+                    <button
+                      onClick={() => setUseFactChecking(!useFactChecking)}
+                      className="flex items-center gap-1 text-sm icon-hover-profi"
+                    >
+                      {useFactChecking ? (
+                        <>
+                          <FaToggleOn className="text-yellow-400" size={16} />
+                          <span className="text-yellow-300 font-medium">Uključen</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaToggleOff className="text-slate-500" size={16} />
+                          <span className="text-slate-400">Isključen</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Enhanced Context Toggle */}
+                <div className="group relative">
+                  <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
+                    <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Enhanced Context</span>
+                    <button
+                      onClick={() => setUseEnhancedContext(!useEnhancedContext)}
+                      className="flex items-center gap-1 text-sm icon-hover-profi"
+                    >
+                      {useEnhancedContext ? (
+                        <>
+                          <FaToggleOn className="text-cyan-400" size={16} />
+                          <span className="text-cyan-300 font-medium">Uključen</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaToggleOff className="text-slate-500" size={16} />
+                          <span className="text-slate-400">Isključen</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Re-ranking Toggle */}
+                {useRAG && (
+                  <div className="group relative">
+                    <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
+                      <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">Re-ranking</span>
+                      <button
+                        onClick={() => setUseRerank(!useRerank)}
+                        className="flex items-center gap-1 text-sm icon-hover-profi"
+                      >
+                        {useRerank ? (
+                          <>
+                            <FaToggleOn className="text-purple-500" size={16} />
+                            <span className="text-purple-400 font-medium">Uključen</span>
+                          </>
+                        ) : (
+                          <>
+                            <FaToggleOff className="text-slate-500" size={16} />
+                            <span className="text-slate-400">Isključen</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* RAG Toggle */}
+                <div className="group relative">
+                  <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover-border-subtle form-hover-profi">
+                    <span className="text-xs text-slate-400 group-hover:text-white link-hover-profi">RAG Mode</span>
+                    <button
+                      onClick={() => setUseRAG(!useRAG)}
+                      className="flex items-center gap-1 text-sm icon-hover-profi"
+                    >
+                      {useRAG ? (
+                        <>
+                          <FaToggleOn className="text-green-500" size={16} />
+                          <span className="text-green-400 font-medium">Uključen</span>
+                        </>
+                      ) : (
+                        <>
+                          <FaToggleOff className="text-slate-500" size={16} />
+                          <span className="text-slate-400">Isključen</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
+        </div>
+
+        {/* Premium Context Analytics */}
+        {useEnhancedContext && lastContextAnalysis && (
+          <div className="mb-4 p-4 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-2xl border border-cyan-500/30 backdrop-blur-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1 bg-cyan-500/20 rounded-lg">
+                <div className="w-2 h-2 bg-cyan-400 rounded-full animate-pulse"></div>
+              </div>
+              <span className="text-sm font-semibold text-cyan-300">Analitika konteksta</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-xs text-cyan-200">
+              <div>Tipovi: {lastContextAnalysis.context_types_used?.join(', ') || '-'}</div>
+              <div>Dužina: {lastContextAnalysis.total_context_length} karaktera</div>
+              <div>Složenost upita: {lastContextAnalysis.query_complexity}</div>
+              <div>Relevantnost: {lastContextAnalysis.relevance_score?.toFixed(2)}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Premium Query History */}
+        {useQueryRewriting && queryHistory.length > 0 && (
+          <div className="mb-4 p-4 bg-gradient-to-r from-orange-500/10 to-yellow-500/10 rounded-2xl border border-orange-500/30 backdrop-blur-sm">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="p-1 bg-orange-500/20 rounded-lg">
+                <div className="w-2 h-2 bg-orange-400 rounded-full animate-pulse"></div>
+              </div>
+              <span className="text-sm font-semibold text-orange-300">Istorija poboljšanih upita</span>
+            </div>
+            <div className="max-h-20 overflow-y-auto space-y-2">
+              {queryHistory.slice(-3).map((item, idx) => (
+                <div key={idx} className="p-2 bg-orange-900/30 rounded-xl border border-orange-700/50">
+                  <div className="text-xs text-orange-300 font-medium">Original: {item.original}</div>
+                  <div className="text-xs text-orange-200">Poboljšan: {item.enhanced}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Messages Container */}
+        <div className="flex-1 overflow-y-auto pb-4 custom-scrollbar">
+          {messages.length === 0 && !isLoading && (
+            <div className="text-center text-blue-300 text-sm mt-8">
+              <div className="mb-2">
+                {useRAG ? (
+                  <p>Počnite razgovor sa AI asistentom koji koristi vaše dokumente!</p>
+                ) : (
+                  <p>Počnite razgovor sa AI asistentom!</p>
+                )}
+              </div>
+              {useRAG && (
+                <p className="text-xs text-gray-500">
+                  Upload-ujte dokumente da biste omogućili RAG funkcionalnost
+                </p>
+              )}
+            </div>
+          )}
+          
+          {messages.map((msg, idx) => {
+            console.log('Rendering message:', { 
+              id: msg.id, 
+              sender: msg.sender, 
+              content: msg.content.substring(0, 50),
+              messageIdString: msg.id?.toString(),
+              hasReaction: !!msg.reaction
+            });
+            return (
+              <div key={idx} className="mb-4">
+                <MessageRenderer
+                  content={msg.content}
+                  sender={msg.sender}
+                  timestamp={msg.timestamp}
+                  messageId={msg.id}
+                  onReaction={handleReaction}
+                  initialReaction={msg.reaction}
+                />
+                
+                {/* Prikaži izvore za AI poruke */}
+                {msg.sender === 'ai' && msg.sources && msg.sources.length > 0 && (
+                  <div className="mt-2 ml-8">
+                    <SourcesDisplay 
+                      sources={msg.sources} 
+                      isVisible={true} 
+                      onSourceClick={handleSourceClick}
+                    />
+                  </div>
+                )}
+                
+                {/* RAG indicator */}
+                {msg.sender === 'ai' && msg.used_rag && (
+                  <div className="mt-2 ml-8 flex items-center gap-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-xs text-green-400">Koristi RAG</span>
+                    
+                    {/* Re-ranking indicator */}
+                    {msg.reranking_applied && (
+                      <>
+                        <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                        <span className="text-xs text-purple-400">Re-ranking</span>
+                        {msg.reranker_info && (
+                          <span className="text-xs text-gray-500">
+                            ({msg.reranker_info.model_name})
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </div>
+                )}
+                
+                {/* Query Rewriting indicator */}
+                {msg.sender === 'user' && msg.query_rewriting_applied && (
+                  <div className="mt-2 ml-8 p-2 rounded-lg bg-orange-900/30 border border-orange-700">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                      <span className="text-xs text-orange-400 font-semibold">Query Rewriting</span>
+                    </div>
+                    <div className="text-xs text-orange-300">
+                      <div><strong>Original:</strong> {msg.original_query}</div>
+                      <div><strong>Poboljšan:</strong> {msg.enhanced_query}</div>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Fact Checking indicator */}
+                {msg.sender === 'ai' && msg.fact_checking_applied && msg.fact_checker_info && (
+                  <div className="mt-2 ml-8 p-2 rounded-lg bg-yellow-900/30 border border-yellow-700">
+                    <div className="flex items-center gap-2 mb-1">
+                      <div className={`w-2 h-2 rounded-full ${msg.fact_checker_info.verified ? 'bg-green-500' : 'bg-red-500'}`}></div>
+                      <span className="text-xs text-yellow-400 font-semibold">Fact Checking</span>
+                      <span className={`text-xs ${msg.fact_checker_info.verified ? 'text-green-400' : 'text-red-400'}`}>
+                        {msg.fact_checker_info.verified ? 'Verifikovan' : 'Nije verifikovan'}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        ({Math.round(msg.fact_checker_info.confidence * 100)}% pouzdanost)
+                      </span>
+                    </div>
+                    {msg.fact_checker_info.reasoning && (
+                      <div className="text-xs text-yellow-300 mt-1">
+                        <strong>Obrazloženje:</strong> {msg.fact_checker_info.reasoning}
+                      </div>
+                    )}
+                    {msg.fact_checker_info.sources && msg.fact_checker_info.sources.length > 0 && (
+                      <div className="text-xs text-yellow-300 mt-1">
+                        <strong>Izvori:</strong> {msg.fact_checker_info.sources.join(', ')}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+          
+          {isLoading && <TypingIndicator />}
         </div>
         
         {/* Premium Input Form */}
