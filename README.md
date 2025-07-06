@@ -7,7 +7,8 @@ AcAIA je napredna AI aplikacija sa real-time chat funkcionalnostima, multi-langu
 ### **🎯 Ključne Funkcionalnosti:**
 - **Real-time AI Chat** sa WebSocket podrškom
 - **Multi-language Voice Input/Output** (12 jezika)
-- **Advanced File Handling** sa OCR i preview funkcionalnostima
+- **Advanced File Handling** sa OCR i naprednim preview funkcionalnostima
+- **Advanced Document Preview** sa zoom, search, bookmark-ovima i keyboard shortcuts
 - **Session Management** sa export i sharing opcijama
 - **Performance Optimizacije** sa caching i virtual scrolling
 - **Accessibility Compliance** (WCAG 2.1)
@@ -54,18 +55,19 @@ Session Mgmt      Performance Monitor  Multi-step RAG
 
 ## 📊 Status Implementacije
 
-### **✅ Završeno (85%):**
+### **✅ Završeno (90%):**
 - **Faza 1**: Osnovna UX (100%)
 - **Faza 2**: Napredne funkcionalnosti (100%)
 - **Faza 3**: Performance & Backend (100%)
 - **Faza 4**: Exam Simulation (100%) - Kreiranje, brisanje, polaganje
 - **Faza 5**: Problem Generator (100%) - AI-powered generisanje problema
+- **Faza 6**: Advanced Document Preview (100%) - Zoom, search, bookmark-ovi, keyboard shortcuts
 
-### **📋 U Razvoju (15%):**
-- **Faza 6**: OCR & Security
-- **Faza 7**: Sidebar Enhancements
-- **Faza 8**: Advanced Accessibility
-- **Faza 9**: Collaboration & AI Features
+### **📋 U Razvoju (10%):**
+- **Faza 7**: OCR & Security
+- **Faza 8**: Sidebar Enhancements
+- **Faza 9**: Advanced Accessibility
+- **Faza 10**: Collaboration & AI Features
 
 ## 🛠️ Tech Stack
 
@@ -99,6 +101,48 @@ AcAIA/
 │   └── package.json      # Node.js dependencies
 └── docs/                 # Dokumentacija
 ```
+
+## 📄 Advanced Document Preview
+
+### **Funkcionalnosti:**
+- **Napredni zoom** - Uvećavanje/smanjivanje (10% - 500%) sa smooth animacijama
+- **Pan/Drag** - Pomeranje povećanog sadržaja mišem
+- **Rotacija** - Rotiranje dokumenta za 90° korakove
+- **Fullscreen** - Modal i browser fullscreen režim
+- **Napredna pretraga** - Real-time search sa highlighting, regex, case-sensitive opcije
+- **Bookmark-ovi** - Čuvanje i navigacija do označenih stranica
+- **Theme switching** - Light, dark i sepia teme
+- **Font kontrola** - Veličina fonta i line spacing
+- **Text selection** - Selekcija teksta sa copy funkcionalnostima
+- **History** - Undo/redo funkcionalnost
+- **Keyboard shortcuts** - Kompletna keyboard navigacija
+- **Export** - Preuzimanje u različitim formatima
+
+### **Podržani formati:**
+- **Tekstualni fajlovi** - TXT, MD, JSON, XML, CSV, LOG
+- **PDF dokumenti** - Sa PDF.js integracijom
+- **DOCX dokumenti** - Sa Mammoth.js integracijom
+- **Slike** - PNG, JPG, JPEG, GIF, WebP, BMP
+
+### **Keyboard Shortcuts:**
+```bash
+ESC          - Zatvori preview
+F            - Toggle fullscreen
+Ctrl+F       - Otvori search
+Ctrl+=       - Zoom in
+Ctrl+-       - Zoom out
+Ctrl+0       - Reset zoom
+Ctrl+R       - Rotiraj dokument
+Ctrl+B       - Toggle bookmark-ovi
+Ctrl+S       - Sačuvaj bookmark
+Strelice     - Navigacija stranica/dokumenata
+```
+
+### **Frontend Komponente:**
+- `AdvancedDocumentPreview.tsx` - Glavna komponenta sa svim funkcionalnostima
+- Integracija sa `DocumentList.tsx` i `FileSharing.tsx`
+- Backend podrška za OCR i metadata
+- Error handling i loading states
 
 ## 🎓 Exam Simulation
 
@@ -198,6 +242,17 @@ python -m pytest test_*.py
 
 ### **Exam Simulation Testovi:**
 ```bash
+
+### **Advanced Document Preview Testovi:**
+```bash
+# Pokreni test skriptu
+./tests/scripts/TestAdvancedDocumentPreview.command
+
+# Ili ručno testiranje
+cd frontend && npm run dev
+# Otvorite http://localhost:3000
+# Idite na DocumentList i kliknite Preview na bilo kom dokumentu
+```
 # Test brisanja ispita
 cd tests/python
 python3 test_exam_delete.py

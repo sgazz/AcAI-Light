@@ -1,0 +1,120 @@
+AcAIA - Advanced AI Assistant
+================================
+
+Ovo je test dokument za proveru Document Preview funkcionalnosti.
+
+Funkcionalnosti koje se testiraju:
+1. Učitavanje text fajlova
+2. Pagination (50 linija po stranici)
+3. Search funkcionalnost
+4. Zoom in/out
+5. Navigacija kroz stranice
+6. Highlight search rezultata
+
+Test sadržaj:
+- Linija 10: Ovo je test linija broj 10
+- Linija 20: Ovo je test linija broj 20
+- Linija 30: Ovo je test linija broj 30
+- Linija 40: Ovo je test linija broj 40
+- Linija 50: Ovo je test linija broj 50
+- Linija 60: Ovo je test linija broj 60
+- Linija 70: Ovo je test linija broj 70
+- Linija 80: Ovo je test linija broj 80
+- Linija 90: Ovo je test linija broj 90
+- Linija 100: Ovo je test linija broj 100
+
+Search test ključne reči:
+- "test" - treba da se nađe u svim linijama
+- "linija" - treba da se nađe u svim linijama
+- "broj" - treba da se nađe u svim linijama
+- "AcAIA" - treba da se nađe u prvoj liniji
+- "funkcionalnost" - treba da se nađe u nekoliko linija
+
+Dodatne test linije za pagination:
+Linija 11: Dodatna test linija
+Linija 12: Dodatna test linija
+Linija 13: Dodatna test linija
+Linija 14: Dodatna test linija
+Linija 15: Dodatna test linija
+Linija 16: Dodatna test linija
+Linija 17: Dodatna test linija
+Linija 18: Dodatna test linija
+Linija 19: Dodatna test linija
+Linija 21: Dodatna test linija
+Linija 22: Dodatna test linija
+Linija 23: Dodatna test linija
+Linija 24: Dodatna test linija
+Linija 25: Dodatna test linija
+Linija 26: Dodatna test linija
+Linija 27: Dodatna test linija
+Linija 28: Dodatna test linija
+Linija 29: Dodatna test linija
+Linija 31: Dodatna test linija
+Linija 32: Dodatna test linija
+Linija 33: Dodatna test linija
+Linija 34: Dodatna test linija
+Linija 35: Dodatna test linija
+Linija 36: Dodatna test linija
+Linija 37: Dodatna test linija
+Linija 38: Dodatna test linija
+Linija 39: Dodatna test linija
+Linija 41: Dodatna test linija
+Linija 42: Dodatna test linija
+Linija 43: Dodatna test linija
+Linija 44: Dodatna test linija
+Linija 45: Dodatna test linija
+Linija 46: Dodatna test linija
+Linija 47: Dodatna test linija
+Linija 48: Dodatna test linija
+Linija 49: Dodatna test linija
+Linija 51: Dodatna test linija
+Linija 52: Dodatna test linija
+Linija 53: Dodatna test linija
+Linija 54: Dodatna test linija
+Linija 55: Dodatna test linija
+Linija 56: Dodatna test linija
+Linija 57: Dodatna test linija
+Linija 58: Dodatna test linija
+Linija 59: Dodatna test linija
+Linija 61: Dodatna test linija
+Linija 62: Dodatna test linija
+Linija 63: Dodatna test linija
+Linija 64: Dodatna test linija
+Linija 65: Dodatna test linija
+Linija 66: Dodatna test linija
+Linija 67: Dodatna test linija
+Linija 68: Dodatna test linija
+Linija 69: Dodatna test linija
+Linija 71: Dodatna test linija
+Linija 72: Dodatna test linija
+Linija 73: Dodatna test linija
+Linija 74: Dodatna test linija
+Linija 75: Dodatna test linija
+Linija 76: Dodatna test linija
+Linija 77: Dodatna test linija
+Linija 78: Dodatna test linija
+Linija 79: Dodatna test linija
+Linija 81: Dodatna test linija
+Linija 82: Dodatna test linija
+Linija 83: Dodatna test linija
+Linija 84: Dodatna test linija
+Linija 85: Dodatna test linija
+Linija 86: Dodatna test linija
+Linija 87: Dodatna test linija
+Linija 88: Dodatna test linija
+Linija 89: Dodatna test linija
+Linija 91: Dodatna test linija
+Linija 92: Dodatna test linija
+Linija 93: Dodatna test linija
+Linija 94: Dodatna test linija
+Linija 95: Dodatna test linija
+Linija 96: Dodatna test linija
+Linija 97: Dodatna test linija
+Linija 98: Dodatna test linija
+Linija 99: Dodatna test linija
+
+Kraj test dokumenta.
+Ovaj dokument sadrži 100+ linija za testiranje pagination funkcionalnosti.
+Search funkcionalnost treba da radi za sve ključne reči.
+Zoom funkcionalnost treba da radi glatko.
+Navigacija kroz stranice treba da bude intuitivna. 

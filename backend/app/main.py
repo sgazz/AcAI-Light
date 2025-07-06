@@ -1076,6 +1076,76 @@ async def preview_document(doc_id: str):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.get("/documents/{doc_id}/original")
+async def get_original_document(doc_id: str):
+    """Dohvata originalni fajl iz uploads folder-a"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
+        
+        # Dohvati dokument iz baze
+        document = supabase_manager.get_document(doc_id)
+        
+        if not document:
+            raise HTTPException(status_code=404, detail="Dokument nije pronađen")
+        
+        # Pokušaj da pronađeš fajl u uploads folder-u
+        uploads_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'uploads')
+        
+        # Prvo proveri file_path iz baze
+        file_path = document.get('file_path')
+        if file_path and os.path.exists(file_path):
+            # Ako file_path postoji i fajl postoji, koristi ga
+            pass
+        else:
+            # Ako file_path ne postoji ili fajl ne postoji, pokušaj da pronađeš fajl po imenu
+            filename = document.get('filename', '')
+            if not filename:
+                raise HTTPException(status_code=404, detail="Naziv fajla nije dostupan")
+            
+            # Pokušaj da pronađeš fajl u uploads folder-u
+            for file in os.listdir(uploads_dir):
+                if file.endswith(os.path.splitext(filename)[1]):
+                    file_path = os.path.join(uploads_dir, file)
+                    break
+            else:
+                raise HTTPException(status_code=404, detail="Originalni fajl nije pronađen")
+        
+        # Proveri da li je fajl bezbedan za čitanje
+        if not os.path.isfile(file_path):
+            raise HTTPException(status_code=400, detail="Neispravna putanja fajla")
+        
+        # Dohvati MIME tip na osnovu ekstenzije
+        file_extension = os.path.splitext(document['filename'])[1].lower()
+        mime_types = {
+            '.pdf': 'application/pdf',
+            '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.txt': 'text/plain',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.jpeg': 'image/jpeg',
+            '.gif': 'image/gif',
+            '.webp': 'image/webp'
+        }
+        content_type = mime_types.get(file_extension, 'application/octet-stream')
+        
+        # Čitaj fajl i vrati kao response
+        with open(file_path, 'rb') as file:
+            file_content = file.read()
+        
+        return Response(
+            content=file_content,
+            media_type=content_type,
+            headers={
+                "Content-Disposition": f"inline; filename=\"{document['filename']}\""
+            }
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 # OCR Endpoint-i
 @app.post("/ocr/extract")
 async def extract_text_from_image(file: UploadFile = File(...)):

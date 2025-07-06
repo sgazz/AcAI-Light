@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { FaFile, FaTrash, FaEye, FaFileAlt, FaClock, FaHdd, FaLayerGroup, FaRedo, FaSearch, FaDownload, FaExternalLinkAlt, FaMagic, FaTimes, FaImage, FaLanguage, FaCheck, FaExclamationTriangle, FaEdit, FaSave, FaUndo } from 'react-icons/fa';
-import DocumentPreview from './DocumentPreview';
+import AdvancedDocumentPreview from './AdvancedDocumentPreview';
 import ImagePreview from './FileHandling/ImagePreview';
 import { formatFileSize, getFileIcon } from '../utils/fileUtils';
 import { formatDate } from '../utils/dateUtils';
@@ -237,11 +237,9 @@ export default function DocumentList() {
     setEditedOcrText('');
   };
 
-  const handlePreviewOriginal = async (document: Document) => {
-    const success = await previewFromAPI(`http://localhost:8001/documents/${document.id}/preview`);
-    if (!success) {
-      showError('Greška pri otvaranju preview-a', 'Preview greška');
-    }
+  const handlePreviewOriginal = (documentId: string) => {
+    // Otvori originalni dokument u novom tab-u
+    window.open(`http://localhost:8001/documents/${documentId}/original`, '_blank');
   };
 
   const handleDownloadOriginal = async (document: Document) => {
@@ -406,14 +404,11 @@ export default function DocumentList() {
                   </div>
                   <div className="flex gap-1 lg:gap-2 ml-2 lg:ml-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePreviewOriginal(doc);
-                      }}
-                      className="p-2 lg:p-3 text-purple-400 hover:text-purple-300 hover:bg-purple-500/20 rounded-lg lg:rounded-xl icon-hover-profi"
+                      onClick={() => handlePreviewOriginal(doc.id)}
+                      className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/20 rounded-lg icon-hover-profi"
                       title="Preview originalnog fajla"
                     >
-                      <FaExternalLinkAlt size={14} />
+                      <FaEye size={16} />
                     </button>
                     <button
                       onClick={(e) => {
@@ -553,10 +548,12 @@ export default function DocumentList() {
 
       {/* Document Preview Modal */}
       {previewDocument && (
-        <DocumentPreview
+        <AdvancedDocumentPreview
           documentId={previewDocument.id}
           filename={previewDocument.filename}
+          isOpen={!!previewDocument}
           onClose={closeDocumentPreview}
+          ocrInfo={previewDocument.metadata?.ocr_info}
         />
       )}
 

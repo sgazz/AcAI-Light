@@ -16,7 +16,7 @@ import {
   Trash2
 } from 'lucide-react';
 import ImagePreview from './ImagePreview';
-import DocumentPreview from './DocumentPreview';
+import AdvancedDocumentPreview from '../AdvancedDocumentPreview';
 
 interface FileItem {
   id: string;
@@ -323,7 +323,7 @@ const FileSharing: React.FC<FileSharingProps> = ({
 
       {/* Document Preview Modal */}
       {selectedDocument && (
-        <DocumentPreview
+        <AdvancedDocumentPreview
           file={selectedDocument}
           isOpen={showDocumentPreview}
           onClose={() => {

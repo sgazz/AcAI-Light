@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useCallback, useEffect, useRef } from 'react';
-import { FaUpload, FaTrash, FaCloudUploadAlt, FaTimes, FaFileAlt, FaCogs, FaMagic, FaLanguage, FaShieldAlt, FaSpinner, FaCheck } from 'react-icons/fa';
+import { FaUpload, FaTrash, FaCloudUploadAlt, FaTimes, FaFileAlt, FaCogs, FaMagic, FaLanguage, FaShieldAlt, FaSpinner, FaCheck, FaEye } from 'react-icons/fa';
 import ImagePreview from './ImagePreview';
+import AdvancedDocumentPreview from './AdvancedDocumentPreview';
 import { formatFileSize, getFileIcon, isImageFile, validateFile } from '../utils/fileUtils';
 import { DOCUMENTS_ENDPOINT, UPLOAD_ENDPOINT, apiRequest } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
@@ -56,6 +57,7 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
     ocrResult: Record<string, unknown> | undefined;
     filename: string;
   } | null>(null);
+  const [selectedDocument, setSelectedDocument] = useState<File | null>(null);
   const { showError, showSuccess, showWarning } = useErrorToast();
   const { deleteFile } = useFileOperations();
 
@@ -341,6 +343,10 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
     setUploads([]);
   }, []);
 
+  const openDocumentPreview = (file: File) => {
+    setSelectedDocument(file);
+  };
+
   const removeUpload = useCallback((id: string) => {
     setUploads(prev => prev.filter(upload => upload.id !== id));
   }, []);
@@ -484,6 +490,13 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
                         <FaTimes className="text-red-400" size={16} />
                       </div>
                     )}
+                    <button
+                      onClick={() => openDocumentPreview(upload.file)}
+                      className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/20 rounded-lg icon-hover-profi"
+                      title="Pregledaj dokument"
+                    >
+                      <FaEye size={16} />
+                    </button>
                     <button
                       onClick={() => removeUpload(upload.id)}
                       className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/20 rounded-lg icon-hover-profi"
@@ -690,6 +703,15 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
           ocrResult={selectedImage.ocrResult}
           filename={selectedImage.filename}
           onClose={() => setSelectedImage(null)}
+        />
+      )}
+
+      {/* AdvancedDocumentPreview Modal */}
+      {selectedDocument && (
+        <AdvancedDocumentPreview
+          file={selectedDocument}
+          isOpen={!!selectedDocument}
+          onClose={() => setSelectedDocument(null)}
         />
       )}
     </div>
