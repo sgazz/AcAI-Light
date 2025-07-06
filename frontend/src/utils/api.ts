@@ -26,7 +26,11 @@ export const CHAT_RAG_ENHANCED_CONTEXT_ENDPOINT = `${API_BASE}/chat/rag-enhanced
 export const OCR_INFO_ENDPOINT = `${API_BASE}/ocr/info`;
 export const OCR_SUPPORTED_FORMATS_ENDPOINT = `${API_BASE}/ocr/supported-formats`;
 export const OCR_EXTRACT_ENDPOINT = `${API_BASE}/ocr/extract`;
+export const OCR_EXTRACT_ASYNC_ENDPOINT = `${API_BASE}/ocr/extract-async`;
 export const OCR_EXTRACT_ADVANCED_ENDPOINT = `${API_BASE}/ocr/extract-advanced`;
+export const OCR_CACHE_STATS_ENDPOINT = `${API_BASE}/ocr/cache/stats`;
+export const OCR_CACHE_CLEAR_ENDPOINT = `${API_BASE}/ocr/cache/clear`;
+export const OCR_PERFORMANCE_STATS_ENDPOINT = `${API_BASE}/ocr/performance/stats`;
 export const OCR_BATCH_EXTRACT_ENDPOINT = `${API_BASE}/ocr/batch-extract`;
 export const OCR_FIX_TEXT_ENDPOINT = `${API_BASE}/ocr/fix-text`;
 export const OCR_UPDATE_TEXT_ENDPOINT = `${API_BASE}/ocr/update-text`;
@@ -726,5 +730,70 @@ export const updateOcrText = async (documentId: string, newText: string) => {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ document_id: documentId, new_text: newText }),
+  });
+};
+
+// Optimized OCR API Functions
+export const extractTextAsync = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  return await apiRequest(OCR_EXTRACT_ASYNC_ENDPOINT, {
+    method: 'POST',
+    body: formData,
+  });
+};
+
+export const extractTextAdvanced = async (
+  file: File, 
+  options: {
+    languages?: string;
+    useCache?: boolean;
+    adaptivePreprocessing?: boolean;
+  } = {}
+) => {
+  const formData = new FormData();
+  formData.append('file', file);
+  
+  const params = new URLSearchParams();
+  if (options.languages) params.append('languages', options.languages);
+  if (options.useCache !== undefined) params.append('use_cache', options.useCache.toString());
+  if (options.adaptivePreprocessing !== undefined) params.append('adaptive_preprocessing', options.adaptivePreprocessing.toString());
+  
+  const url = params.toString() ? `${OCR_EXTRACT_ADVANCED_ENDPOINT}?${params.toString()}` : OCR_EXTRACT_ADVANCED_ENDPOINT;
+  
+  return await apiRequest(url, {
+    method: 'POST',
+    body: formData,
+  });
+};
+
+export const getOcrCacheStats = async () => {
+  return await apiRequest(OCR_CACHE_STATS_ENDPOINT, {
+    method: 'GET',
+  });
+};
+
+export const clearOcrCache = async (olderThanHours: number = 24) => {
+  return await apiRequest(`${OCR_CACHE_CLEAR_ENDPOINT}?older_than_hours=${olderThanHours}`, {
+    method: 'DELETE',
+  });
+};
+
+export const getOcrPerformanceStats = async () => {
+  return await apiRequest(OCR_PERFORMANCE_STATS_ENDPOINT, {
+    method: 'GET',
+  });
+};
+
+export const batchExtractText = async (files: File[]) => {
+  const formData = new FormData();
+  files.forEach(file => {
+    formData.append('files', file);
+  });
+  
+  return await apiRequest(OCR_BATCH_EXTRACT_ENDPOINT, {
+    method: 'POST',
+    body: formData,
   });
 }; 

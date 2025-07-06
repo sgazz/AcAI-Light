@@ -1169,6 +1169,158 @@ async def extract_text_from_image(file: UploadFile = File(...)):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
+@app.post("/ocr/extract-async")
+async def extract_text_from_image_async(file: UploadFile = File(...)):
+    """Asinhrono ekstraktuje tekst iz slike sa caching-om"""
+    try:
+        file_content = await file.read()
+        
+        result = await ocr_service.extract_text_async(
+            image_bytes=file_content,
+            filename=file.filename,
+            languages=['srp+eng']
+        )
+        
+        return {
+            "status": "success",
+            "text": result.get('text', ''),
+            "confidence": result.get('confidence', 0),
+            "languages": result.get('languages', []),
+            "processing_time": result.get('processing_time', 0),
+            "cache_key": result.get('cache_key', ''),
+            "from_cache": 'cache_key' in result
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/ocr/extract-advanced")
+async def extract_text_advanced(file: UploadFile = File(...), 
+                               languages: str = "srp+eng",
+                               use_cache: bool = True,
+                               adaptive_preprocessing: bool = True):
+    """Napredna OCR ekstrakcija sa opcijama"""
+    try:
+        file_content = await file.read()
+        
+        # Parsiraj jezike
+        lang_list = languages.split('+') if '+' in languages else [languages]
+        
+        if use_cache:
+            result = await ocr_service.extract_text_async(
+                image_bytes=file_content,
+                filename=file.filename,
+                languages=lang_list
+            )
+        else:
+            result = ocr_service._extract_text_sync(
+                image_bytes=file_content,
+                filename=file.filename,
+                languages=lang_list
+            )
+        
+        return {
+            "status": "success",
+            "text": result.get('text', ''),
+            "confidence": result.get('confidence', 0),
+            "languages": result.get('languages', []),
+            "processing_time": result.get('processing_time', 0),
+            "cache_key": result.get('cache_key', ''),
+            "from_cache": 'cache_key' in result,
+            "adaptive_preprocessing": adaptive_preprocessing
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/ocr/cache/stats")
+async def get_ocr_cache_stats():
+    """Dohvata OCR cache statistike"""
+    try:
+        cache_stats = ocr_service.get_cache_stats()
+        processing_stats = ocr_service.stats
+        
+        return {
+            "status": "success",
+            "cache_stats": cache_stats,
+            "processing_stats": processing_stats
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.delete("/ocr/cache/clear")
+async def clear_ocr_cache(older_than_hours: int = 24):
+    """Briše OCR cache"""
+    try:
+        cleared_count = ocr_service.clear_cache(older_than_hours)
+        
+        return {
+            "status": "success",
+            "message": f"Obrisano {cleared_count} cache fajlova",
+            "cleared_count": cleared_count
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.get("/ocr/performance/stats")
+async def get_ocr_performance_stats():
+    """Dohvata OCR performance statistike"""
+    try:
+        stats = ocr_service.stats
+        cache_stats = ocr_service.get_cache_stats()
+        
+        return {
+            "status": "success",
+            "performance": {
+                "total_processed": stats['total_processed'],
+                "avg_processing_time": round(stats['avg_processing_time'], 3),
+                "total_processing_time": round(stats['total_processing_time'], 3),
+                "cache_hit_rate": round(cache_stats.get('hit_rate', 0) * 100, 2),
+                "cache_hits": stats['cache_hits'],
+                "cache_misses": stats['cache_misses']
+            },
+            "cache": cache_stats
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/ocr/batch-extract")
+async def batch_extract_text(files: List[UploadFile] = File(...)):
+    """Batch OCR ekstrakcija za više slika"""
+    try:
+        results = []
+        
+        for file in files:
+            try:
+                file_content = await file.read()
+                
+                result = await ocr_service.extract_text_async(
+                    image_bytes=file_content,
+                    filename=file.filename,
+                    languages=['srp+eng']
+                )
+                
+                results.append({
+                    "filename": file.filename,
+                    "result": result
+                })
+                
+            except Exception as e:
+                results.append({
+                    "filename": file.filename,
+                    "result": {
+                        "status": "error",
+                        "message": str(e)
+                    }
+                })
+        
+        return {
+            "status": "success",
+            "results": results,
+            "total_files": len(files),
+            "successful": len([r for r in results if r['result']['status'] == 'success'])
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 # Supabase Health i Stats Endpoint-i
 @app.get("/supabase/health")
 async def check_supabase_health():

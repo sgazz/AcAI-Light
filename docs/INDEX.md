@@ -1,98 +1,231 @@
-# 📚 AcAIA Dokumentacija - Index
+# AcAIA Documentation Index
 
-Dobrodošli u centralnu dokumentaciju AcAIA projekta. Ova stranica vam pomaže da pronađete potrebnu dokumentaciju.
+## 🚀 Glavne Funkcionalnosti
 
-## 🗂️ Organizacija Dokumentacije
+### 1. [Chat System](CHAT_SYSTEM.md)
+- **Real-time Chat**: WebSocket-based komunikacija
+- **Session Management**: Upravljanje chat sesijama
+- **Message History**: Čuvanje i povlačenje istorije
+- **RAG Integration**: Retrieval-Augmented Generation
+- **Multi-language Support**: Srpski i engleski jezik
 
-### **📋 Master Planovi**
-Glavni strateški dokumenti koji definišu smer razvoja projekta:
+### 2. [Document Processing](DOCUMENT_PROCESSING.md)
+- **PDF Processing**: Automatska obrada PDF dokumenata
+- **Text Extraction**: Ekstrakcija teksta iz različitih formata
+- **Vector Embeddings**: Konverzija u vektore za pretragu
+- **Chunking**: Pametno deljenje dokumenata
+- **Metadata Extraction**: Automatsko izvlačenje metapodataka
 
-- **[ACAI_MASTER_ROADMAP.md](ACAI_MASTER_ROADMAP.md)** - Sveobuhvatni master roadmap sa detaljnim planom implementacije za 2025
-- **[FRONTEND_REFACTORING_PLAN.md](FRONTEND_REFACTORING_PLAN.md)** - Plan refaktorisanja frontend-a
-- **[QA_TEST_PLAN.md](QA_TEST_PLAN.md)** - Kompletan QA test plan
+### 3. [OCR Optimization](OCR_OPTIMIZATION.md) ⭐ **NOVO**
+- **Performance Optimizations**: Caching, async processing, image compression
+- **Accuracy Improvements**: Adaptive preprocessing, fallback strategies
+- **Real-time Processing**: Progress tracking i performance monitoring
+- **Cache Management**: Intelligent cache sa TTL i statistike
+- **Advanced Options**: Konfigurabilni preprocessing i jezičke opcije
 
-### **🎯 Implementacijski Planovi**
-Detaljni planovi za implementaciju specifičnih funkcionalnosti:
+### 4. [RAG System](RAG_SYSTEM.md)
+- **Vector Search**: Semantička pretraga dokumenata
+- **Context Retrieval**: Pametno izvlačenje konteksta
+- **Re-ranking**: Napredno rangiranje rezultata
+- **Multi-step Retrieval**: Višestepena pretraga
+- **Query Enhancement**: Poboljšanje upita
 
-- **[PROBLEM_GENERATOR_PLAN.md](PROBLEM_GENERATOR_PLAN.md)** - Plan za Problem Generator
-- **[PROBLEM_GENERATOR_IMPLEMENTATION.md](PROBLEM_GENERATOR_IMPLEMENTATION.md)** - Implementacija Problem Generator-a
-- **[EXAM_DELETE_IMPLEMENTATION.md](EXAM_DELETE_IMPLEMENTATION.md)** - Implementacija brisanja ispita
-- **[PDF_INTEGRATION_MVP.md](PDF_INTEGRATION_MVP.md)** - PDF integracija MVP
+### 5. [Study Tools](STUDY_TOOLS.md)
+- **Mind Mapping**: Interaktivno mapiranje ideja
+- **Study Journal**: Dnevnik učenja sa ciljevima
+- **Exam Simulation**: Simulacija ispita
+- **Problem Generator**: Generator zadataka
+- **Study Room**: Kolaborativno učenje
 
-### **📚 Funkcionalni Planovi**
-Planovi za različite funkcionalnosti aplikacije:
+### 6. [Career Guidance](CAREER_GUIDANCE.md)
+- **Skill Assessment**: Procena veština
+- **Job Matching**: Povezivanje sa poslovima
+- **Career Paths**: Planiranje karijere
+- **Industry Analysis**: Analiza industrija
+- **Goal Setting**: Postavljanje ciljeva
 
-- **[STUDY_JOURNAL_PLAN.md](STUDY_JOURNAL_PLAN.md)** - Plan za Study Journal
-- **[CAREER_GUIDANCE_PLAN.md](CAREER_GUIDANCE_PLAN.md)** - Plan za Career Guidance
+## 🔧 Tehnička Arhitektura
 
-### **📖 Kompletna Dokumentacija**
-- **[README.md](README.md)** - Kompletna dokumentacija sa svim funkcionalnostima
+### 7. [Backend Architecture](BACKEND_ARCHITECTURE.md)
+- **FastAPI Framework**: Moderna Python web aplikacija
+- **Modular Design**: Modularna arhitektura servisa
+- **Error Handling**: Centralizovano rukovanje greškama
+- **Background Tasks**: Asinhrono procesiranje
+- **Caching System**: Višeslojni caching
 
-## 🔍 Brzo Pretraživanje
+### 8. [Frontend Architecture](FRONTEND_ARCHITECTURE.md)
+- **Next.js 14**: React framework sa App Router
+- **TypeScript**: Type-safe development
+- **Component Library**: Reusable komponente
+- **State Management**: Centralizovano upravljanje stanjem
+- **Performance Optimization**: Optimizacija performansi
 
-### **Za Developere:**
-- **Frontend Refactoring** → [FRONTEND_REFACTORING_PLAN.md](FRONTEND_REFACTORING_PLAN.md)
-- **QA Testing** → [QA_TEST_PLAN.md](QA_TEST_PLAN.md)
-- **Problem Generator** → [PROBLEM_GENERATOR_IMPLEMENTATION.md](PROBLEM_GENERATOR_IMPLEMENTATION.md)
+### 9. [Database Design](DATABASE_DESIGN.md)
+- **Supabase Integration**: PostgreSQL sa real-time funkcionalnostima
+- **Schema Design**: Optimizovana struktura baze
+- **Data Relationships**: Relacije između entiteta
+- **Indexing Strategy**: Strategija indeksiranja
+- **Backup Strategy**: Strategija backup-a
 
-### **Za Projektne Menadžere:**
-- **Master Roadmap** → [ACAI_MASTER_ROADMAP.md](ACAI_MASTER_ROADMAP.md)
-- **Exam System** → [EXAM_DELETE_IMPLEMENTATION.md](EXAM_DELETE_IMPLEMENTATION.md)
-- **PDF Integration** → [PDF_INTEGRATION_MVP.md](PDF_INTEGRATION_MVP.md)
+## 📊 Performance i Monitoring
 
-### **Za Korisnike:**
-- **Kompletna Dokumentacija** → [README.md](README.md)
-- **Study Journal** → [STUDY_JOURNAL_PLAN.md](STUDY_JOURNAL_PLAN.md)
-- **Career Guidance** → [CAREER_GUIDANCE_PLAN.md](CAREER_GUIDANCE_PLAN.md)
+### 10. [Performance Optimization](PERFORMANCE_OPTIMIZATION.md)
+- **Caching Strategy**: Višeslojni caching sistem
+- **Database Optimization**: Optimizacija baze podataka
+- **Frontend Performance**: Optimizacija frontend-a
+- **Memory Management**: Upravljanje memorijom
+- **Load Testing**: Testiranje pod opterećenjem
 
-## 📊 Status Dokumentacije
+### 11. [Monitoring & Analytics](MONITORING_ANALYTICS.md)
+- **Health Checks**: Provera zdravlja sistema
+- **Performance Metrics**: Metrike performansi
+- **Error Tracking**: Praćenje grešaka
+- **Usage Analytics**: Analitika korišćenja
+- **Real-time Monitoring**: Real-time monitoring
 
-| Dokument | Status | Poslednje Ažuriranje |
-|----------|--------|---------------------|
-| ACAI_MASTER_ROADMAP.md | ✅ Završeno | 2025-01-06 |
-| FRONTEND_REFACTORING_PLAN.md | ✅ Završeno | 2025-01-06 |
-| QA_TEST_PLAN.md | ✅ Završeno | 2025-01-06 |
-| PROBLEM_GENERATOR_PLAN.md | ✅ Završeno | 2025-01-06 |
-| PROBLEM_GENERATOR_IMPLEMENTATION.md | ✅ Završeno | 2025-01-06 |
-| EXAM_DELETE_IMPLEMENTATION.md | ✅ Završeno | 2025-01-06 |
-| PDF_INTEGRATION_MVP.md | ✅ Završeno | 2025-01-06 |
-| STUDY_JOURNAL_PLAN.md | ✅ Završeno | 2025-01-06 |
-| CAREER_GUIDANCE_PLAN.md | ✅ Završeno | 2025-01-06 |
-| README.md | ✅ Završeno | 2025-01-06 |
+## 🧪 Testing i Quality Assurance
 
-## 🚀 Kako Koristiti Dokumentaciju
+### 12. [Testing Strategy](TESTING_STRATEGY.md)
+- **Unit Testing**: Testiranje pojedinačnih komponenti
+- **Integration Testing**: Testiranje integracija
+- **End-to-End Testing**: Testiranje celokupnog toka
+- **Performance Testing**: Testiranje performansi
+- **OCR Testing**: Specijalizovani testovi za OCR
 
-### **1. Prvi Put Korisnici:**
-1. Pročitajte [README.md](README.md) za pregled
-2. Pogledajte [ACAI_MASTER_ROADMAP.md](ACAI_MASTER_ROADMAP.md) za strategiju
-3. Idite na [QA_TEST_PLAN.md](QA_TEST_PLAN.md) za testiranje
+### 13. [Quality Assurance](QUALITY_ASSURANCE.md)
+- **Code Review**: Pregled koda
+- **Static Analysis**: Statička analiza koda
+- **Security Auditing**: Sigurnosna revizija
+- **Documentation Standards**: Standardi dokumentacije
+- **Deployment Pipeline**: Pipeline za deployment
 
-### **2. Developeri:**
-1. Pročitajte [FRONTEND_REFACTORING_PLAN.md](FRONTEND_REFACTORING_PLAN.md)
-2. Pogledajte implementacijske planove
-3. Pratite QA test plan
+## 🚀 Deployment i DevOps
 
-### **3. Projektni Menadžeri:**
-1. Fokus na [ACAI_MASTER_ROADMAP.md](ACAI_MASTER_ROADMAP.md)
-2. Pratite implementacijske planove
-3. Proverite status funkcionalnih planova
+### 14. [Deployment Guide](DEPLOYMENT_GUIDE.md)
+- **Environment Setup**: Postavljanje okruženja
+- **Docker Configuration**: Docker konfiguracija
+- **CI/CD Pipeline**: Continuous Integration/Deployment
+- **Production Deployment**: Deployment u produkciju
+- **Scaling Strategy**: Strategija skaliranja
 
-## 📝 Dodavanje Nove Dokumentacije
+### 15. [Configuration Management](CONFIGURATION_MANAGEMENT.md)
+- **Environment Variables**: Varijable okruženja
+- **Feature Flags**: Feature flag-ovi
+- **Secrets Management**: Upravljanje tajnama
+- **Configuration Validation**: Validacija konfiguracije
+- **Dynamic Configuration**: Dinamička konfiguracija
 
-Kada dodajete novu dokumentaciju:
+## 📚 API Dokumentacija
 
-1. **Kreirajte fajl** u `docs/` folderu
-2. **Ažurirajte ovaj INDEX.md** sa novim linkom
-3. **Kategorizujte** dokument u odgovarajuću sekciju
-4. **Ažurirajte status tabelu**
+### 16. [API Reference](API_REFERENCE.md)
+- **REST API**: REST API endpoints
+- **WebSocket API**: WebSocket komunikacija
+- **Authentication**: Autentifikacija
+- **Rate Limiting**: Ograničavanje brzine
+- **Error Codes**: Kodovi grešaka
 
-## 🔗 Eksterni Linkovi
+### 17. [API Examples](API_EXAMPLES.md)
+- **Chat API**: Primeri chat API-ja
+- **Document API**: Primeri document API-ja
+- **OCR API**: Primeri OCR API-ja
+- **Study Tools API**: Primeri study tools API-ja
+- **Career Guidance API**: Primeri career guidance API-ja
 
-- **[GitHub Repository](https://github.com/sgazz/AcAI-Light)**
-- **[Issues](https://github.com/sgazz/AcAI-Light/issues)**
-- **[Pull Requests](https://github.com/sgazz/AcAI-Light/pulls)**
+## 🔒 Security i Compliance
+
+### 18. [Security Framework](SECURITY_FRAMEWORK.md)
+- **Authentication**: Autentifikacija korisnika
+- **Authorization**: Autorizacija pristupa
+- **Data Encryption**: Enkripcija podataka
+- **Input Validation**: Validacija unosa
+- **Security Headers**: Sigurnosni header-i
+
+### 19. [Privacy & Compliance](PRIVACY_COMPLIANCE.md)
+- **Data Protection**: Zaštita podataka
+- **GDPR Compliance**: GDPR usklađenost
+- **Data Retention**: Zadržavanje podataka
+- **User Consent**: Saglasnost korisnika
+- **Audit Trail**: Audit trag
+
+## 📈 Business Intelligence
+
+### 20. [Analytics Dashboard](ANALYTICS_DASHBOARD.md)
+- **User Analytics**: Analitika korisnika
+- **Content Analytics**: Analitika sadržaja
+- **Performance Analytics**: Analitika performansi
+- **Business Metrics**: Poslovne metrike
+- **Reporting**: Izveštavanje
+
+## 🆘 Troubleshooting i Support
+
+### 21. [Troubleshooting Guide](TROUBLESHOOTING.md)
+- **Common Issues**: Česti problemi
+- **Error Resolution**: Rešavanje grešaka
+- **Performance Issues**: Problemi sa performansama
+- **OCR Issues**: Problemi sa OCR-om
+- **Debugging Tools**: Alati za debugging
+
+### 22. [Support Documentation](SUPPORT_DOCUMENTATION.md)
+- **User Guide**: Korisnički vodič
+- **FAQ**: Često postavljana pitanja
+- **Contact Information**: Kontakt informacije
+- **Feature Requests**: Zahtevi za funkcionalnosti
+- **Bug Reports**: Prijave grešaka
+
+## 🔄 Maintenance i Updates
+
+### 23. [Maintenance Schedule](MAINTENANCE_SCHEDULE.md)
+- **Regular Updates**: Redovne ažuriranja
+- **Security Patches**: Sigurnosni patch-evi
+- **Performance Optimization**: Optimizacija performansi
+- **Database Maintenance**: Održavanje baze podataka
+- **Backup Procedures**: Backup procedure
+
+### 24. [Update Procedures](UPDATE_PROCEDURES.md)
+- **Version Management**: Upravljanje verzijama
+- **Migration Scripts**: Skripte za migraciju
+- **Rollback Procedures**: Procedure za rollback
+- **Testing Procedures**: Procedure za testiranje
+- **Deployment Checklist**: Checklist za deployment
 
 ---
 
-*Dokumentacija je ažurirana: 2025-01-06*
-*Status: Sve dokumenti su organizovani i ažurirani* 
+## 📋 Quick Start
+
+### Za Developere
+1. [Backend Setup](BACKEND_ARCHITECTURE.md#setup)
+2. [Frontend Setup](FRONTEND_ARCHITECTURE.md#setup)
+3. [Database Setup](DATABASE_DESIGN.md#setup)
+4. [Testing](TESTING_STRATEGY.md#quick-start)
+
+### Za DevOps
+1. [Deployment Guide](DEPLOYMENT_GUIDE.md)
+2. [Configuration Management](CONFIGURATION_MANAGEMENT.md)
+3. [Monitoring Setup](MONITORING_ANALYTICS.md#setup)
+
+### Za Korisnike
+1. [User Guide](SUPPORT_DOCUMENTATION.md#user-guide)
+2. [API Examples](API_EXAMPLES.md)
+3. [Troubleshooting](TROUBLESHOOTING.md)
+
+---
+
+## 🎯 Ključne Metrike
+
+- **Performance**: <2s response time
+- **Accuracy**: >95% OCR accuracy
+- **Uptime**: >99.9% availability
+- **Cache Hit Rate**: >80%
+- **User Satisfaction**: >4.5/5
+
+---
+
+## 📞 Kontakt
+
+- **Technical Support**: tech@acaia.com
+- **Documentation Issues**: docs@acaia.com
+- **Feature Requests**: features@acaia.com
+
+---
+
+*Poslednje ažuriranje: Januar 2024* 
