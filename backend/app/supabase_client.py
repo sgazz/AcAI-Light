@@ -309,6 +309,18 @@ class SupabaseManager:
             print(f"Greška pri dohvatanju OCR slika: {e}")
             return []
     
+    def update_ocr_text(self, ocr_id: str, new_text: str) -> bool:
+        """Ažurira OCR tekst"""
+        try:
+            self.client.table('ocr_images').update({
+                'ocr_text': new_text,
+                'updated_at': datetime.now().isoformat()
+            }).eq('id', ocr_id).execute()
+            return True
+        except Exception as e:
+            print(f"Greška pri ažuriranju OCR teksta: {e}")
+            return False
+    
     def save_retrieval_session(self, session_id: str, query: str, 
                               steps: List[Dict] = None, final_results: List[Dict] = None) -> str:
         """Čuva retrieval sesiju"""

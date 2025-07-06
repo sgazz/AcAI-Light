@@ -28,6 +28,8 @@ export const OCR_SUPPORTED_FORMATS_ENDPOINT = `${API_BASE}/ocr/supported-formats
 export const OCR_EXTRACT_ENDPOINT = `${API_BASE}/ocr/extract`;
 export const OCR_EXTRACT_ADVANCED_ENDPOINT = `${API_BASE}/ocr/extract-advanced`;
 export const OCR_BATCH_EXTRACT_ENDPOINT = `${API_BASE}/ocr/batch-extract`;
+export const OCR_FIX_TEXT_ENDPOINT = `${API_BASE}/ocr/fix-text`;
+export const OCR_UPDATE_TEXT_ENDPOINT = `${API_BASE}/ocr/update-text`;
 
 /**
  * Search endpoints
@@ -704,4 +706,25 @@ export const getIndustryTrends = async () => {
 // Career Insights
 export const getUserCareerInsights = async (userId: string) => {
   return await apiRequest(`${CAREER_GUIDANCE_INSIGHTS_ENDPOINT}/${userId}`);
+};
+
+// OCR API Functions
+export const fixOcrText = async (text: string, mode: 'fix' | 'format') => {
+  return await apiRequest(OCR_FIX_TEXT_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text, mode }),
+  });
+};
+
+export const updateOcrText = async (documentId: string, newText: string) => {
+  return await apiRequest(OCR_UPDATE_TEXT_ENDPOINT, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ document_id: documentId, new_text: newText }),
+  });
 }; 

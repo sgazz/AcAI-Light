@@ -3163,3 +3163,49 @@ async def fix_text(request: FixTextRequest):
         return {"status": "success", "fixed_text": fixed_text}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+
+class UpdateOcrTextRequest(BaseModel):
+    document_id: str
+    new_text: str
+
+@app.put("/ocr/update-text")
+async def update_ocr_text(request: UpdateOcrTextRequest):
+    """Ažurira OCR tekst za dokument"""
+    try:
+        if not supabase_manager:
+            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
+        
+        if not request.new_text.strip():
+            return {"status": "error", "message": "Tekst ne može biti prazan"}
+        
+        # Prvo proveri da li dokument postoji i ima OCR podatke
+        document_result = supabase_manager.client.table('documents').select(
+            'id, metadata'
+        ).eq('id', request.document_id).execute()
+        
+        if not document_result.data:
+            return {"status": "error", "message": "Dokument nije pronađen"}
+        
+        document = document_result.data[0]
+        metadata = document.get('metadata', {})
+        
+        if not metadata.get('ocr_info'):
+            return {"status": "error", "message": "Dokument nema OCR podatke"}
+        
+        # Ažuriraj OCR tekst u metadata
+        metadata['ocr_info']['text'] = request.new_text
+        metadata['ocr_info']['updated_at'] = datetime.now().isoformat()
+        
+        # Sačuvaj ažurirane podatke
+        supabase_manager.client.table('documents').update({
+            'metadata': metadata
+        }).eq('id', request.document_id).execute()
+        
+        return {
+            "status": "success",
+            "message": "OCR tekst uspešno ažuriran",
+            "document_id": request.document_id
+        }
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

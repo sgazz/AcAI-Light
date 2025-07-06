@@ -6,7 +6,7 @@ import DocumentPreview from './DocumentPreview';
 import ImagePreview from './FileHandling/ImagePreview';
 import { formatFileSize, getFileIcon } from '../utils/fileUtils';
 import { formatDate } from '../utils/dateUtils';
-import { DOCUMENTS_ENDPOINT, apiRequest } from '../utils/api';
+import { DOCUMENTS_ENDPOINT, apiRequest, updateOcrText, fixOcrText as fixOcrTextAPI } from '../utils/api';
 import { useErrorToast } from './ErrorToastProvider';
 import { useFileOperations } from '../utils/fileOperations';
 import { useStatusIcons } from '../utils/statusIcons';
@@ -175,16 +175,25 @@ export default function DocumentList() {
 
   const saveOcrEdit = async () => {
     try {
-      // Ovde bi trebalo da se pozove API za čuvanje izmenjenog teksta
-      // Za sada samo ažuriramo lokalno stanje
-      if (ocrModal) {
+      if (!ocrModal?.doc?.id) {
+        showError('Nema ID dokumenta za čuvanje', 'Greška čuvanja');
+        return;
+      }
+
+      // Pozovi API funkciju za čuvanje
+      const result = await updateOcrText(ocrModal.doc.id, editedOcrText);
+      
+      if (result.status === 'success') {
+        // Ažuriraj lokalno stanje
         const updatedOcr = { ...ocrModal.ocr, text: editedOcrText };
         setOcrModal({ ...ocrModal, ocr: updatedOcr });
         setIsEditingOcr(false);
         showSuccess('OCR tekst uspešno sačuvan', 'Čuvanje');
+      } else {
+        throw new Error(result.message || 'Greška pri čuvanju');
       }
     } catch (error: any) {
-      showError('Greška pri čuvanju OCR teksta', 'Greška čuvanja');
+      showError(`Greška pri čuvanju OCR teksta: ${error.message}`, 'Greška čuvanja');
     }
   };
 
@@ -200,19 +209,8 @@ export default function DocumentList() {
       // Prikaži loading
       showSuccess('AI obrađuje tekst...', 'Obrađivanje');
       
-      // Pozovi backend endpoint
-      const response = await fetch('http://localhost:8001/ocr/fix-text', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          text: currentText,
-          mode: mode
-        })
-      });
-
-      const result = await response.json();
+      // Pozovi API funkciju
+      const result = await fixOcrTextAPI(currentText, mode);
       
       if (result.status === 'success') {
         // Ažuriraj tekst u modal-u
