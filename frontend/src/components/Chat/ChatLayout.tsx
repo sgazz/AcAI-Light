@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { FaBars, FaTimes, FaHistory, FaPlus, FaCog } from 'react-icons/fa';
 import ChatSidebar from './ChatSidebar';
 import ChatArea from './ChatArea';
+import SessionHistoryModal from './SessionHistoryModal';
 import { useChat } from './hooks/useChat';
 import { useSessions } from './hooks/useSessions';
 
@@ -14,6 +15,7 @@ interface ChatLayoutProps {
 export default function ChatLayout({ initialSessionId }: ChatLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
   
   const { 
     currentSessionId, 
@@ -80,6 +82,21 @@ export default function ChatLayout({ initialSessionId }: ChatLayoutProps) {
     }
   };
 
+  const handleArchiveSession = (sessionId: string) => {
+    // TODO: Implement archive functionality
+    console.log('Archive session:', sessionId);
+  };
+
+  const handleExportSession = (sessionId: string) => {
+    // TODO: Implement export functionality
+    console.log('Export session:', sessionId);
+  };
+
+  const handleShareSession = (sessionId: string) => {
+    // TODO: Implement share functionality
+    console.log('Share session:', sessionId);
+  };
+
   return (
     <div className="h-screen flex bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
       {/* Mobile Overlay */}
@@ -137,7 +154,7 @@ export default function ChatLayout({ initialSessionId }: ChatLayoutProps) {
           {/* Header Actions */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              onClick={() => setIsHistoryModalOpen(true)}
               className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/10 transition-colors text-slate-300"
             >
               <FaHistory size={16} />
@@ -173,6 +190,23 @@ export default function ChatLayout({ initialSessionId }: ChatLayoutProps) {
           setUseFactChecking={setUseFactChecking}
         />
       </div>
+
+      {/* Session History Modal */}
+      <SessionHistoryModal
+        isOpen={isHistoryModalOpen}
+        onClose={() => setIsHistoryModalOpen(false)}
+        sessions={sessions}
+        selectedSessionId={selectedSession?.session_id}
+        onSessionSelect={(sessionId) => {
+          handleSessionSelect(sessionId);
+          setIsHistoryModalOpen(false);
+        }}
+        onDeleteSession={deleteSession}
+        onRenameSession={renameSession}
+        onArchiveSession={handleArchiveSession}
+        onExportSession={handleExportSession}
+        onShareSession={handleShareSession}
+      />
     </div>
   );
 } 
