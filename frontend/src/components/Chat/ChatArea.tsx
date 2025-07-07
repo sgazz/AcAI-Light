@@ -73,13 +73,40 @@ export default function ChatArea({
   setUseFactChecking
 }: ChatAreaProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current;
+      const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+      
+      if (isAtBottom) {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
   }, [messages]);
+
+  // Handle scroll events
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 100;
+      setShowScrollToBottom(!isAtBottom);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
   // Close settings when clicking outside
   useEffect(() => {
@@ -101,12 +128,25 @@ export default function ChatArea({
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Messages Area */}
-      <div className="flex-1 overflow-hidden">
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto relative">
         <MessageList 
           messages={messages} 
           isLoading={isLoading}
         />
         <div ref={messagesEndRef} />
+        
+        {/* Scroll to Bottom Button */}
+        {showScrollToBottom && (
+          <button
+            onClick={scrollToBottom}
+            className="absolute bottom-4 right-4 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110 z-10"
+            title="Skroluj na dno"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* RAG Controls Bar */}
