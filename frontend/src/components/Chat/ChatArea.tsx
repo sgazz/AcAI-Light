@@ -2,6 +2,7 @@
 
 import React, { useRef, useEffect, useState } from 'react';
 import { FaToggleOn, FaToggleOff, FaCog, FaBook, FaMagic, FaBrain } from 'react-icons/fa';
+import { useErrorToast } from '../ErrorToastProvider';
 import MessageList from './MessageList';
 import ChatInput from './ChatInput';
 
@@ -77,6 +78,7 @@ export default function ChatArea({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
+  const { showError, showSuccess, showInfo, showWarning } = useErrorToast();
 
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
@@ -138,7 +140,10 @@ export default function ChatArea({
         {/* Scroll to Bottom Button */}
         {showScrollToBottom && (
           <button
-            onClick={scrollToBottom}
+            onClick={() => {
+              scrollToBottom();
+              showInfo('Skrolovano na dno', 'Navigacija');
+            }}
             className="absolute bottom-4 right-4 p-3 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110 z-10"
             title="Skroluj na dno"
           >
@@ -195,7 +200,12 @@ export default function ChatArea({
           {/* Settings Button */}
           <div className="relative" ref={settingsRef}>
             <button
-              onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+              onClick={() => {
+                setIsSettingsOpen(!isSettingsOpen);
+                if (!isSettingsOpen) {
+                  showInfo('RAG postavke su otvorene', 'Postavke');
+                }
+              }}
               className="flex items-center gap-2 px-3 py-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
               title="RAG postavke"
             >
@@ -213,7 +223,14 @@ export default function ChatArea({
                       <FaBook className="text-blue-400" size={14} />
                       <span className="text-xs text-slate-400 group-hover:text-white">RAG Mode</span>
                       <button
-                        onClick={() => setUseRAG?.(!useRAG)}
+                        onClick={() => {
+                          setUseRAG?.(!useRAG);
+                          if (!useRAG) {
+                            showSuccess('RAG mode je uključen', 'RAG Aktivan');
+                          } else {
+                            showInfo('RAG mode je isključen', 'Standardni Chat');
+                          }
+                        }}
                         className="flex items-center gap-1 text-sm ml-auto"
                         title={useRAG ? "Isključi RAG mode" : "Uključi RAG mode"}
                       >
@@ -239,7 +256,14 @@ export default function ChatArea({
                         <FaBrain className="text-cyan-400" size={14} />
                         <span className="text-xs text-slate-400 group-hover:text-white">Enhanced Context</span>
                         <button
-                          onClick={() => setUseEnhancedContext?.(!useEnhancedContext)}
+                          onClick={() => {
+                            setUseEnhancedContext?.(!useEnhancedContext);
+                            if (!useEnhancedContext) {
+                              showSuccess('Enhanced Context je uključen', 'Enhanced Context');
+                            } else {
+                              showInfo('Enhanced Context je isključen', 'Standardni Context');
+                            }
+                          }}
                           className="flex items-center gap-1 text-sm ml-auto"
                           title={useEnhancedContext ? "Isključi Enhanced Context" : "Uključi Enhanced Context"}
                         >
@@ -266,7 +290,14 @@ export default function ChatArea({
                         <FaMagic className="text-purple-400" size={14} />
                         <span className="text-xs text-slate-400 group-hover:text-white">Re-ranking</span>
                         <button
-                          onClick={() => setUseRerank?.(!useRerank)}
+                          onClick={() => {
+                            setUseRerank?.(!useRerank);
+                            if (!useRerank) {
+                              showSuccess('Re-ranking je uključen', 'Re-ranking Aktivan');
+                            } else {
+                              showInfo('Re-ranking je isključen', 'Standardni Ranking');
+                            }
+                          }}
                           className="flex items-center gap-1 text-sm ml-auto"
                           title={useRerank ? "Isključi Re-ranking" : "Uključi Re-ranking"}
                         >
@@ -293,7 +324,14 @@ export default function ChatArea({
                         <FaMagic className="text-orange-400" size={14} />
                         <span className="text-xs text-slate-400 group-hover:text-white">Query Rewriting</span>
                         <button
-                          onClick={() => setUseQueryRewriting?.(!useQueryRewriting)}
+                          onClick={() => {
+                            setUseQueryRewriting?.(!useQueryRewriting);
+                            if (!useQueryRewriting) {
+                              showSuccess('Query Rewriting je uključen', 'Query Rewriting Aktivan');
+                            } else {
+                              showInfo('Query Rewriting je isključen', 'Standardni Query');
+                            }
+                          }}
                           className="flex items-center gap-1 text-sm ml-auto"
                           title={useQueryRewriting ? "Isključi Query Rewriting" : "Uključi Query Rewriting"}
                         >
@@ -320,7 +358,14 @@ export default function ChatArea({
                         <FaBrain className="text-green-400" size={14} />
                         <span className="text-xs text-slate-400 group-hover:text-white">Fact Checking</span>
                         <button
-                          onClick={() => setUseFactChecking?.(!useFactChecking)}
+                          onClick={() => {
+                            setUseFactChecking?.(!useFactChecking);
+                            if (!useFactChecking) {
+                              showSuccess('Fact Checking je uključen', 'Fact Checking Aktivan');
+                            } else {
+                              showInfo('Fact Checking je isključen', 'Standardni Proveravanje');
+                            }
+                          }}
                           className="flex items-center gap-1 text-sm ml-auto"
                           title={useFactChecking ? "Isključi Fact Checking" : "Uključi Fact Checking"}
                         >

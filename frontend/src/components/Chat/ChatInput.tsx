@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { FaPaperPlane, FaMicrophone, FaStop, FaPaperclip, FaMagic } from 'react-icons/fa';
+import { useErrorToast } from '../ErrorToastProvider';
 
 interface ChatInputProps {
   onSendMessage: (message: string) => Promise<void>;
@@ -15,6 +16,7 @@ export default function ChatInput({ onSendMessage, isLoading, sessionId, useRAG 
   const [isRecording, setIsRecording] = useState(false);
   const [isComposing, setIsComposing] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { showInfo } = useErrorToast();
 
   // Auto-resize textarea
   useEffect(() => {
@@ -53,16 +55,19 @@ export default function ChatInput({ onSendMessage, isLoading, sessionId, useRAG 
   };
 
   const handleRecordingToggle = () => {
+    showInfo('Ova funkcija će omogućiti slanje glasovnih poruka.', 'Snimanje glasa');
     setIsRecording(!isRecording);
     // TODO: Implement voice recording
   };
 
   const handleFileUpload = () => {
+    showInfo('Ova funkcija će omogućiti upload i deljenje fajlova u chatu.', 'Priloži fajl');
     // TODO: Implement file upload
     console.log('File upload clicked');
   };
 
   const handleAIFeatures = () => {
+    showInfo('Ovde će biti AI predlozi, automatsko dovršavanje i pomoć pri pisanju poruka.', 'AI funkcionalnosti');
     // TODO: Implement AI features (suggestions, auto-complete, etc.)
     console.log('AI features clicked');
   };
