@@ -116,6 +116,27 @@ class AsyncSupabaseManager:
             "session_active": self.http_session is not None
         }
 
+    async def get_chat_history(self, session_id: str, limit: int = 50) -> List[Dict]:
+        """Dohvata chat istoriju za sesiju asinhrono"""
+        try:
+            start_time = asyncio.get_event_loop().time()
+            session = await self.get_http_session()
+            url = f"{self.supabase_url}/rest/v1/chat_history?session_id=eq.{session_id}&order=created_at.desc&limit={limit}"
+            
+            async with session.get(url) as response:
+                if response.status == 200:
+                    result = await response.json()
+                    self._update_stats(True, asyncio.get_event_loop().time() - start_time)
+                    return result
+                else:
+                    error_text = await response.text()
+                    self._update_stats(False, asyncio.get_event_loop().time() - start_time)
+                    print(f"Greška pri async dohvatanju chat istorije: HTTP {response.status}: {error_text}")
+                    return []
+        except Exception as e:
+            print(f"Greška pri async dohvatanju chat istorije: {e}")
+            return []
+
     async def save_chat_message(self, session_id: str, user_message: str, assistant_message: str, sources: list = None) -> str:
         """Čuva chat poruku u istoriju asinhrono"""
         try:

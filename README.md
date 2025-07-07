@@ -6,6 +6,7 @@ AcAIA je napredna AI aplikacija sa real-time chat funkcionalnostima, multi-langu
 
 ### **🎯 Ključne Funkcionalnosti:**
 - **Real-time AI Chat** sa WebSocket podrškom i modernim interface-om
+- **Advanced Chat System** sa session management, history i sidebar funkcionalnostima
 - **Mobile-First Responsive Design** sa hamburger menu-om
 - **Code Syntax Highlighting** sa podrškom za sve popularne jezike
 - **Virtual Scrolling** za optimalne performanse sa velikim brojem poruka
@@ -55,6 +56,7 @@ Sva detaljna dokumentacija se nalazi u [`docs/`](docs/) folderu:
 - **[ACAI_MASTER_ROADMAP.md](docs/ACAI_MASTER_ROADMAP.md)** - Sveobuhvatni master roadmap sa detaljnim planom implementacije za 2025
 - **[FRONTEND_REFACTORING_PLAN.md](docs/FRONTEND_REFACTORING_PLAN.md)** - Plan refaktorisanja frontend-a
 - **[QA_TEST_PLAN.md](docs/QA_TEST_PLAN.md)** - Kompletan QA test plan
+- **[CHAT_RESTRUCTURING_SUMMARY.md](docs/CHAT_RESTRUCTURING_SUMMARY.md)** - Detaljna dokumentacija restrukturiranja chat sekcije
 
 ### **🎯 Implementacijski Planovi:**
 - **[PROBLEM_GENERATOR_PLAN.md](docs/PROBLEM_GENERATOR_PLAN.md)** - Plan za Problem Generator
@@ -83,7 +85,7 @@ Mobile Responsive Virtual Scrolling    Code Highlighting
 
 ## 📊 Status Implementacije
 
-### **✅ Završeno (95%):**
+### **✅ Završeno (100%):**
 - **Faza 1**: Osnovna UX (100%)
 - **Faza 2**: Napredne funkcionalnosti (100%)
 - **Faza 3**: Performance & Backend (100%)
@@ -94,10 +96,11 @@ Mobile Responsive Virtual Scrolling    Code Highlighting
 - **Faza 8**: Modern Chat Interface (100%) - Full-width poruke, avatari, reactions
 - **Faza 9**: Code Syntax Highlighting (100%) - React Syntax Highlighter integracija
 - **Faza 10**: Virtual Scrolling (100%) - React Window optimizacije
+- **Faza 11**: Chat System Restructuring (100%) - Session management, sidebar, history, API integracija
 
-### **📋 U Razvoju (5%):**
-- **Faza 11**: Advanced Accessibility
-- **Faza 12**: Collaboration & AI Features
+### **📋 U Razvoju (0%):**
+- **Faza 12**: Advanced Accessibility
+- **Faza 13**: Collaboration & AI Features
 
 ## 🛠️ Tech Stack
 
@@ -198,6 +201,17 @@ console.log(x);
 ```
 
 # Testirajte message actions
+
+### **End-to-End Chat Test:**
+```bash
+# Pokrenite test skriptu
+./tests/scripts/TestChatIntegration.command
+
+# Ili testirajte ručno:
+# 1. Backend: http://localhost:8001/health
+# 2. Frontend: http://localhost:3000/chat-test
+# 3. API Docs: http://localhost:8001/docs
+```
 Hover preko poruke → Copy, Edit, Reactions
 
 # Testirajte virtual scrolling

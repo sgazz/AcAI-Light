@@ -308,8 +308,47 @@ async def get_models_status():
 @app.post("/chat/new-session")
 async def create_new_session():
     """Kreira novu chat sesiju"""
-    session_id = str(uuid.uuid4())
-    return {"session_id": session_id}
+    try:
+        session_id = str(uuid.uuid4())
+        session_name = f"Sesija {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        
+        # Kreiraj sesiju u Supabase ako je dostupan
+        if supabase_manager:
+            try:
+                # Kreiraj session metadata
+                session_data = {
+                    "session_id": session_id,
+                    "name": session_name,
+                    "user_id": "default_user",
+                    "created_at": datetime.now().isoformat(),
+                    "updated_at": datetime.now().isoformat()
+                }
+                
+                # Pokušaj da kreiraš u session_metadata tabeli
+                try:
+                    supabase_manager.client.table('session_metadata').insert(session_data).execute()
+                except:
+                    # Ako tabela ne postoji, kreiraj u chat_history sa metadata
+                    chat_data = {
+                        "session_id": session_id,
+                        "user_message": "",
+                        "assistant_message": "",
+                        "metadata": {
+                            "session_name": session_name,
+                            "created_at": session_data["created_at"],
+                            "updated_at": session_data["updated_at"]
+                        }
+                    }
+                    supabase_manager.client.table('chat_history').insert(chat_data).execute()
+                
+            except Exception as e:
+                print(f"Upozorenje: Ne mogu da kreiram sesiju u Supabase: {e}")
+                # Nastavi bez Supabase-a
+        
+        return {"session_id": session_id, "name": session_name}
+        
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
 
 # Supabase Chat Endpoint-i
 @app.post("/chat")
@@ -478,10 +517,12 @@ async def get_chat_history(session_id: str, limit: int = 50):
             # Dodaj korisničku poruku ako postoji
             if msg.get('user_message'):
                 formatted_messages.append({
-                    "id": msg.get('id'),
+                    "id": f"{msg.get('id')}-user",
                     "sender": "user",
                     "content": msg.get('user_message', ''),
-                    "timestamp": msg.get('created_at', '')
+                    "timestamp": msg.get('created_at', ''),
+                    "sources": msg.get('sources', []),
+                    "used_rag": bool(msg.get('sources'))
                 })
             
             # Dodaj AI poruku ako postoji
@@ -490,10 +531,12 @@ async def get_chat_history(session_id: str, limit: int = 50):
                     "id": f"{msg.get('id')}-ai",
                     "sender": "ai",
                     "content": msg.get('assistant_message', ''),
-                    "timestamp": msg.get('created_at', '')
+                    "timestamp": msg.get('created_at', ''),
+                    "sources": msg.get('sources', []),
+                    "used_rag": bool(msg.get('sources'))
                 })
         
-        # Sortiraj po timestamp-u
+        # Sortiraj po timestamp-u (najstarije prvo)
         formatted_messages.sort(key=lambda x: x['timestamp'])
         
         return {

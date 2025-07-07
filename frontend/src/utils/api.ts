@@ -74,7 +74,9 @@ export async function apiRequest<T = any>(
   options?: RequestInit
 ): Promise<T> {
   try {
-    const response = await fetch(url, options);
+    // Ako je URL relativan (ne počinje sa http), dodaj API_BASE
+    const fullUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+    const response = await fetch(fullUrl, options);
     const contentType = response.headers.get('content-type');
     let data: any = null;
     if (contentType && contentType.includes('application/json')) {

@@ -520,6 +520,39 @@ class RAGService:
         except Exception as e:
             print(f"Greška pri čuvanju chat istorije: {e}")
     
+    def _generate_simple_response(self, query: str) -> Dict[str, Any]:
+        """Sinhrona verzija jednostavnog odgovora"""
+        try:
+            prompt = f"""Ti si AcAIA, AI learning assistant. Korisnik te je pitao: "{query}"
+
+Pošto trenutno nemam pristup relevantnim dokumentima, odgovori na osnovu svojih opštih znanja.
+Budi koristan i informativan, ali napomeni da ne možeš da pristupiš specifičnim dokumentima.
+
+Odgovor:"""
+            
+            response = self.ollama_client.generate(
+                model=self.model_name,
+                prompt=prompt,
+                stream=False
+            )
+            
+            return {
+                'status': 'success',
+                'response': response['response'],
+                'sources': [],
+                'query': query,
+                'model': self.model_name,
+                'note': 'Nema relevantnih dokumenata - odgovor na osnovu opštih znanja'
+            }
+            
+        except Exception as e:
+            print(f"Greška pri generisanju jednostavnog odgovora: {e}")
+            return {
+                'status': 'error',
+                'message': str(e),
+                'response': 'Izvinjavam se, došlo je do greške pri generisanju odgovora.'
+            }
+
     async def _generate_simple_response_async(self, query: str) -> Dict[str, Any]:
         """Asinhrona verzija jednostavnog odgovora"""
         try:

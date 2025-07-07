@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import WelcomeScreen from '../components/WelcomeScreen';
 import Sidebar from '../components/Sidebar';
-import ChatBox from '../components/ChatBox';
+import ChatLayout from '../components/Chat/ChatLayout';
 import DocumentUpload from '../components/DocumentUpload';
 import DocumentList from '../components/DocumentList';
 import AudioMode from '../components/AudioMode';
@@ -189,7 +189,7 @@ export default function Home() {
     
     switch (selectedMenu) {
       case 0:
-        return <ChatBox />;
+        return <ChatLayout />;
       case 1:
         return <MindMapping />;
       case 2:
