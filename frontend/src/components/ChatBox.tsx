@@ -597,14 +597,25 @@ export default function ChatBox() {
         
         {/* Typing indicator */}
         {isLoading && (
-          <div className="flex items-center gap-3 p-4">
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-semibold">
-              🤖
-            </div>
-            <div className="flex items-center gap-1">
-              <div className="typing-dot w-2 h-2 bg-blue-400 rounded-full"></div>
-              <div className="typing-dot w-2 h-2 bg-blue-400 rounded-full"></div>
-              <div className="typing-dot w-2 h-2 bg-blue-400 rounded-full"></div>
+          <div className="w-full mb-6 flex justify-start">
+            <div className="max-w-2xl mr-auto">
+              <div className="group relative p-6 bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 shadow-lg backdrop-blur-sm rounded-bl-md transition-all duration-300 hover:scale-[1.02]">
+                <div className="relative flex items-center gap-4">
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-semibold">
+                    🤖
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="flex space-x-1">
+                      <div className="w-3 h-3 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                      <div className="w-3 h-3 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                      <div className="w-3 h-3 bg-pink-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                    </div>
+                    <span className="text-sm font-medium text-white bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                      AI piše...
+                    </span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

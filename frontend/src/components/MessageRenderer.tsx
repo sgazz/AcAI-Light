@@ -111,42 +111,92 @@ export default function MessageRenderer({
     }
   };
 
+  const isAI = sender === 'ai';
+  const isUser = sender === 'user';
+
   return (
-    <div className="w-full max-w-4xl mx-auto mb-6">
-      <div className={`
-        bg-white/5 backdrop-blur-sm rounded-lg border transition-all duration-300
-        ${sender === 'user' 
-          ? 'border-blue-500/30 bg-blue-500/5' 
-          : 'border-white/10 bg-slate-800/30'
-        }
-        hover:bg-white/10 hover:border-white/20
-      `}>
-        {/* Message Header */}
-        <div className="flex items-center justify-between p-4 pb-2">
-          <div className="flex items-center gap-3">
-            <div className={`
-              w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold
-              ${sender === 'user' 
-                ? 'bg-gradient-to-br from-blue-500 to-purple-600' 
-                : 'bg-gradient-to-br from-green-500 to-emerald-600'
-              }
-            `}>
-              {sender === 'user' ? 'U' : '🤖'}
-            </div>
-            <div>
-              <div className="font-semibold text-white">
-                {sender === 'user' ? 'Vi' : 'AI Asistent'}
-              </div>
-              {timestamp && (
-                <div className="text-xs text-slate-400">
-                  {new Date(timestamp).toLocaleString('sr-RS')}
+    <div className={`w-full mb-6 ${isUser ? 'flex justify-end' : 'flex justify-start'}`}>
+      <div className={`max-w-2xl ${isUser ? 'ml-auto' : 'mr-auto'}`}>
+        <div className={`
+          backdrop-blur-sm rounded-2xl border transition-all duration-300 shadow-lg
+          ${isUser 
+            ? 'border-blue-500/30 bg-gradient-to-br from-blue-500/20 to-purple-600/20 rounded-br-md' 
+            : 'border-white/10 bg-gradient-to-br from-slate-800/50 to-slate-700/50 rounded-bl-md'
+          }
+          hover:shadow-xl hover:scale-[1.02]
+        `}>
+          {/* Message Header */}
+          <div className={`flex items-center p-4 pb-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+            {!isUser && (
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold bg-gradient-to-br from-green-500 to-emerald-600">
+                  🤖
                 </div>
-              )}
-            </div>
+                <div>
+                  <div className="font-semibold text-white">AI Asistent</div>
+                  {timestamp && (
+                    <div className="text-xs text-slate-400">
+                      {new Date(timestamp).toLocaleString('sr-RS')}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {isUser && (
+              <div className="flex items-center gap-3">
+                <div>
+                  <div className="font-semibold text-white text-right">Vi</div>
+                  {timestamp && (
+                    <div className="text-xs text-slate-400 text-right">
+                      {new Date(timestamp).toLocaleString('sr-RS')}
+                    </div>
+                  )}
+                </div>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold bg-gradient-to-br from-blue-500 to-purple-600">
+                  U
+                </div>
+              </div>
+            )}
           </div>
-          
+
+          {/* Message Content */}
+          <div className="px-4 pb-4">
+            {editing ? (
+              <div className="space-y-3">
+                <textarea
+                  value={editInput}
+                  onChange={e => setEditInput && setEditInput(e.target.value)}
+                  className="w-full bg-slate-800 text-white rounded-lg p-3 border border-slate-600 focus:border-blue-500 focus:outline-none resize-none"
+                  rows={Math.max(3, editInput.split('\n').length)}
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={saveEdit}
+                    className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Sačuvaj
+                  </button>
+                  <button
+                    onClick={() => onEdit && messageId && onEdit(messageId)}
+                    className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
+                  >
+                    Otkaži
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="prose prose-invert max-w-none">
+                <ReactMarkdown components={markdownComponents}>
+                  {content}
+                </ReactMarkdown>
+              </div>
+            )}
+          </div>
+
           {/* Message Actions */}
-          <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className={`flex items-center gap-2 p-4 pt-0 opacity-0 group-hover:opacity-100 transition-opacity ${isUser ? 'justify-end' : 'justify-start'}`}>
             {/* Copy Button */}
             <button
               onClick={handleCopy}
@@ -159,7 +209,7 @@ export default function MessageRenderer({
             </button>
             
             {/* Edit/Undo for user messages */}
-            {sender === 'user' && (
+            {isUser && (
               <>
                 {onEdit && messageId && (
                   <button
@@ -187,7 +237,7 @@ export default function MessageRenderer({
             )}
             
             {/* Reactions for AI messages */}
-            {sender === 'ai' && onReaction && messageId && (
+            {isAI && onReaction && messageId && (
               <div className="flex items-center gap-1" role="group" aria-label="Reakcije na poruku">
                 <button
                   onClick={() => handleReaction('like')}
@@ -220,41 +270,6 @@ export default function MessageRenderer({
               </div>
             )}
           </div>
-        </div>
-
-        {/* Message Content */}
-        <div className="px-4 pb-4">
-          {editing ? (
-            <div className="space-y-3">
-              <textarea
-                value={editInput}
-                onChange={e => setEditInput && setEditInput(e.target.value)}
-                className="w-full bg-slate-800 text-white rounded-lg p-3 border border-slate-600 focus:border-blue-500 focus:outline-none resize-none"
-                rows={Math.max(3, editInput.split('\n').length)}
-                autoFocus
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={saveEdit}
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
-                >
-                  Sačuvaj
-                </button>
-                <button
-                  onClick={() => onEdit && messageId && onEdit(messageId)}
-                  className="px-4 py-2 bg-slate-600 text-white rounded-lg hover:bg-slate-700 transition-colors"
-                >
-                  Otkaži
-                </button>
-              </div>
-            </div>
-          ) : (
-            <div className="prose prose-invert max-w-none">
-              <ReactMarkdown components={markdownComponents}>
-                {content}
-              </ReactMarkdown>
-            </div>
-          )}
         </div>
       </div>
     </div>

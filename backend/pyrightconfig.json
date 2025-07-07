@@ -1,0 +1,12 @@
+{
+    "venvPath": "/Volumes/External2TB/VS Projects/AcAIA/backend",
+    "venv": "venv",
+    "extraPaths": [
+        "/Volumes/External2TB/VS Projects/AcAIA/backend/venv/lib/python3.13/site-packages",
+        "/Volumes/External2TB/VS Projects/AcAIA/backend/app"
+    ],
+    "typeCheckingMode": "basic",
+    "useLibraryCodeForTypes": true,
+    "reportMissingImports": "warning",
+    "reportMissingTypeStubs": false
+} 

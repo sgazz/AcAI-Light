@@ -436,38 +436,46 @@ export default function StudyRoom() {
                   const isAI = message.user_id === 'ai_assistant' || message.username === 'AI Asistent';
                   const isMe = message.user_id === currentUserId;
                   return (
-                    <div key={message.message_id} className={`flex ${isMe ? 'justify-end' : isAI ? 'justify-center' : 'justify-start'}`}>
-                      <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl shadow-md flex items-start gap-2
+                    <div key={message.message_id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                      <div className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl shadow-lg flex items-start gap-3 transition-all duration-300 hover:scale-[1.02]
                         ${isAI
-                          ? 'bg-gradient-to-r from-purple-700 to-fuchsia-600 text-white border-2 border-fuchsia-400'
+                          ? 'bg-gradient-to-br from-slate-800/50 to-slate-700/50 text-white border border-white/10 rounded-bl-md'
                           : isMe
-                            ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white'
-                            : 'bg-slate-700/50 text-slate-200'}
+                            ? 'bg-gradient-to-br from-blue-500/20 to-purple-600/20 text-white border border-blue-500/30 rounded-br-md'
+                            : 'bg-slate-700/50 text-slate-200 border border-slate-600/30 rounded-bl-md'}
                       `}>
-                        {/* Avatar */}
-                        {isAI ? (
-                          <div className="w-8 h-8 flex items-center justify-center rounded-full bg-fuchsia-500/80 text-white font-bold text-lg mr-2">
-                            🤖
-                          </div>
-                        ) : (
-                          <div className="w-8 h-8 flex items-center justify-center rounded-full bg-blue-500/40 text-white font-bold text-lg mr-2">
-                            {message.username?.[0]?.toUpperCase() || 'U'}
+                        {/* Avatar - samo za AI i druge korisnike, ne za mene */}
+                        {!isMe && (
+                          <div className={`w-8 h-8 flex items-center justify-center rounded-full text-white font-bold text-lg
+                            ${isAI 
+                              ? 'bg-gradient-to-br from-green-500 to-emerald-600' 
+                              : 'bg-gradient-to-br from-blue-500/40 to-purple-500/40'
+                            }`}>
+                            {isAI ? '🤖' : (message.username?.[0]?.toUpperCase() || 'U')}
                           </div>
                         )}
+                        
                         <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className={`text-xs font-medium opacity-80 ${isAI ? 'text-fuchsia-100' : ''}`}>
-                              {isAI ? 'AI Asistent' : message.username}
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className={`text-xs font-medium ${isAI ? 'text-green-300' : isMe ? 'text-blue-300' : 'text-slate-300'}`}>
+                              {isAI ? 'AI Asistent' : isMe ? 'Vi' : message.username}
                             </span>
                             {message.user_id === currentRoom.admin_user_id && !isAI && (
                               <FaCrown className="text-yellow-400" size={12} />
                             )}
                           </div>
-                          <p className="text-sm whitespace-pre-line">{message.content}</p>
-                          <p className="text-xs opacity-60 mt-1">
+                          <p className="text-sm whitespace-pre-line leading-relaxed">{message.content}</p>
+                          <p className="text-xs opacity-60 mt-2">
                             {new Date(message.timestamp).toLocaleTimeString()}
                           </p>
                         </div>
+                        
+                        {/* Avatar za moje poruke - desno */}
+                        {isMe && (
+                          <div className="w-8 h-8 flex items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-purple-600 text-white font-bold text-lg">
+                            U
+                          </div>
+                        )}
                       </div>
                     </div>
                   );
