@@ -159,25 +159,25 @@ export default function ChatArea({
                 <div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse"></div>
                 <span className="text-blue-400 font-medium">RAG Aktivan</span>
                 {useRerank && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1" title="Re-ranking poboljšava relevantnost rezultata">
                     <div className="w-1.5 h-1.5 bg-purple-400 rounded-full"></div>
                     <span className="text-purple-400 text-xs">Re-rank</span>
                   </div>
                 )}
                 {useEnhancedContext && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1" title="Enhanced Context koristi naprednu analizu konteksta">
                     <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></div>
                     <span className="text-cyan-400 text-xs">Enhanced</span>
                   </div>
                 )}
                 {useQueryRewriting && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1" title="Query Rewriting poboljšava pretragu">
                     <div className="w-1.5 h-1.5 bg-orange-400 rounded-full"></div>
                     <span className="text-orange-400 text-xs">Query Rewrite</span>
                   </div>
                 )}
                 {useFactChecking && (
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1" title="Fact Checking proverava tačnost informacija">
                     <div className="w-1.5 h-1.5 bg-green-400 rounded-full"></div>
                     <span className="text-green-400 text-xs">Fact Check</span>
                   </div>
@@ -215,6 +215,7 @@ export default function ChatArea({
                       <button
                         onClick={() => setUseRAG?.(!useRAG)}
                         className="flex items-center gap-1 text-sm ml-auto"
+                        title={useRAG ? "Isključi RAG mode" : "Uključi RAG mode"}
                       >
                         {useRAG ? (
                           <>
@@ -240,6 +241,7 @@ export default function ChatArea({
                         <button
                           onClick={() => setUseEnhancedContext?.(!useEnhancedContext)}
                           className="flex items-center gap-1 text-sm ml-auto"
+                          title={useEnhancedContext ? "Isključi Enhanced Context" : "Uključi Enhanced Context"}
                         >
                           {useEnhancedContext ? (
                             <>
@@ -266,6 +268,7 @@ export default function ChatArea({
                         <button
                           onClick={() => setUseRerank?.(!useRerank)}
                           className="flex items-center gap-1 text-sm ml-auto"
+                          title={useRerank ? "Isključi Re-ranking" : "Uključi Re-ranking"}
                         >
                           {useRerank ? (
                             <>
@@ -292,6 +295,7 @@ export default function ChatArea({
                         <button
                           onClick={() => setUseQueryRewriting?.(!useQueryRewriting)}
                           className="flex items-center gap-1 text-sm ml-auto"
+                          title={useQueryRewriting ? "Isključi Query Rewriting" : "Uključi Query Rewriting"}
                         >
                           {useQueryRewriting ? (
                             <>
@@ -318,6 +322,7 @@ export default function ChatArea({
                         <button
                           onClick={() => setUseFactChecking?.(!useFactChecking)}
                           className="flex items-center gap-1 text-sm ml-auto"
+                          title={useFactChecking ? "Isključi Fact Checking" : "Uključi Fact Checking"}
                         >
                           {useFactChecking ? (
                             <>
