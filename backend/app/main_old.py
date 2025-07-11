@@ -4,7 +4,6 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Request, WebSocket, WebSocketDisconnect, Form, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from ollama import Client
 from sqlalchemy.orm import Session
 from typing import List, Optional, Dict, Any
 import uuid
@@ -25,7 +24,7 @@ import logging
 load_dotenv()
 
 # Inicijalizuj Ollama klijenta
-client = Client(host='http://localhost:11434')
+# client = Client(host='http://localhost:11434')  // UKLONJENO
 
 app = FastAPI()
 
@@ -126,13 +125,13 @@ async def test_model():
     try:
         # Test poziv ka Ollama API-ju koristeći Mistral model (bez await)
         enhanced_prompt = create_enhanced_prompt("Zdravo! Kako si?")
-        response = client.chat(model='mistral', 
-            messages=[{
-                'role': 'user',
-                'content': enhanced_prompt
-            }]
-        )
-        return {"status": "success", "response": response['message']['content']}
+        # response = client.chat(model='mistral', 
+        #     messages=[{
+        #         'role': 'user',
+        #         'content': enhanced_prompt
+        #     }]
+        # )
+        return {"status": "success", "response": enhanced_prompt}
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
@@ -161,14 +160,14 @@ async def chat_endpoint(message: dict, db: Session = Depends(get_db)):
         enhanced_prompt = create_enhanced_prompt(user_message, context)
         
         # Pozovi Ollama API (bez await)
-        response = client.chat(model='mistral', 
-            messages=[{
-                'role': 'user',
-                'content': enhanced_prompt
-            }]
-        )
+        # response = client.chat(model='mistral', 
+        #     messages=[{
+        #         'role': 'user',
+        #         'content': enhanced_prompt
+        #     }]
+        # )
         
-        ai_response = response['message']['content']
+        ai_response = enhanced_prompt
         
         # Sačuvaj AI odgovor u bazu
         ai_db_message = ChatMessage(

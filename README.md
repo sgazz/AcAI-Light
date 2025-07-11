@@ -77,7 +77,7 @@ Sva detaljna dokumentacija se nalazi u [`docs/`](docs/) folderu:
 Frontend (Next.js) ←→ Backend (FastAPI) ←→ AI Services (Ollama)
      ↓                    ↓                      ↓
 WebSocket Chat    Redis Caching        Query Rewriting
-Voice Input       Async Processing     Fact Checking
+Voice Input       Local Storage        Fact Checking
 File Handling     Error Handling       Context Selection
 Session Mgmt      Performance Monitor  Multi-step RAG
 Mobile Responsive Virtual Scrolling    Code Highlighting
@@ -112,7 +112,7 @@ Mobile Responsive Virtual Scrolling    Code Highlighting
 
 ### **Backend:**
 - FastAPI, Python 3.11+, Redis
-- Supabase, Ollama, Pytesseract
+- Ollama, Pytesseract, Local Storage
 
 ### **Performance:**
 - Virtual Scrolling, Caching, Async Processing

@@ -1,51 +1,43 @@
+# Osnovni web framework
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-ollama
+
+# Environment i konfiguracija
 python-dotenv==1.0.0
+
+# Baza podataka
 sqlalchemy
-pydantic==2.5.0
+pydantic==2.4.2
 pydantic-settings==2.1.0
-faiss-cpu
-sentence-transformers==2.2.2
-PyPDF2
-python-docx
-python-multipart==0.0.6
-numpy>=1.26.0
-Pillow>=10.2.0
-opencv-python==4.8.1.78
-pytesseract==0.3.10
-logging
-
-# AI i ML biblioteke
-openai==1.3.7
-langchain==0.0.350
-langchain-community==0.0.1
-langchain-openai==0.0.2
-scikit-learn>=1.4.0
-
-# OCR biblioteke
-python-pptx==0.6.23
 
 # HTTP klijenti
-httpx==0.25.2
 requests==2.31.0
 aiohttp==3.9.1
 websockets==12.0
 
-# Ollama integracija
-ollama==0.1.7
+# File handling
+python-multipart==0.0.6
+PyPDF2
+python-docx
+python-pptx==0.6.23
 
-# Supabase integracija
-supabase==2.0.2
-postgrest==0.13.2
+# Image processing
+Pillow>=10.2.0
+opencv-python==4.8.1.78
+pytesseract==0.3.10
 
-# Cache i Redis
-redis==6.2.0
+# ML i AI biblioteke
+faiss-cpu
+sentence-transformers>=2.5.0
+huggingface-hub>=0.20.0
+transformers>=4.41.0
+numpy<2.0.0
 
 # Utility biblioteke
 python-dateutil==2.8.2
 pytz==2023.3
 aiofiles==23.2.1
-
-# RAG Unapređenja - Performance i Analytics
 psutil>=5.9.0
+
+# Cache
+redis==6.2.0

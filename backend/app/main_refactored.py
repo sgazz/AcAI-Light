@@ -146,43 +146,7 @@ async def get_http_session():
 # Inicijalizuj servise
 rag_service = RAGService(use_supabase=True)
 ocr_service = OCRService()
-ollama_client = Client(host="http://localhost:11434")
 career_guidance_service = CareerGuidanceService()
-
-async def preload_ollama_models():
-    """Preload-uje Ollama modele na startup-u"""
-    global model_loading_status
-    
-    models_to_preload = ["mistral:latest", "llama3.2:latest"]
-    
-    for model in models_to_preload:
-        try:
-            print(f"🔄 Preload-ujem model: {model}")
-            start_time = time.time()
-            
-            response = ollama_client.chat(
-                model=model,
-                messages=[{"role": "user", "content": "test"}],
-                stream=False
-            )
-            
-            load_time = time.time() - start_time
-            model_loading_status[model] = True
-            preloaded_models[model] = {
-                "loaded_at": datetime.now(),
-                "load_time": load_time,
-                "status": "ready"
-            }
-            
-            print(f"✅ Model {model} uspešno preload-ovan za {load_time:.2f}s")
-            
-        except Exception as e:
-            print(f"❌ Greška pri preload-ovanju modela {model}: {e}")
-            model_loading_status[model] = False
-            preloaded_models[model] = {
-                "status": "error",
-                "error": str(e)
-            }
 
 def get_model_status(model: str = "mistral") -> Dict[str, Any]:
     """Dohvati status preload-ovanog modela"""
@@ -289,12 +253,6 @@ def create_enhanced_prompt(user_message: str, context: str = "") -> str:
         return f"{SYSTEM_PROMPT}\n\n{CONTEXT_PROMPT}\n\nPrethodni kontekst:\n{context}\n\nKorisnik: {user_message}\n\nAI Asistent:"
     else:
         return f"{SYSTEM_PROMPT}\n\nKorisnik: {user_message}\n\nAI Asistent:"
-
-async def ollama_chat_async(*args, **kwargs):
-    """Asinhrona wrapper funkcija za Ollama chat"""
-    return await asyncio.get_event_loop().run_in_executor(
-        None, lambda: ollama_client.chat(*args, **kwargs)
-    )
 
 # ============================================================================
 # HEALTH & STATUS ENDPOINTS

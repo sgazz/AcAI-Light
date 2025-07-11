@@ -55,8 +55,8 @@ const sampleData = {
       parentId: 'backend'
     },
     {
-      id: 'supabase',
-      content: 'Supabase',
+              id: 'database',
+        content: 'Database',
       position: { x: 700, y: 100 },
       color: '#f97316',
       size: 'small' as const,
@@ -108,7 +108,7 @@ const sampleData = {
     {
       id: 'conn6',
       from: 'backend',
-      to: 'supabase',
+              to: 'database',
       type: 'dashed',
       color: '#ec4899',
       thickness: 2

@@ -1,598 +1,498 @@
-#!/usr/bin/env python3
 """
-Problem Generator Service
-AI-powered generisanje problema za studente
+Problem Generator Service - Lokalna verzija
+Generiše probleme bez Supabase integracije
 """
 
-import uuid
+import os
 import json
 import logging
-from datetime import datetime, timezone
 from typing import List, Dict, Any, Optional
+from datetime import datetime, timedelta
 from enum import Enum
-from dataclasses import dataclass
-from ollama import Client
-
-# Supabase integracija
-try:
-    from .supabase_client import get_supabase_manager
-    SUPABASE_AVAILABLE = True
-except ImportError:
-    SUPABASE_AVAILABLE = False
-    print("⚠️ Supabase nije dostupan - problemi se neće čuvati u bazi")
+from .config import Config
 
 logger = logging.getLogger(__name__)
 
-class Subject(Enum):
-    """Podržani predmeti"""
+class Subject(str, Enum):
     MATHEMATICS = "mathematics"
     PHYSICS = "physics"
     CHEMISTRY = "chemistry"
-    PROGRAMMING = "programming"
+    BIOLOGY = "biology"
+    COMPUTER_SCIENCE = "computer_science"
+    GENERAL = "general"
 
-class Difficulty(Enum):
-    """Nivoi težine"""
-    BEGINNER = "beginner"
-    INTERMEDIATE = "intermediate"
-    ADVANCED = "advanced"
+class Difficulty(str, Enum):
+    EASY = "easy"
+    MEDIUM = "medium"
+    HARD = "hard"
 
-class ProblemType(Enum):
-    """Tipovi problema"""
+class ProblemType(str, Enum):
     MULTIPLE_CHOICE = "multiple_choice"
-    OPEN_ENDED = "open_ended"
-    STEP_BY_STEP = "step_by_step"
+    SHORT_ANSWER = "short_answer"
+    ESSAY = "essay"
+    CALCULATION = "calculation"
     TRUE_FALSE = "true_false"
-    FILL_IN_BLANK = "fill_in_blank"
-
-@dataclass
-class ProblemTemplate:
-    """Šablon za generisanje problema"""
-    subject: Subject
-    topic: str
-    difficulty: Difficulty
-    problem_type: ProblemType
-    template: str
-    parameters: Dict[str, Any]
-    solution_template: str
-    hints: List[str]
-    tags: List[str]
-
-@dataclass
-class GeneratedProblem:
-    """Generisan problem"""
-    problem_id: str
-    subject: Subject
-    topic: str
-    difficulty: Difficulty
-    problem_type: ProblemType
-    question: str
-    options: List[str] = None
-    correct_answer: Any = None
-    solution: str = None
-    hints: List[str] = None
-    explanation: str = None
-    tags: List[str] = None
-    created_at: datetime = None
 
 class ProblemGenerator:
-    """Glavna klasa za generisanje problema"""
+    """Problem Generator servis za lokalni storage"""
     
-    def __init__(self, ollama_client: Client = None):
-        self.ollama_client = ollama_client or Client(host="http://localhost:11434")
+    def __init__(self):
+        """Inicijalizuj Problem Generator servis"""
+        self.data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'problems')
+        self.problems_file = os.path.join(self.data_dir, 'problems.json')
+        self.templates_file = os.path.join(self.data_dir, 'templates.json')
+        self.categories_file = os.path.join(self.data_dir, 'categories.json')
+        
+        # Kreiraj direktorijum ako ne postoji
+        os.makedirs(self.data_dir, exist_ok=True)
+        
+        # Učitaj postojeće podatke
+        self.problems = self._load_problems()
         self.templates = self._load_templates()
+        self.categories = self._load_categories()
         
-        # Supabase integracija
-        self.supabase_manager = None
-        if SUPABASE_AVAILABLE:
-            try:
-                self.supabase_manager = get_supabase_manager()
-                logger.info("✅ Supabase povezivanje uspešno za Problem Generator")
+        # Inicijalizuj default kategorije ako ne postoje
+        if not self.categories:
+            self._init_default_categories()
+    
+    def _load_problems(self) -> List[Dict[str, Any]]:
+        """Učitaj probleme iz lokalnog storage-a"""
+        try:
+            if os.path.exists(self.problems_file):
+                with open(self.problems_file, 'r', encoding='utf-8') as f:
+                    problems = json.load(f)
+                logger.info(f"Učitano {len(problems)} problema")
+                return problems
+            else:
+                logger.info("Nema postojećih problema")
+                return []
+        except Exception as e:
+            logger.error(f"Greška pri učitavanju problema: {e}")
+            return []
+    
+    def _save_problems(self):
+        """Sačuvaj probleme u lokalni storage"""
+        try:
+            with open(self.problems_file, 'w', encoding='utf-8') as f:
+                json.dump(self.problems, f, ensure_ascii=False, indent=2)
+            logger.info(f"Sačuvano {len(self.problems)} problema")
+        except Exception as e:
+            logger.error(f"Greška pri čuvanju problema: {e}")
+    
+    def _load_templates(self) -> List[Dict[str, Any]]:
+        """Učitaj template-ove iz lokalnog storage-a"""
+        try:
+            if os.path.exists(self.templates_file):
+                with open(self.templates_file, 'r', encoding='utf-8') as f:
+                    templates = json.load(f)
+                logger.info(f"Učitano {len(templates)} template-ova")
+                return templates
+            else:
+                logger.info("Nema postojećih template-ova")
+                return []
+        except Exception as e:
+            logger.error(f"Greška pri učitavanju template-ova: {e}")
+            return []
+    
+    def _save_templates(self):
+        """Sačuvaj template-ove u lokalni storage"""
+        try:
+            with open(self.templates_file, 'w', encoding='utf-8') as f:
+                json.dump(self.templates, f, ensure_ascii=False, indent=2)
+            logger.info(f"Sačuvano {len(self.templates)} template-ova")
+        except Exception as e:
+            logger.error(f"Greška pri čuvanju template-ova: {e}")
+    
+    def _load_categories(self) -> List[Dict[str, Any]]:
+        """Učitaj kategorije iz lokalnog storage-a"""
+        try:
+            if os.path.exists(self.categories_file):
+                with open(self.categories_file, 'r', encoding='utf-8') as f:
+                    categories = json.load(f)
+                logger.info(f"Učitano {len(categories)} kategorija")
+                return categories
+            else:
+                logger.info("Nema postojećih kategorija")
+                return []
             except Exception as e:
-                logger.warning(f"⚠️ Greška pri povezivanju sa Supabase: {e}")
-                self.supabase_manager = None
-        
-    def _load_templates(self) -> Dict[str, ProblemTemplate]:
-        """Učitaj šablone za probleme"""
-        templates = {}
-        
-        # Matematika - Algebra
-        templates["math_algebra_equation"] = ProblemTemplate(
-            subject=Subject.MATHEMATICS,
-            topic="Algebra",
-            difficulty=Difficulty.BEGINNER,
-            problem_type=ProblemType.OPEN_ENDED,
-            template="Reši jednačinu: {equation}",
-            parameters={
-                "equation": ["2x + 5 = 13", "3x - 7 = 8", "5x + 2 = 17", "x/2 + 3 = 7"]
+            logger.error(f"Greška pri učitavanju kategorija: {e}")
+            return []
+    
+    def _save_categories(self):
+        """Sačuvaj kategorije u lokalni storage"""
+        try:
+            with open(self.categories_file, 'w', encoding='utf-8') as f:
+                json.dump(self.categories, f, ensure_ascii=False, indent=2)
+            logger.info(f"Sačuvano {len(self.categories)} kategorija")
+        except Exception as e:
+            logger.error(f"Greška pri čuvanju kategorija: {e}")
+    
+    def _init_default_categories(self):
+        """Inicijalizuj default kategorije"""
+        default_categories = [
+            {
+                'id': 'math_algebra',
+                'name': 'Algebra',
+                'subject': Subject.MATHEMATICS,
+                'description': 'Algebarski problemi i jednačine',
+                'difficulty_levels': [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD],
+                'problem_types': [ProblemType.CALCULATION, ProblemType.MULTIPLE_CHOICE],
+                'created_at': datetime.now().isoformat()
             },
-            solution_template="Korak 1: Oduzmi {constant} sa obe strane\nKorak 2: Podeli sa {coefficient}\nRešenje: x = {solution}",
-            hints=["Prvo izoluj x", "Koristi inverzne operacije"],
-            tags=["algebra", "jednačine", "linearne"]
-        )
-        
-        # Matematika - Geometrija
-        templates["math_geometry_area"] = ProblemTemplate(
-            subject=Subject.MATHEMATICS,
-            topic="Geometrija",
-            difficulty=Difficulty.BEGINNER,
-            problem_type=ProblemType.OPEN_ENDED,
-            template="Izračunaj površinu {shape} sa {dimensions}",
-            parameters={
-                "shape": ["pravougaonika", "kvadrata", "trougla", "kruga"],
-                "dimensions": [
-                    "dužinom {length} i širinom {width}",
-                    "stranicom {side}",
-                    "osnovicom {base} i visinom {height}",
-                    "poluprečnikom {radius}"
-                ]
+            {
+                'id': 'math_geometry',
+                'name': 'Geometrija',
+                'subject': Subject.MATHEMATICS,
+                'description': 'Geometrijski problemi i teoreme',
+                'difficulty_levels': [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD],
+                'problem_types': [ProblemType.CALCULATION, ProblemType.MULTIPLE_CHOICE],
+                'created_at': datetime.now().isoformat()
             },
-            solution_template="Formula: {formula}\nZameni vrednosti: {substitution}\nRešenje: {solution}",
-            hints=["Koristi odgovarajuću formulu", "Proveri jedinice"],
-            tags=["geometrija", "površina", "formule"]
-        )
-        
-        # Fizika - Mehanika
-        templates["physics_mechanics_kinematics"] = ProblemTemplate(
-            subject=Subject.PHYSICS,
-            topic="Mehanika",
-            difficulty=Difficulty.BEGINNER,
-            problem_type=ProblemType.OPEN_ENDED,
-            template="Telo se kreće sa početnom brzinom {v0} m/s i ubrzanjem {a} m/s². Kolika je brzina nakon {t} sekundi?",
-            parameters={
-                "v0": [0, 5, 10, 15],
-                "a": [2, 3, 4, 5],
-                "t": [2, 3, 4, 5]
+            {
+                'id': 'physics_mechanics',
+                'name': 'Mehanika',
+                'subject': Subject.PHYSICS,
+                'description': 'Problemi iz mehanike i kretanja',
+                'difficulty_levels': [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD],
+                'problem_types': [ProblemType.CALCULATION, ProblemType.MULTIPLE_CHOICE],
+                'created_at': datetime.now().isoformat()
             },
-            solution_template="Formula: v = v₀ + at\nZameni: v = {v0} + {a} × {t}\nRešenje: v = {solution} m/s",
-            hints=["Koristi kinematičku formulu", "Proveri jedinice"],
-            tags=["fizika", "kinematika", "brzina"]
-        )
-        
-        # Hemija - Stehiometrija
-        templates["chemistry_stoichiometry"] = ProblemTemplate(
-            subject=Subject.CHEMISTRY,
-            topic="Stehiometrija",
-            difficulty=Difficulty.INTERMEDIATE,
-            problem_type=ProblemType.OPEN_ENDED,
-            template="Koliko grama {product} se dobija iz {mass} g {reactant}?",
-            parameters={
-                "reactant": ["NaOH", "HCl", "H₂SO₄", "Na₂CO₃"],
-                "product": ["NaCl", "H₂O", "Na₂SO₄", "CO₂"],
-                "mass": [10, 20, 30, 40]
+            {
+                'id': 'physics_electricity',
+                'name': 'Elektricitet',
+                'subject': Subject.PHYSICS,
+                'description': 'Problemi iz elektriciteta i magnetizma',
+                'difficulty_levels': [Difficulty.MEDIUM, Difficulty.HARD],
+                'problem_types': [ProblemType.CALCULATION, ProblemType.MULTIPLE_CHOICE],
+                'created_at': datetime.now().isoformat()
             },
-            solution_template="Korak 1: Napiši jednačinu\nKorak 2: Izračunaj molove\nKorak 3: Koristi stehiometriju\nRešenje: {solution} g",
-            hints=["Prvo napiši hemijsku jednačinu", "Koristi molove"],
-            tags=["hemija", "stehiometrija", "reakcije"]
-        )
-        
-        # Programiranje - Algoritmi
-        templates["programming_algorithms"] = ProblemTemplate(
-            subject=Subject.PROGRAMMING,
-            topic="Algoritmi",
-            difficulty=Difficulty.BEGINNER,
-            problem_type=ProblemType.OPEN_ENDED,
-            template="Napiši algoritam za {task}",
-            parameters={
-                "task": [
-                    "pronalaženje maksimuma u nizu",
-                    "sortiranje niza brojeva",
-                    "proveru da li je broj prost",
-                    "računanje faktorijela"
-                ]
+            {
+                'id': 'chemistry_organic',
+                'name': 'Organska hemija',
+                'subject': Subject.CHEMISTRY,
+                'description': 'Problemi iz organske hemije',
+                'difficulty_levels': [Difficulty.MEDIUM, Difficulty.HARD],
+                'problem_types': [ProblemType.MULTIPLE_CHOICE, ProblemType.SHORT_ANSWER],
+                'created_at': datetime.now().isoformat()
             },
-            solution_template="Pseudokod:\n{algorithm}\n\nImplementacija:\n{code}",
-            hints=["Razmisli o koracima", "Koristi petlje i uslove"],
-            tags=["programiranje", "algoritmi", "logika"]
-        )
+            {
+                'id': 'cs_programming',
+                'name': 'Programiranje',
+                'subject': Subject.COMPUTER_SCIENCE,
+                'description': 'Problemi iz programiranja i algoritama',
+                'difficulty_levels': [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD],
+                'problem_types': [ProblemType.SHORT_ANSWER, ProblemType.ESSAY],
+                'created_at': datetime.now().isoformat()
+            }
+        ]
+        
+        self.categories = default_categories
+        self._save_categories()
+        logger.info("Default kategorije inicijalizovane")
+    
+    def create_problem(self, problem_data: Dict[str, Any]) -> str:
+        """Kreira novi problem"""
+        try:
+            problem_id = f"problem_{len(self.problems)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            problem = {
+                'id': problem_id,
+                'title': problem_data.get('title', 'Bez naslova'),
+                'content': problem_data.get('content', ''),
+                'subject': problem_data.get('subject', Subject.GENERAL),
+                'category': problem_data.get('category', 'general'),
+                'difficulty': problem_data.get('difficulty', Difficulty.MEDIUM),
+                'problem_type': problem_data.get('problem_type', ProblemType.MULTIPLE_CHOICE),
+                'options': problem_data.get('options', []),
+                'correct_answer': problem_data.get('correct_answer', ''),
+                'explanation': problem_data.get('explanation', ''),
+                'solution': problem_data.get('solution', ''),
+                'tags': problem_data.get('tags', []),
+                'points': problem_data.get('points', 1),
+                'is_active': problem_data.get('is_active', True),
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(),
+                'metadata': problem_data.get('metadata', {})
+            }
+            
+            self.problems.append(problem)
+            self._save_problems()
+            
+            logger.info(f"Problem {problem_id} uspešno kreiran")
+            return problem_id
+            
+        except Exception as e:
+            logger.error(f"Greška pri kreiranju problema: {e}")
+            raise
+    
+    def get_problem(self, problem_id: str) -> Optional[Dict[str, Any]]:
+        """Dohvati problem po ID-u"""
+        for problem in self.problems:
+            if problem['id'] == problem_id:
+                return problem
+            return None
+    
+    def update_problem(self, problem_id: str, update_data: Dict[str, Any]) -> bool:
+        """Ažuriraj postojeći problem"""
+        try:
+            for problem in self.problems:
+                if problem['id'] == problem_id:
+                    # Ažuriraj polja
+                    for key, value in update_data.items():
+                        if key in ['title', 'content', 'subject', 'category', 'difficulty', 
+                                 'problem_type', 'options', 'correct_answer', 'explanation', 
+                                 'solution', 'tags', 'points', 'is_active', 'metadata']:
+                            problem[key] = value
+                    
+                    problem['updated_at'] = datetime.now().isoformat()
+                    self._save_problems()
+                    
+                    logger.info(f"Problem {problem_id} uspešno ažuriran")
+                    return True
+            
+            logger.warning(f"Problem {problem_id} nije pronađen")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Greška pri ažuriranju problema: {e}")
+            return False
+    
+    def delete_problem(self, problem_id: str) -> bool:
+        """Obriši problem"""
+        try:
+            for i, problem in enumerate(self.problems):
+                if problem['id'] == problem_id:
+                    removed_problem = self.problems.pop(i)
+                    self._save_problems()
+                    
+                    logger.info(f"Problem {problem_id} uspešno obrisan")
+                    return True
+            
+            logger.warning(f"Problem {problem_id} nije pronađen")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Greška pri brisanju problema: {e}")
+            return False
+    
+    def list_problems(self, filters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+        """Lista svih problema sa opcionim filterima"""
+        try:
+            problems = self.problems.copy()
+            
+            if filters:
+                # Primeni filtere
+                if 'subject' in filters:
+                    problems = [p for p in problems if p.get('subject') == filters['subject']]
+                
+                if 'category' in filters:
+                    problems = [p for p in problems if p.get('category') == filters['category']]
+                
+                if 'difficulty' in filters:
+                    problems = [p for p in problems if p.get('difficulty') == filters['difficulty']]
+                
+                if 'problem_type' in filters:
+                    problems = [p for p in problems if p.get('problem_type') == filters['problem_type']]
+                
+                if 'is_active' in filters:
+                    problems = [p for p in problems if p.get('is_active') == filters['is_active']]
+                
+                if 'tags' in filters:
+                    tag_filter = filters['tags']
+                    if isinstance(tag_filter, list):
+                        problems = [p for p in problems if any(tag in p.get('tags', []) for tag in tag_filter)]
+            else:
+                        problems = [p for p in problems if tag_filter in p.get('tags', [])]
+            
+            # Sortiraj po datumu kreiranja (najnoviji prvi)
+            problems.sort(key=lambda x: x['created_at'], reverse=True)
+            
+            return problems
+            
+        except Exception as e:
+            logger.error(f"Greška pri listanju problema: {e}")
+            return []
+    
+    def generate_problem_set(self, 
+                           subject: Subject = Subject.GENERAL,
+                           category: str = None,
+                           difficulty: Difficulty = Difficulty.MEDIUM,
+                           problem_type: ProblemType = ProblemType.MULTIPLE_CHOICE,
+                           count: int = 5) -> List[Dict[str, Any]]:
+        """Generiše set problema na osnovu kriterijuma"""
+        try:
+            # Filtriraj probleme
+            available_problems = []
+            for problem in self.problems:
+                if not problem.get('is_active', True):
+                    continue
+                
+                if problem.get('subject') != subject:
+                    continue
+                
+                if category and problem.get('category') != category:
+                    continue
+                
+                if problem.get('difficulty') != difficulty:
+                    continue
+                
+                if problem.get('problem_type') != problem_type:
+                    continue
+                
+                available_problems.append(problem)
+            
+            # Ako nema dovoljno problema, dodaj probleme iz sličnih kategorija
+            if len(available_problems) < count:
+                for problem in self.problems:
+                    if not problem.get('is_active', True):
+                        continue
+                    
+                    if problem.get('subject') == subject and problem not in available_problems:
+                        available_problems.append(problem)
+                    
+                    if len(available_problems) >= count:
+                        break
+            
+            # Ako i dalje nema dovoljno, dodaj generalne probleme
+            if len(available_problems) < count:
+                for problem in self.problems:
+                    if not problem.get('is_active', True):
+                        continue
+                    
+                    if problem.get('subject') == Subject.GENERAL and problem not in available_problems:
+                        available_problems.append(problem)
+                    
+                    if len(available_problems) >= count:
+                        break
+            
+            # Vraća traženi broj problema
+            return available_problems[:count]
+            
+        except Exception as e:
+            logger.error(f"Greška pri generisanju problem set-a: {e}")
+            return []
+        
+    def create_template(self, template_data: Dict[str, Any]) -> str:
+        """Kreira novi template za probleme"""
+        try:
+            template_id = f"template_{len(self.templates)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            template = {
+                'id': template_id,
+                'name': template_data.get('name', 'Bez imena'),
+                'description': template_data.get('description', ''),
+                'subject': template_data.get('subject', Subject.GENERAL),
+                'category': template_data.get('category', 'general'),
+                'template_text': template_data.get('template_text', ''),
+                'variables': template_data.get('variables', []),
+                'constraints': template_data.get('constraints', {}),
+                'difficulty_range': template_data.get('difficulty_range', [Difficulty.MEDIUM]),
+                'problem_types': template_data.get('problem_types', [ProblemType.MULTIPLE_CHOICE]),
+                'is_active': template_data.get('is_active', True),
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(),
+                'metadata': template_data.get('metadata', {})
+            }
+            
+            self.templates.append(template)
+            self._save_templates()
+            
+            logger.info(f"Template {template_id} uspešno kreiran")
+            return template_id
+            
+        except Exception as e:
+            logger.error(f"Greška pri kreiranju template-a: {e}")
+            raise
+    
+    def get_template(self, template_id: str) -> Optional[Dict[str, Any]]:
+        """Dohvati template po ID-u"""
+        for template in self.templates:
+            if template['id'] == template_id:
+                return template
+            return None
+    
+    def list_templates(self, subject: Subject = None) -> List[Dict[str, Any]]:
+        """Lista svih template-ova"""
+        templates = self.templates.copy()
+        
+        if subject:
+            templates = [t for t in templates if t.get('subject') == subject]
         
         return templates
     
-    def generate_problem(
-        self,
-        subject: Subject,
-        topic: str = None,
-        difficulty: Difficulty = Difficulty.BEGINNER,
-        problem_type: ProblemType = None
-    ) -> GeneratedProblem:
-        """Generiši problem na osnovu parametara"""
+    def generate_from_template(self, template_id: str, variables: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Generiše problem iz template-a"""
         try:
-            # Odaberi odgovarajući šablon
-            template = self._select_template(subject, topic, difficulty, problem_type)
+            template = self.get_template(template_id)
             if not template:
-                raise ValueError(f"Nema dostupnih šablona za {subject.value}, {topic}, {difficulty.value}")
+                raise Exception(f"Template {template_id} nije pronađen")
             
-            # Generiši problem koristeći AI
-            generated_problem = self._generate_with_ai(template)
+            if not template.get('is_active', True):
+                raise Exception(f"Template {template_id} nije aktivan")
             
-            # Kreiraj problem objekat
-            problem = GeneratedProblem(
-                problem_id=str(uuid.uuid4()),
-                subject=template.subject,
-                topic=template.topic,
-                difficulty=template.difficulty,
-                problem_type=template.problem_type,
-                question=generated_problem["question"],
-                options=generated_problem.get("options"),
-                correct_answer=generated_problem.get("correct_answer"),
-                solution=generated_problem.get("solution"),
-                hints=template.hints,
-                explanation=generated_problem.get("explanation"),
-                tags=template.tags,
-                created_at=datetime.now(timezone.utc)
-            )
+            # Jednostavna implementacija - zameni varijable u template tekstu
+            template_text = template.get('template_text', '')
+            if variables:
+                for key, value in variables.items():
+                    template_text = template_text.replace(f"{{{key}}}", str(value))
             
-            # Sačuvaj problem u bazu
-            self.save_problem_to_database(problem)
+            # Kreiraj problem iz template-a
+            problem_data = {
+                'title': f"Problem iz template-a: {template.get('name', '')}",
+                'content': template_text,
+                'subject': template.get('subject', Subject.GENERAL),
+                'category': template.get('category', 'general'),
+                'difficulty': template.get('difficulty_range', [Difficulty.MEDIUM])[0],
+                'problem_type': template.get('problem_types', [ProblemType.MULTIPLE_CHOICE])[0],
+                'tags': ['template_generated'],
+                'metadata': {
+                    'template_id': template_id,
+                    'variables_used': variables or {}
+                }
+            }
             
-            logger.info(f"✅ Problem generisan: {problem.problem_id}")
-            return problem
+            problem_id = self.create_problem(problem_data)
+            return self.get_problem(problem_id)
             
         except Exception as e:
-            logger.error(f"❌ Greška pri generisanju problema: {e}")
+            logger.error(f"Greška pri generisanju iz template-a: {e}")
             raise
     
-    def _select_template(
-        self,
-        subject: Subject,
-        topic: str = None,
-        difficulty: Difficulty = Difficulty.BEGINNER,
-        problem_type: ProblemType = None
-    ) -> Optional[ProblemTemplate]:
-        """Odaberi odgovarajući šablon"""
-        available_templates = []
+    def get_categories(self, subject: Subject = None) -> List[Dict[str, Any]]:
+        """Dohvati kategorije"""
+        categories = self.categories.copy()
         
-        for template in self.templates.values():
-            if template.subject == subject:
-                if topic and template.topic.lower() != topic.lower():
-                    continue
-                if difficulty and template.difficulty != difficulty:
-                    continue
-                if problem_type and template.problem_type != problem_type:
-                    continue
-                available_templates.append(template)
+        if subject:
+            categories = [c for c in categories if c.get('subject') == subject]
         
-        if not available_templates:
-            return None
-        
-        # Za sada vraćamo prvi dostupan, kasnije možemo dodati random odabir
-        return available_templates[0]
+        return categories
     
-    def _generate_with_ai(self, template: ProblemTemplate) -> Dict[str, Any]:
-        """Generiši problem koristeći AI"""
+    def get_stats(self) -> Dict[str, Any]:
+        """Dohvati statistike problem generator sistema"""
         try:
-            # Kreiraj prompt za AI
-            prompt = self._create_generation_prompt(template)
-            
-            # Pozovi AI model
-            response = self.ollama_client.chat(
-                model="mistral:latest",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": "Ti si ekspert za kreiranje edukativnih problema. Kreiraj probleme koji su jasni, tačni i edukativni."
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                stream=False
-            )
-            
-            # Parsiraj odgovor
-            content = response.get("message", {}).get("content", "")
-            return self._parse_ai_response(content, template)
-            
-        except Exception as e:
-            logger.error(f"❌ Greška pri AI generisanju: {e}")
-            # Fallback na statički generisan problem
-            return self._generate_static_problem(template)
-    
-    def _create_generation_prompt(self, template: ProblemTemplate) -> str:
-        """Kreiraj prompt za AI generisanje"""
-        return f"""
-Kreiraj edukativni problem za {template.subject.value} - {template.topic} na nivou {template.difficulty.value}.
-
-Šablon: {template.template}
-Tip problema: {template.problem_type.value}
-
-Parametri za varijaciju:
-{json.dumps(template.parameters, indent=2)}
-
-Kreiraj problem u JSON formatu:
-{{
-    "question": "pitanje",
-    "options": ["opcija1", "opcija2", ...],  // ako je multiple choice
-    "correct_answer": "tačan odgovor",
-    "solution": "korak-po-korak rešenje",
-    "explanation": "objašnjenje rešenja"
-}}
-
-Problem treba da bude:
-- Jasno formulisan
-- Na odgovarajućem nivou težine
-- Sa tačnim rešenjem
-- Edukativan i koristan za studente
-"""
-    
-    def _parse_ai_response(self, content: str, template: ProblemTemplate) -> Dict[str, Any]:
-        """Parsiraj AI odgovor"""
-        try:
-            # Pokušaj da pronađeš JSON u odgovoru
-            start_idx = content.find('{')
-            end_idx = content.rfind('}') + 1
-            
-            if start_idx != -1 and end_idx != 0:
-                json_str = content[start_idx:end_idx]
-                return json.loads(json_str)
-            else:
-                # Fallback ako nema JSON
-                return self._generate_static_problem(template)
-                
-        except json.JSONDecodeError:
-            logger.warning("AI odgovor nije validan JSON, koristim fallback")
-            return self._generate_static_problem(template)
-    
-    def _generate_static_problem(self, template: ProblemTemplate) -> Dict[str, Any]:
-        """Generiši statički problem kao fallback"""
-        import random
-        
-        # Za sada koristimo jednostavan pristup
-        if template.subject == Subject.MATHEMATICS:
-            if "algebra" in template.topic.lower():
-                a = random.randint(1, 10)
-                b = random.randint(1, 10)
-                c = random.randint(1, 20)
-                equation = f"{a}x + {b} = {c}"
-                solution = (c - b) / a
-                
-                return {
-                    "question": f"Reši jednačinu: {equation}",
-                    "correct_answer": solution,
-                    "solution": f"Korak 1: Oduzmi {b} sa obe strane\n{equation} → {a}x = {c-b}\nKorak 2: Podeli sa {a}\nx = {solution}",
-                    "explanation": f"Rešenje je x = {solution}. Možemo proveriti zamenom u originalnu jednačinu."
-                }
-        
-        # Fallback za ostale predmete
-        return {
-            "question": f"Problem iz {template.topic}",
-            "correct_answer": "Odgovor",
-            "solution": "Korak-po-korak rešenje",
-            "explanation": "Objašnjenje rešenja"
-        }
-    
-    def validate_answer(
-        self, 
-        problem: GeneratedProblem, 
-        user_answer: Any,
-        user_id: str = "anonymous",
-        username: str = "Anonymous",
-        time_taken_seconds: int = 0,
-        hints_used: int = 0,
-        solution_viewed: bool = False
-    ) -> Dict[str, Any]:
-        """Validiraj odgovor korisnika"""
-        try:
-            is_correct = False
-            feedback = ""
-            
-            if problem.problem_type == ProblemType.MULTIPLE_CHOICE:
-                is_correct = str(user_answer).strip().lower() == str(problem.correct_answer).strip().lower()
-            elif problem.problem_type == ProblemType.TRUE_FALSE:
-                is_correct = str(user_answer).strip().lower() == str(problem.correct_answer).strip().lower()
-            else:
-                # Za open-ended probleme, pokušaj numeričku proveru
-                try:
-                    user_num = float(user_answer)
-                    correct_num = float(problem.correct_answer)
-                    is_correct = abs(user_num - correct_num) < 0.01  # Tolerancija
-                except:
-                    # Ako nije numerički, poredi stringove
-                    is_correct = str(user_answer).strip().lower() == str(problem.correct_answer).strip().lower()
-            
-            if is_correct:
-                feedback = "Odlično! Vaš odgovor je tačan."
-            else:
-                feedback = f"Vaš odgovor nije tačan. Tačan odgovor je: {problem.correct_answer}"
-            
-            # Sačuvaj pokušaj u bazu
-            self.save_attempt_to_database(
-                problem_id=problem.problem_id,
-                user_id=user_id,
-                username=username,
-                user_answer=str(user_answer),
-                is_correct=is_correct,
-                time_taken_seconds=time_taken_seconds,
-                hints_used=hints_used,
-                solution_viewed=solution_viewed
-            )
-            
             return {
-                "is_correct": is_correct,
-                "feedback": feedback,
-                "correct_answer": problem.correct_answer,
-                "explanation": problem.explanation
+                'total_problems': len(self.problems),
+                'total_templates': len(self.templates),
+                'total_categories': len(self.categories),
+                'active_problems': len([p for p in self.problems if p.get('is_active', True)]),
+                'active_templates': len([t for t in self.templates if t.get('is_active', True)]),
+                'problems_by_subject': {
+                    subject.value: len([p for p in self.problems if p.get('subject') == subject])
+                    for subject in Subject
+                },
+                'problems_by_difficulty': {
+                    difficulty.value: len([p for p in self.problems if p.get('difficulty') == difficulty])
+                    for difficulty in Difficulty
+                },
+                'last_updated': datetime.now().isoformat()
             }
-            
         except Exception as e:
-            logger.error(f"❌ Greška pri validaciji odgovora: {e}")
-            return {
-                "is_correct": False,
-                "feedback": "Greška pri proveri odgovora",
-                "correct_answer": problem.correct_answer,
-                "explanation": problem.explanation
-            }
-    
-    def get_available_subjects(self) -> List[Dict[str, Any]]:
-        """Vrati listu dostupnih predmeta"""
-        subjects = {}
-        
-        for template in self.templates.values():
-            subject_key = template.subject.value
-            if subject_key not in subjects:
-                subjects[subject_key] = {
-                    "name": template.subject.value.title(),
-                    "topics": [],
-                    "difficulties": [],
-                    "problem_types": []
-                }
-            
-            if template.topic not in subjects[subject_key]["topics"]:
-                subjects[subject_key]["topics"].append(template.topic)
-            
-            if template.difficulty not in subjects[subject_key]["difficulties"]:
-                subjects[subject_key]["difficulties"].append(template.difficulty.value)
-            
-            if template.problem_type not in subjects[subject_key]["problem_types"]:
-                subjects[subject_key]["problem_types"].append(template.problem_type.value)
-        
-        return list(subjects.values())
-    
-    # Supabase integracija metode
-    def save_problem_to_database(self, problem: GeneratedProblem) -> Optional[str]:
-        """Sačuvaj problem u Supabase bazu"""
-        if not self.supabase_manager:
-            logger.warning("Supabase nije dostupan - problem se ne čuva")
-            return None
-        
-        try:
-            problem_data = {
-                'problem_id': problem.problem_id,
-                'subject': problem.subject.value,
-                'topic': problem.topic,
-                'difficulty': problem.difficulty.value,
-                'problem_type': problem.problem_type.value,
-                'question': problem.question,
-                'options': problem.options or [],
-                'correct_answer': str(problem.correct_answer) if problem.correct_answer else None,
-                'solution': problem.solution,
-                'hints': problem.hints or [],
-                'explanation': problem.explanation,
-                'tags': problem.tags or [],
-                'ai_generated': True,
-                'created_by': 'system'
-            }
-            
-            result = self.supabase_manager.client.table('problems').insert(problem_data).execute()
-            logger.info(f"✅ Problem sačuvan u bazu sa ID: {problem.problem_id}")
-            return problem.problem_id
-            
-        except Exception as e:
-            logger.error(f"❌ Greška pri čuvanju problema u bazu: {e}")
-            return None
-    
-    def get_problems_from_database(
-        self,
-        subject: str = None,
-        topic: str = None,
-        difficulty: str = None,
-        limit: int = 50
-    ) -> List[Dict[str, Any]]:
-        """Dohvati probleme iz Supabase baze"""
-        if not self.supabase_manager:
-            logger.warning("Supabase nije dostupan - vraćam praznu listu")
-            return []
-        
-        try:
-            query = self.supabase_manager.client.table('problems').select('*')
-            
-            if subject:
-                query = query.eq('subject', subject)
-            if topic:
-                query = query.eq('topic', topic)
-            if difficulty:
-                query = query.eq('difficulty', difficulty)
-            
-            result = query.order('created_at', desc=True).limit(limit).execute()
-            logger.info(f"✅ Dohvaćeno {len(result.data)} problema iz baze")
-            return result.data
-            
-        except Exception as e:
-            logger.error(f"❌ Greška pri dohvatanju problema iz baze: {e}")
-            return []
-    
-    def save_attempt_to_database(
-        self,
-        problem_id: str,
-        user_id: str,
-        username: str,
-        user_answer: str,
-        is_correct: bool,
-        time_taken_seconds: int = 0,
-        hints_used: int = 0,
-        solution_viewed: bool = False
-    ) -> Optional[str]:
-        """Sačuvaj pokušaj rešavanja u bazu"""
-        if not self.supabase_manager:
-            logger.warning("Supabase nije dostupan - pokušaj se ne čuva")
-            return None
-        
-        try:
-            attempt_data = {
-                'problem_id': problem_id,
-                'user_id': user_id,
-                'username': username,
-                'user_answer': user_answer,
-                'is_correct': is_correct,
-                'time_taken_seconds': time_taken_seconds,
-                'hints_used': hints_used,
-                'solution_viewed': solution_viewed
-            }
-            
-            result = self.supabase_manager.client.table('problem_attempts').insert(attempt_data).execute()
-            logger.info(f"✅ Pokušaj sačuvan u bazu")
-            return result.data[0]['attempt_id'] if result.data else None
-            
-        except Exception as e:
-            logger.error(f"❌ Greška pri čuvanju pokušaja u bazu: {e}")
-            return None
-    
-    def get_user_stats(self, user_id: str) -> Dict[str, Any]:
-        """Dohvati korisničke statistike"""
-        if not self.supabase_manager:
-            return {
-                'total_problems_attempted': 0,
-                'total_problems_correct': 0,
-                'total_time_spent_seconds': 0,
-                'accuracy_percentage': 0.0
-            }
-        
-        try:
-            result = self.supabase_manager.client.table('user_problem_stats').select('*').eq('user_id', user_id).execute()
-            
-            if result.data:
-                stats = result.data[0]
-                accuracy = (stats['total_problems_correct'] / stats['total_problems_attempted'] * 100) if stats['total_problems_attempted'] > 0 else 0
-                return {
-                    'total_problems_attempted': stats['total_problems_attempted'],
-                    'total_problems_correct': stats['total_problems_correct'],
-                    'total_time_spent_seconds': stats['total_time_spent_seconds'],
-                    'accuracy_percentage': round(accuracy, 2),
-                    'current_streak': stats['current_streak'],
-                    'longest_streak': stats['longest_streak']
-                }
-            else:
-                return {
-                    'total_problems_attempted': 0,
-                    'total_problems_correct': 0,
-                    'total_time_spent_seconds': 0,
-                    'accuracy_percentage': 0.0,
-                    'current_streak': 0,
-                    'longest_streak': 0
-                }
-                
-        except Exception as e:
-            logger.error(f"❌ Greška pri dohvatanju korisničkih statistika: {e}")
-            return {
-                'total_problems_attempted': 0,
-                'total_problems_correct': 0,
-                'total_time_spent_seconds': 0,
-                'accuracy_percentage': 0.0
-            }
+            logger.error(f"Greška pri dohvatanju problem generator statistika: {e}")
+            return {}
 
 # Globalna instanca
 problem_generator = ProblemGenerator()
 
 def get_problem_generator() -> ProblemGenerator:
-    """Dohvati globalnu instancu Problem Generator-a"""
+    """Dohvati globalnu instancu problem generator servisa"""
     return problem_generator 
