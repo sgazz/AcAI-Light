@@ -580,7 +580,7 @@ export default function ProblemGenerator() {
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="flex items-center justify-between p-4 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-b border-white/10">
+      <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-600/20 to-purple-600/20 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl">
             <FaGraduationCap className="text-white" size={20} />
@@ -599,7 +599,7 @@ export default function ProblemGenerator() {
         </div>
       </div>
       
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-4">
         {currentStep === 'select' && renderSubjectSelection()}
         {currentStep === 'solve' && renderProblemSolving()}
         {currentStep === 'result' && renderResult()}

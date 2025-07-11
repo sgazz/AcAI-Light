@@ -424,7 +424,7 @@ export default function StudyRoom() {
 
         <div className="flex-1 flex">
           <div className="flex-1 flex flex-col">
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div className="flex-1 overflow-y-auto p-3 space-y-3">
               {messages.length === 0 ? (
                 <div className="text-center text-slate-400 mt-8">
                   <FaUsers size={48} className="mx-auto mb-4 opacity-50" />
@@ -538,7 +538,7 @@ export default function StudyRoom() {
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="flex items-center justify-between p-6 border-b border-white/10">
+      <div className="flex items-center justify-between p-4 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl">
             <FaUsers className="text-white" size={24} />
@@ -568,7 +568,7 @@ export default function StudyRoom() {
         </div>
       </div>
 
-      <div className="flex-1 p-6">
+                  <div className="flex-1 p-4">
         {isLoading ? (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
@@ -603,7 +603,7 @@ export default function StudyRoom() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {rooms.map((room) => (
-              <div key={room.room_id} className="bg-slate-800/50 border border-white/10 rounded-2xl p-6 hover:border-blue-500/30 transition-all cursor-pointer group">
+              <div key={room.room_id} className="bg-slate-800/50 border border-white/10 rounded-2xl p-4 hover:border-blue-500/30 transition-all cursor-pointer group">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg">
@@ -646,7 +646,7 @@ export default function StudyRoom() {
 
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-slate-800 border border-white/10 rounded-2xl p-6 w-full max-w-md">
+          <div className="bg-slate-800 border border-white/10 rounded-2xl p-4 w-full max-w-md">
             <h3 className="text-xl font-semibold text-white mb-4">Kreiraj novu sobu</h3>
             
             <div className="space-y-4">
@@ -716,7 +716,7 @@ export default function StudyRoom() {
 
       {showJoinModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-slate-800 border border-white/10 rounded-2xl p-6 w-full max-w-md">
+          <div className="bg-slate-800 border border-white/10 rounded-2xl p-4 w-full max-w-md">
             <h3 className="text-xl font-semibold text-white mb-4">Pridruži se sobi</h3>
             
             <div className="space-y-4">

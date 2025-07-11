@@ -260,9 +260,9 @@ export default function WelcomeScreen({
         <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-pink-400/10 rounded-full blur-3xl"></div>
       </div>
 
-      <div className="relative z-10 container mx-auto px-4 sm:px-6 py-8 sm:py-12 lg:py-16">
+      <div className="relative z-10 container mx-auto px-3 sm:px-4 py-6 sm:py-8 lg:py-12">
         {/* Hero Section */}
-        <div className="text-center mb-12 sm:mb-16 lg:mb-20">
+        <div className="text-center mb-8 sm:mb-12 lg:mb-16">
           <div className="inline-flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
             <div className="relative">
               <div className="p-3 sm:p-4 lg:p-5 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl sm:rounded-3xl">
@@ -309,7 +309,7 @@ export default function WelcomeScreen({
         </div>
 
         {/* Quick Actions */}
-        <div className="mb-12 sm:mb-16 lg:mb-20">
+        <div className="mb-8 sm:mb-12 lg:mb-16">
           <h3 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-white mb-4 sm:mb-6 lg:mb-8 text-center">
             Brzi pristup
           </h3>
@@ -369,7 +369,7 @@ export default function WelcomeScreen({
         </div>
 
         {/* Feature Highlights */}
-        <div className="mb-12 sm:mb-16 lg:mb-20">
+        <div className="mb-8 sm:mb-12 lg:mb-16">
           <h3 className="text-xl sm:text-2xl lg:text-3xl font-semibold text-white mb-4 sm:mb-6 lg:mb-8 text-center">
             Istražite mogućnosti
           </h3>
@@ -395,7 +395,7 @@ export default function WelcomeScreen({
         </div>
 
         {/* Stats Section */}
-        <div className="mb-12 sm:mb-16 lg:mb-20">
+        <div className="mb-8 sm:mb-12 lg:mb-16">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 max-w-5xl mx-auto">
             <div className="p-4 sm:p-6 lg:p-8 bg-white/5 backdrop-blur-sm border border-white/10 rounded-lg sm:rounded-2xl text-center">
               <div className="flex justify-center mb-2 sm:mb-3 lg:mb-4">

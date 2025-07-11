@@ -126,7 +126,7 @@ export default function MessageRenderer({
           hover:shadow-xl hover:scale-[1.02]
         `}>
           {/* Message Header */}
-          <div className={`flex items-center p-4 pb-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+          <div className={`flex items-center p-3 pb-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
             {!isUser && (
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-full flex items-center justify-center text-white font-semibold bg-gradient-to-br from-green-500 to-emerald-600">

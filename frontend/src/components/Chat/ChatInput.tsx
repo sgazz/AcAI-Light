@@ -73,7 +73,7 @@ export default function ChatInput({ onSendMessage, isLoading, sessionId, useRAG 
   };
 
   return (
-    <div className="p-4">
+    <div className="p-3">
       <form onSubmit={handleSubmit} className="relative">
         {/* Input Container */}
         <div className="relative flex items-end gap-3">

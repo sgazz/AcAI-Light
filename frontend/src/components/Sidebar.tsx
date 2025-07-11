@@ -36,7 +36,7 @@ export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
         <div className="absolute bottom-1/4 left-1/4 w-24 h-24 bg-purple-400/10 rounded-full blur-xl animate-pulse"></div>
       </div>
 
-      <div className="relative flex flex-col h-full p-4 lg:p-6 overflow-y-auto">
+      <div className="relative flex flex-col h-full p-3 lg:p-4 overflow-y-auto">
         {/* Premium Header - Hidden on mobile since we have mobile header */}
         <div className="hidden lg:flex items-center gap-3 mb-8 mt-2 flex-shrink-0">
           <div className="relative">

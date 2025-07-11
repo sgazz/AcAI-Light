@@ -481,7 +481,7 @@ export default function StudyJournal() {
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10">
+      <div className="flex items-center justify-between p-3 sm:p-4 border-b border-white/10">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl sm:rounded-2xl">
             <FaBook className="text-white" size={20} />
@@ -493,7 +493,7 @@ export default function StudyJournal() {
         </div>
       </div>
 
-      <div className="flex-1 p-4 sm:p-6">
+      <div className="flex-1 p-3 sm:p-4">
         {/* Tab Navigation */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 mb-4 sm:mb-6">
           <button
@@ -551,7 +551,7 @@ export default function StudyJournal() {
       {/* Create Entry Modal */}
       {showCreateEntryModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-slate-800 border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4">Kreiraj Journal Entry</h3>
             <CreateEntryForm onSubmit={createEntry} onCancel={() => setShowCreateEntryModal(false)} />
           </div>
@@ -561,7 +561,7 @@ export default function StudyJournal() {
       {/* Create Goal Modal */}
       {showCreateGoalModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-slate-800 border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4">Kreiraj Study Goal</h3>
             <CreateGoalForm onSubmit={createGoal} onCancel={() => setShowCreateGoalModal(false)} />
           </div>
@@ -571,7 +571,7 @@ export default function StudyJournal() {
       {/* Create Flashcard Modal */}
       {showCreateFlashcardModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-slate-800 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="bg-slate-800 border border-white/10 rounded-xl sm:rounded-2xl p-3 sm:p-4 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg sm:text-xl font-semibold text-white mb-3 sm:mb-4">Kreiraj Flashcard</h3>
             <CreateFlashcardForm onSubmit={createFlashcardHandler} onCancel={() => setShowCreateFlashcardModal(false)} />
           </div>

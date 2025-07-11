@@ -424,7 +424,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
       )}
       {/* Centralni modal umesto sidebar-a */}
       {isOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3">
           <div className="relative w-full max-w-7xl mx-auto rounded-[2rem] shadow-2xl bg-gradient-to-br from-slate-900/95 via-slate-800/90 to-slate-900/95 border border-white/10 flex flex-col h-[95vh] overflow-hidden">
             <div className="flex flex-col h-full relative overflow-hidden">
               {/* Animated Background Pattern */}
@@ -435,7 +435,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
               </div>
 
               {/* Premium Header */}
-              <div className="relative flex items-center justify-between p-6 border-b border-white/10 bg-gradient-to-r from-slate-800/50 via-slate-700/30 to-slate-800/50 backdrop-blur-sm">
+              <div className="relative flex items-center justify-between p-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 via-slate-700/30 to-slate-800/50 backdrop-blur-sm">
                 <div className="flex items-center gap-4">
                   <div className="relative">
                     <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
@@ -468,7 +468,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
               </div>
 
               {/* Premium Search & Filter Bar */}
-              <div className="relative p-6 border-b border-white/10 space-y-6">
+                              <div className="relative p-4 border-b border-white/10 space-y-4">
                 {/* Premium Search Box */}
                 <div className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500/20 to-purple-500/20 rounded-2xl blur-xl group-hover:blur-2xl transition-all duration-300"></div>
@@ -528,7 +528,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
 
                 {/* Premium Advanced Filters */}
                 {showFilters && (
-                  <div className="space-y-6 p-6 bg-slate-800/30 rounded-2xl border border-white/10 backdrop-blur-sm animate-in slide-in-from-top-4 duration-500">
+                  <div className="space-y-4 p-4 bg-slate-800/30 rounded-2xl border border-white/10 backdrop-blur-sm animate-in slide-in-from-top-4 duration-500">
                     <div className="flex items-center gap-3">
                       <div className="p-2 bg-blue-500/20 rounded-lg">
                         <FaCalendar size={18} className="text-blue-400" />
@@ -590,7 +590,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
               {/* Premium Dvokolonski prikaz */}
               <div className="flex-1 flex flex-row min-h-0">
                 {/* Premium Leva kolona: Sesije */}
-                <div className="flex-1 min-w-0 border-r border-white/10 p-6 flex flex-col">
+                <div className="flex-1 min-w-0 border-r border-white/10 p-4 flex flex-col">
                   <div className="flex items-center justify-between mb-6">
                     <h4 className="text-lg font-bold text-white flex items-center gap-3">
                       <div className="p-2 bg-blue-500/20 rounded-lg">
@@ -620,7 +620,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
                       filteredAndSortedSessions.map((session, index) => (
                         <div
                           key={session.session_id}
-                          className={`group relative p-6 rounded-2xl border cursor-pointer card-hover-profi ${
+                          className={`group relative p-4 rounded-2xl border cursor-pointer card-hover-profi ${
                             selectedSession === session.session_id
                               ? 'border-blue-500/50 bg-gradient-to-r from-blue-500/10 to-purple-500/10 shadow-xl shadow-blue-500/20'
                               : 'border-white/10 hover-border-subtle hover-bg-subtle'
@@ -734,7 +734,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
                 </div>
 
                 {/* Premium Desna kolona: Poruke */}
-                <div className="flex-1 min-w-0 p-6 flex flex-col">
+                <div className="flex-1 min-w-0 p-4 flex flex-col">
                   <div className="flex items-center justify-between mb-6">
                     <h4 className="text-lg font-bold text-white flex items-center gap-3">
                       <div className="p-2 bg-green-500/20 rounded-lg">
@@ -768,7 +768,7 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
                       sessionMessages.map((message, index) => (
                         <div
                           key={message.id}
-                          className={`group relative p-6 rounded-2xl border transition-all duration-300 hover:scale-[1.01] ${
+                          className={`group relative p-4 rounded-2xl border transition-all duration-300 hover:scale-[1.01] ${
                             message.sender === 'user'
                               ? 'bg-gradient-to-r from-blue-500/10 to-blue-600/10 border-blue-500/30'
                               : 'bg-gradient-to-r from-slate-800/50 to-slate-700/50 border-white/10'

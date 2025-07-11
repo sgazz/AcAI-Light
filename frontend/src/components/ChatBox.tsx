@@ -635,9 +635,9 @@ export default function ChatBox() {
         <div className="absolute bottom-1/4 left-1/4 w-24 h-24 bg-purple-400/10 rounded-full blur-xl animate-pulse"></div>
       </div>
 
-      <div className="relative flex flex-col h-full p-6">
+      <div className="relative flex flex-col h-full p-4">
         {/* Premium Header - sada sticky */}
-        <div className="sticky top-0 z-30 flex items-center justify-between mb-6 pb-4 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl p-4 backdrop-blur-sm">
+        <div className="sticky top-0 z-30 flex items-center justify-between mb-4 pb-3 border-b border-white/10 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl p-3 backdrop-blur-sm">
           <div className="flex items-center gap-3">
             <div className="relative">
               <div className="p-2 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-lg">

@@ -135,7 +135,7 @@ export default function MindMapping({ initialData, onSave, onExport }: MindMappi
   return (
     <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50' : 'h-full'} bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900`}>
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-white/10 bg-gradient-to-r from-slate-900/50 to-slate-800/50 backdrop-blur-sm">
+      <div className="flex items-center justify-between p-3 border-b border-white/10 bg-gradient-to-r from-slate-900/50 to-slate-800/50 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl">
             <FaPalette className="text-white" size={20} />

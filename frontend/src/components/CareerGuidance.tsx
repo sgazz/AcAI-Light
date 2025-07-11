@@ -287,7 +287,7 @@ const CareerGuidance: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      <div className="flex items-center justify-between p-4 sm:p-6 border-b border-white/10">
+      <div className="flex items-center justify-between p-3 sm:p-4 border-b border-white/10">
         <div className="flex items-center gap-2 sm:gap-3">
           <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl sm:rounded-2xl">
             <FaRoute className="text-white" size={20} />
@@ -299,7 +299,7 @@ const CareerGuidance: React.FC = () => {
         </div>
       </div>
 
-      <div className="flex-1 p-4 sm:p-6">
+      <div className="flex-1 p-3 sm:p-4">
         {/* Tab Navigation */}
         <div className="flex flex-wrap items-center gap-1 sm:gap-2 mb-4 sm:mb-6">
           {tabs.map((tab) => {

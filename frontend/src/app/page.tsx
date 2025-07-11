@@ -24,6 +24,7 @@ import ProblemGenerator from '../components/ProblemGenerator';
 import StudyJournal from '../components/StudyJournal';
 import CareerGuidance from '../components/CareerGuidance';
 import { FaBars, FaTimes } from 'react-icons/fa';
+import ChatBox from '../components/ChatBox';
 
 export default function Home() {
   const [selectedMenu, setSelectedMenu] = useState(-1);
@@ -222,7 +223,7 @@ export default function Home() {
       case 8:
         return (
           <div className="h-full flex flex-col">
-            <div className="flex-1 p-4 lg:p-6 overflow-hidden">
+            <div className="flex-1 p-4 overflow-hidden">
               <div className="mb-4 lg:mb-6">
                 <h2 className="text-xl lg:text-2xl font-bold mb-2">Dokumenti</h2>
                 <p className="text-gray-300 text-sm lg:text-base">Upload, pregled i upravljanje dokumentima</p>
@@ -243,7 +244,7 @@ export default function Home() {
       case 9:
         return (
           <div className="h-full flex flex-col">
-            <div className="flex-1 p-4 lg:p-6 overflow-hidden">
+            <div className="flex-1 p-4 overflow-hidden">
               <div className="mb-4 lg:mb-6">
                 <h2 className="text-xl lg:text-2xl font-bold mb-2">File Sharing</h2>
                 <p className="text-gray-300 text-sm lg:text-base">Deljenje fajlova sa drag & drop funkcionalnostima</p>
@@ -294,7 +295,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="flex min-h-screen lg:p-4 lg:gap-4 pt-16 lg:pt-4">
+        <div className="flex min-h-screen lg:gap-4 pt-16 lg:pt-4">
           {/* Responsive Sidebar */}
           <div 
             id="sidebar"
