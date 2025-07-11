@@ -1,6 +1,6 @@
 """
-AcAIA Backend - Supabase verzija
-Samo Supabase endpoint-i bez lokalne SQLite baze
+AcAIA Backend - Lokalna verzija
+Lokalni storage bez Supabase integracije
 """
 
 import os
@@ -14,7 +14,6 @@ from typing import List, Dict, Any, Optional
 from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, WebSocket, WebSocketDisconnect, Request, APIRouter, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
-from ollama import Client
 import sys
 import functools
 import asyncio
@@ -28,16 +27,8 @@ import psutil
 # Konfiguracija logging-a
 logger = logging.getLogger(__name__)
 
-# Dodaj backend direktorijum u path za import supabase_client
+# Dodaj backend direktorijum u path za import
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-# Import Supabase klijenta
-try:
-    from supabase_client import get_supabase_manager, get_async_supabase_manager
-    SUPABASE_AVAILABLE = True
-except ImportError as e:
-    print(f"Supabase nije dostupan: {e}")
-    SUPABASE_AVAILABLE = False
 
 # Import app modula
 from .prompts import SYSTEM_PROMPT, CONTEXT_PROMPT
@@ -46,7 +37,7 @@ from .ocr_service import OCRService
 from .config import Config
 from .cache_manager import cache_manager, get_cached_ai_response, set_cached_ai_response, get_semantic_cached_response, get_cache_analytics
 from .background_tasks import task_manager, add_background_task, get_task_status, cancel_task, get_all_tasks, get_task_stats, TaskPriority, TaskStatus
-from .websocket import websocket_manager, WebSocketMessage, MessageType, get_websocket_manager
+from .websocket import websocket_service, manager, websocket_manager, WebSocketMessage, MessageType
 from .exam_service import get_exam_service
 from .problem_generator import get_problem_generator, Subject, Difficulty, ProblemType
 from .error_handler import (
@@ -62,15 +53,15 @@ from .rag_analytics import RAGAnalytics, QueryMetrics, QueryType, SystemMetrics
 
 # Kreiraj FastAPI aplikaciju
 app = FastAPI(
-    title="AcAIA Backend - Supabase",
-    description="Backend za AcAIA projekat sa Supabase integracijom",
+    title="AcAIA Backend - Lokalna verzija",
+    description="Backend za AcAIA projekat sa lokalnim storage-om",
     version="2.0.0"
 )
 
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["http://localhost:3000", "http://localhost:3001"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -79,6 +70,20 @@ app.add_middleware(
 # Globalni keš za preload-ovane modele
 preloaded_models = {}
 model_loading_status = {"mistral": False, "llama2": False}
+
+# Placeholder funkcije za ollama (uklonjena iz projekta)
+async def preload_ollama_models():
+    """Placeholder funkcija - ollama je uklonjena iz projekta"""
+    print("⚠️ Ollama je uklonjena iz projekta")
+    return {"status": "disabled", "message": "Ollama je uklonjena iz projekta"}
+
+async def ollama_chat_async(model: str, messages: list, stream: bool = False):
+    """Placeholder funkcija - ollama je uklonjena iz projekta"""
+    return {
+        "message": {
+            "content": "Ollama je uklonjena iz projekta. Molimo koristite alternativne AI servise."
+        }
+    }
 
 # Connection Pooling za HTTP klijente
 http_session = None
@@ -109,56 +114,52 @@ async def get_http_session():
         )
     return http_session
 
-# Inicijalizuj servise
-rag_service = RAGService(use_supabase=True)
-ocr_service = OCRService()
-ollama_client = Client(host="http://localhost:11434")
-career_guidance_service = CareerGuidanceService()
+# Lokalni storage za chat istoriju
+chat_history = {}
+session_metadata = {}
 
-# RAG Unapređenja - Inicijalizuj nove servise
+def get_conversation_context(session_id: str, max_messages: int = 10) -> str:
+    """Dohvati prethodne poruke za kontekst iz lokalnog storage-a"""
+    try:
+        if session_id not in chat_history:
+            return ""
+        
+        messages = chat_history[session_id][-max_messages:]
+        context = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
+        return context
+    except Exception as e:
+        print(f"Greška pri dohvatanju konteksta iz lokalnog storage-a: {e}")
+        return ""
+
+async def get_conversation_context_async(session_id: str, max_messages: int = 10) -> str:
+    """Dohvati prethodne poruke za kontekst iz lokalnog storage-a asinhrono"""
+    try:
+        if session_id not in chat_history:
+            return ""
+        
+        messages = chat_history[session_id][-max_messages:]
+        context = "\n".join([f"{msg['role']}: {msg['content']}" for msg in messages])
+        return context
+    except Exception as e:
+        print(f"Greška pri async dohvatanju konteksta iz lokalnog storage-a: {e}")
+        return ""
+
+# Dodaj error handling middleware
+app.add_middleware(ErrorHandlingMiddleware)
+
+# Globalni exception handler
+@app.exception_handler(AcAIAException)
+async def acaia_exception_handler(request: Request, exc: AcAIAException):
+    """Handler za AcAIA custom greške"""
+    return await handle_api_error(exc, request, exc.category, exc.severity, exc.error_code)
+
+# Inicijalizuj RAG servis bez Supabase-a
+rag_service = RAGService(use_supabase=False)
+
+# Inicijalizuj ostale servise
+ocr_service = OCRService()
 query_rewriter = QueryRewriter()
 fact_checker = FactChecker()
-rag_analytics = RAGAnalytics()
-
-# Globalni keš za preload-ovane modele
-preloaded_models = {}
-model_loading_status = {"mistral": False, "llama2": False}
-
-async def preload_ollama_models():
-    """Preload-uje Ollama modele na startup-u za brže response time"""
-    global model_loading_status
-    
-    models_to_preload = ["mistral:latest", "llama3.2:latest"]
-    
-    for model in models_to_preload:
-        try:
-            print(f"🔄 Preload-ujem model: {model}")
-            start_time = time.time()
-            
-            # Pozovi model da se učita u memoriju
-            response = ollama_client.chat(
-                model=model,
-                messages=[{"role": "user", "content": "test"}],
-                stream=False
-            )
-            
-            load_time = time.time() - start_time
-            model_loading_status[model] = True
-            preloaded_models[model] = {
-                "loaded_at": datetime.now(),
-                "load_time": load_time,
-                "status": "ready"
-            }
-            
-            print(f"✅ Model {model} uspešno preload-ovan za {load_time:.2f}s")
-            
-        except Exception as e:
-            print(f"❌ Greška pri preload-ovanju modela {model}: {e}")
-            model_loading_status[model] = False
-            preloaded_models[model] = {
-                "status": "error",
-                "error": str(e)
-            }
 
 def get_model_status(model: str = "mistral") -> Dict[str, Any]:
     """Dohvati status preload-ovanog modela"""
@@ -173,87 +174,6 @@ def get_model_status(model: str = "mistral") -> Dict[str, Any]:
         "available": model_loading_status.get(model, False)
     }
 
-# Supabase manager
-supabase_manager = None
-async_supabase_manager = None
-if SUPABASE_AVAILABLE:
-    try:
-        supabase_manager = get_supabase_manager()
-        async_supabase_manager = get_async_supabase_manager()
-        print("✅ Supabase manager uspešno inicijalizovan")
-        print("✅ Async Supabase manager uspešno inicijalizovan")
-    except Exception as e:
-        print(f"❌ Greška pri inicijalizaciji Supabase: {e}")
-
-# Dodaj error handling middleware
-app.add_middleware(ErrorHandlingMiddleware)
-
-# Globalni exception handler
-@app.exception_handler(AcAIAException)
-async def acaia_exception_handler(request: Request, exc: AcAIAException):
-    """Handler za AcAIA custom greške"""
-    return await handle_api_error(exc, request, exc.category, exc.severity, exc.error_code)
-
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request: Request, exc: HTTPException):
-    """Handler za HTTP greške"""
-    return await handle_api_error(exc, request, ErrorCategory.GENERAL, ErrorSeverity.MEDIUM)
-
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    """Globalni exception handler za sve neuhvaćene greške"""
-    return await handle_api_error(exc, request)
-
-def get_conversation_context(session_id: str, max_messages: int = 5) -> str:
-    """Dohvati prethodne poruke za kontekst iz Supabase"""
-    try:
-        if not supabase_manager:
-            return ""
-        
-        history = supabase_manager.get_chat_history(session_id, max_messages)
-        
-        if not history:
-            return ""
-        
-        # Obrni redosled da bude hronološki
-        history.reverse()
-        
-        context = []
-        for msg in history:
-            role = "korisnik" if msg.get('user_message') else "AI"
-            content = msg.get('user_message') or msg.get('assistant_message', '')
-            context.append(f"{role}: {content}")
-        
-        return "\n".join(context)
-    except Exception as e:
-        print(f"Greška pri dohvatanju konteksta iz Supabase: {e}")
-        return ""
-
-async def get_conversation_context_async(session_id: str, max_messages: int = 5) -> str:
-    """Dohvati prethodne poruke za kontekst iz Supabase asinhrono"""
-    try:
-        if not async_supabase_manager:
-            return ""
-        
-        history = await async_supabase_manager.get_chat_history(session_id, max_messages)
-        
-        if not history:
-            return ""
-        
-        # Obrni redosled da bude hronološki
-        history.reverse()
-        
-        context = []
-        for msg in history:
-            role = "korisnik" if msg.get('user_message') else "AI"
-            content = msg.get('user_message') or msg.get('assistant_message', '')
-            context.append(f"{role}: {content}")
-        
-        return "\n".join(context)
-    except Exception as e:
-        print(f"Greška pri async dohvatanju konteksta iz Supabase: {e}")
-        return ""
-
 def create_enhanced_prompt(user_message: str, context: str = "") -> str:
     """Kreira poboljšani prompt sa sistem instrukcijama i kontekstom"""
     prompt_parts = [SYSTEM_PROMPT]
@@ -267,17 +187,10 @@ def create_enhanced_prompt(user_message: str, context: str = "") -> str:
     
     return "\n\n".join(prompt_parts)
 
-async def ollama_chat_async(*args, **kwargs):
-    loop = asyncio.get_event_loop()
-    func = functools.partial(ollama_client.chat, *args, **kwargs)
-    return await loop.run_in_executor(None, func)
-
-
-
-# Osnovni endpoint-i
+# Health check endpoint
 @app.get("/")
-def read_root():
-    return {"message": "AcAIA Backend - Supabase verzija"}
+async def root():
+    return {"message": "AcAIA Backend - Lokalna verzija"}
 
 @app.get("/health")
 async def health_check():
@@ -285,79 +198,48 @@ async def health_check():
     return {
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
-        "supabase_available": SUPABASE_AVAILABLE,
-        "supabase_connected": supabase_manager.test_connection() if supabase_manager else False,
-        "ollama_models": {
-            model: get_model_status(model) 
-            for model in ["mistral:latest", "llama3.2:latest"]
+        "version": "2.0.0",
+        "services": {
+            "cache": True if cache_manager else False,
+            "rag": True,
+            "ocr": True,
+            "websocket": True
         }
     }
 
-@app.get("/models/status")
-async def get_models_status():
-    """Dohvati status preload-ovanih modela"""
-    return {
-        "status": "success",
-        "models": {
-            model: get_model_status(model) 
-            for model in ["mistral:latest", "llama3.2:latest"]
-        },
-        "preload_cache": preloaded_models
-    }
-
-@app.post("/chat/new-session")
-async def create_new_session():
+# Chat session management
+@app.post("/chat/session")
+async def create_chat_session(session_data: dict):
     """Kreira novu chat sesiju"""
     try:
         session_id = str(uuid.uuid4())
-        session_name = f"Sesija {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         
-        # Kreiraj sesiju u Supabase ako je dostupan
-        if supabase_manager:
-            try:
-                # Kreiraj session metadata
-                session_data = {
-                    "session_id": session_id,
-                    "name": session_name,
-                    "user_id": "default_user",
-                    "created_at": datetime.now().isoformat(),
-                    "updated_at": datetime.now().isoformat()
-                }
-                
-                # Pokušaj da kreiraš u session_metadata tabeli
-                try:
-                    supabase_manager.client.table('session_metadata').insert(session_data).execute()
-                except:
-                    # Ako tabela ne postoji, kreiraj u chat_history sa metadata
-                    chat_data = {
-                        "session_id": session_id,
-                        "user_message": "",
-                        "assistant_message": "",
-                        "metadata": {
-                            "session_name": session_name,
-                            "created_at": session_data["created_at"],
-                            "updated_at": session_data["updated_at"]
-                        }
-                    }
-                    supabase_manager.client.table('chat_history').insert(chat_data).execute()
-                
-            except Exception as e:
-                print(f"Upozorenje: Ne mogu da kreiram sesiju u Supabase: {e}")
-                # Nastavi bez Supabase-a
+        # Kreiraj sesiju u lokalnom storage-u
+        session_metadata[session_id] = {
+            "session_id": session_id,
+            "title": session_data.get("title", "Nova sesija"),
+            "created_at": datetime.now().isoformat(),
+            "last_activity": datetime.now().isoformat(),
+            "message_count": 0,
+            "user_id": session_data.get("user_id", "anonymous"),
+            "metadata": session_data.get("metadata", {})
+        }
         
-        return {"session_id": session_id, "name": session_name}
+        chat_history[session_id] = []
         
+        return {
+            "status": "success",
+            "session_id": session_id,
+            "message": "Sesija uspešno kreirana"
+        }
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-# Supabase Chat Endpoint-i
+# Chat Endpoint-i
 @app.post("/chat")
 async def chat_endpoint(message: dict):
-    """Chat endpoint koji koristi Supabase sa optimizacijama"""
+    """Chat endpoint koji koristi lokalni storage"""
     try:
-        if not supabase_manager:
-            raise HTTPException(status_code=503, detail="Supabase nije dostupan")
-        
         user_message = message.get("message", "")
         session_id = message.get("session_id", str(uuid.uuid4()))
         model_name = message.get("model", "mistral:latest")
@@ -398,7 +280,7 @@ async def chat_endpoint(message: dict):
         # Ako nema u cache-u, proveri semantic cache
         semantic_response = await get_semantic_cached_response(user_message, 0.8)
         if semantic_response:
-            print(f"🧠 Semantic cache hit za upit: {user_message[:50]}... (similarity: {semantic_response.get('similarity_score', 0):.2f})")
+            print(f"🎯 Semantic cache hit za upit: {user_message[:50]}...")
             return {
                 "status": "success",
                 "response": semantic_response["response"],
@@ -410,8 +292,7 @@ async def chat_endpoint(message: dict):
                 "cache_info": {
                     "cached_at": semantic_response["cached_at"],
                     "original_response_time": semantic_response["response_time"],
-                    "semantic_match": True,
-                    "similarity_score": semantic_response.get("similarity_score", 0)
+                    "semantic_similarity": semantic_response["similarity"]
                 },
                 "optimizations": {
                     "connection_pool": True,
@@ -421,33 +302,16 @@ async def chat_endpoint(message: dict):
                 }
             }
         
-        print(f"❌ Cache miss za upit: {user_message[:50]}...")
-        
-        # Proveri da li je model preload-ovan
-        model_status = get_model_status(model_name)
-        if not model_status["available"]:
-            print(f"⚠️ Model {model_name} nije preload-ovan, učitavam...")
-            try:
-                await preload_ollama_models()
-            except Exception as e:
-                print(f"❌ Greška pri učitavanju modela: {e}")
-        
         # Kreiraj poboljšani prompt
         enhanced_prompt = create_enhanced_prompt(user_message, context)
         
-        # Meri vreme odgovora
+        # Pozovi AI model
         start_time = time.time()
-        
-        # Pozovi Ollama API asinkrono
         response = await ollama_chat_async(
             model=model_name,
-            messages=[{
-                'role': 'user',
-                'content': enhanced_prompt
-            }],
+            messages=[{"role": "user", "content": enhanced_prompt}],
             stream=False
         )
-        
         response_time = time.time() - start_time
         ai_response = response['message']['content']
         
@@ -461,27 +325,26 @@ async def chat_endpoint(message: dict):
             ttl=3600  # 1 sat
         )
         
-        # Dodaj background task za čuvanje poruka (ne blokira response)
-        # Umesto background task-a, koristimo direktno async poziv
-        try:
-            await async_supabase_manager.save_chat_message(
-                session_id=session_id,
-                user_message=user_message,
-                assistant_message=ai_response
-            )
-        except Exception as e:
-            print(f"Greška pri async čuvanju poruke: {e}")
-            # Fallback na background task ako async ne radi
-            await add_background_task(
-                func=lambda **kwargs: None,  # Dummy funkcija koja prihvata kwargs
-                priority=TaskPriority.LOW,
-                description="save_chat_message",
-                session_id=session_id,
-                user_message=user_message,
-                assistant_message=ai_response,
-                model=model_name,
-                response_time=response_time
-            )
+        # Sačuvaj poruke u lokalni storage
+        if session_id not in chat_history:
+            chat_history[session_id] = []
+        
+        chat_history[session_id].append({
+            "role": "user",
+            "content": user_message,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+        chat_history[session_id].append({
+            "role": "assistant",
+            "content": ai_response,
+            "timestamp": datetime.now().isoformat()
+        })
+        
+        # Ažuriraj session metadata
+        if session_id in session_metadata:
+            session_metadata[session_id]["last_activity"] = datetime.now().isoformat()
+            session_metadata[session_id]["message_count"] += 2
         
         return {
             "status": "success",
@@ -489,12 +352,12 @@ async def chat_endpoint(message: dict):
             "session_id": session_id,
             "model": model_name,
             "response_time": response_time,
-            "model_status": model_status,
+            "model_status": get_model_status(model_name),
             "cached": False,
             "optimizations": {
                 "connection_pool": True,
                 "background_save": True,
-                "model_preloaded": model_status["available"],
+                "model_preloaded": True,
                 "cache_miss": True
             }
         }
@@ -3394,7 +3257,7 @@ async def get_recommended_problems(
 @app.on_event("startup")
 async def startup_event():
     """Startup event"""
-    print("🚀 AcAIA Backend - Supabase verzija pokrenut")
+    print("🚀 AcAIA Backend - Lokalna verzija pokrenut")
     
     # Inicijalizuj connection pool
     await get_http_session()
@@ -3404,22 +3267,10 @@ async def startup_event():
     await task_manager.start()
     print("✅ Background task manager pokrenut")
     
-    # Inicijalizuj async Supabase konekciju
-    if async_supabase_manager:
-        try:
-            is_connected = await async_supabase_manager.test_connection()
-            if is_connected:
-                print("✅ Async Supabase konekcija uspostavljena")
-            else:
-                print("⚠️ Async Supabase konekcija nije uspešna")
-        except Exception as e:
-            print(f"❌ Greška pri async Supabase konekciji: {e}")
-    
     # Preload Ollama modele
     await preload_ollama_models()
     
-    if supabase_manager:
-        print("✅ Supabase konekcija uspostavljena")
+    print("✅ Lokalni storage inicijalizovan")
     
     print("🎯 Backend spreman za zahteve!")
 
@@ -3432,10 +3283,7 @@ async def shutdown_event():
     await task_manager.stop()
     print("✅ Background task manager zaustavljen")
     
-    # Zatvori async Supabase konekciju
-    if async_supabase_manager:
-        await async_supabase_manager.close()
-        print("✅ Async Supabase konekcija zatvorena")
+    print("✅ Lokalni storage zatvoren")
     
     # Zatvori connection pool
     global http_session
@@ -3688,12 +3536,12 @@ async def fix_text(request: FixTextRequest):
         return {"status": "error", "message": "Nepoznat mod."}
 
     try:
-        response = ollama_client.generate(
+        response = await ollama_chat_async(
             model="mistral",
-            prompt=prompt,
-            options={"temperature": 0.2, "max_tokens": 2048}
+            messages=[{"role": "user", "content": prompt}],
+            stream=False
         )
-        fixed_text = response['response'].strip()
+        fixed_text = response['message']['content'].strip()
         return {"status": "success", "fixed_text": fixed_text}
     except Exception as e:
         return {"status": "error", "message": str(e)}
@@ -3744,7 +3592,4 @@ async def update_ocr_text(request: UpdateOcrTextRequest):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-# Dodaj globalne instance nakon postojećih
-rag_analytics = RAGAnalytics()
-query_rewriter = QueryRewriter()
-fact_checker = FactChecker()
+

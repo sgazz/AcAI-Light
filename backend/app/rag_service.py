@@ -1,961 +1,219 @@
+"""
+RAG (Retrieval-Augmented Generation) servis
+Lokalna verzija bez Supabase integracije
+"""
+
 import os
-import tempfile
-import uuid
-from datetime import datetime
+import json
+import logging
 from typing import List, Dict, Any, Optional
-from .document_processor import DocumentProcessor
-from .vector_store import VectorStore
-from .multi_step_retrieval import MultiStepRetrieval
-from .reranker import Reranker
-from .ocr_service import OCRService
-from .context_selector import ContextSelector
-# from .models import Document  # Uklonjeno - koristimo samo Supabase
-from .cache_manager import cache_manager, get_cached_rag_result, set_cached_rag_result
-from .error_handler import RAGError, ExternalServiceError, ValidationError, ErrorCategory, ErrorSeverity
-from sqlalchemy.orm import Session
-from ollama import Client
-import sys
+from datetime import datetime
 import numpy as np
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
-import gc
-import psutil
-import time
-from functools import lru_cache
+from sentence_transformers import SentenceTransformer
+import faiss
+from .config import Config
 
-# Dodaj backend direktorijum u path za import supabase_client
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-try:
-    from supabase_client import get_supabase_manager
-    SUPABASE_AVAILABLE = True
-except ImportError:
-    SUPABASE_AVAILABLE = False
-    print("Supabase nije dostupan - chat istorija će biti čuvana samo lokalno")
+logger = logging.getLogger(__name__)
 
 class RAGService:
-    """Glavni RAG servis koji povezuje sve komponente sa Supabase podrškom"""
+    """RAG servis za lokalni storage"""
     
-    def __init__(self, ollama_host: str = "http://localhost:11434", model_name: str = "mistral", use_supabase: bool = True):
-        self.document_processor = DocumentProcessor()
-        self.vector_store = VectorStore(use_supabase=use_supabase)
-        self.reranker = Reranker()
-        self.multi_step_retrieval = MultiStepRetrieval(self.vector_store, self.reranker)
-        self.context_selector = ContextSelector(self.vector_store, self.reranker)
-        self.ocr_service = OCRService()
-        self.ollama_client = Client(host=ollama_host)
-        self.model_name = model_name
-        self.use_supabase = use_supabase and SUPABASE_AVAILABLE
-        self.supabase_manager = None
+    def __init__(self, use_supabase: bool = False):
+        """Inicijalizuj RAG servis"""
+        self.use_supabase = use_supabase
+        self.embedding_model = None
+        self.vector_index = None
+        self.documents = []
+        self.document_embeddings = []
         
-        # Performance optimizacije
-        self.executor = ThreadPoolExecutor(max_workers=4)
-        self.batch_size = 10
-        self.max_concurrent_requests = 5
-        self.semaphore = asyncio.Semaphore(self.max_concurrent_requests)
+        # Lokalni storage putanje
+        self.data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'vector_index')
+        self.documents_file = os.path.join(self.data_dir, 'documents.json')
+        self.metadata_file = os.path.join(self.data_dir, 'metadata.json')
         
-        # Memory management
-        self.memory_threshold = 0.8  # 80% RAM usage
-        self.last_gc_time = time.time()
-        self.gc_interval = 300  # 5 minuta
+        # Kreiraj direktorijum ako ne postoji
+        os.makedirs(self.data_dir, exist_ok=True)
         
-        # Inicijalizuj Supabase ako je omogućen
-        if self.use_supabase:
-            try:
-                self.supabase_manager = get_supabase_manager()
-                print("Supabase RAG servis omogućen")
-            except Exception as e:
-                print(f"Greška pri inicijalizaciji Supabase: {e}")
-                self.use_supabase = False
+        # Učitaj postojeće dokumente
+        self._load_documents()
+        
+        # Inicijalizuj embedding model
+        self._init_embedding_model()
+        
+        # Kreiraj ili učitaj vector index
+        self._init_vector_index()
     
-    async def _check_memory_usage(self):
-        """Proverava memory usage i pokreće GC ako je potrebno"""
+    def _load_documents(self):
+        """Učitaj dokumente iz lokalnog storage-a"""
         try:
-            memory_percent = psutil.virtual_memory().percent / 100
-            current_time = time.time()
-            
-            if memory_percent > self.memory_threshold or (current_time - self.last_gc_time) > self.gc_interval:
-                gc.collect()
-                self.last_gc_time = current_time
-                print(f"Memory cleanup performed. Usage: {memory_percent:.1%}")
+            if os.path.exists(self.documents_file):
+                with open(self.documents_file, 'r', encoding='utf-8') as f:
+                    self.documents = json.load(f)
+                logger.info(f"Učitano {len(self.documents)} dokumenata iz lokalnog storage-a")
+            else:
+                self.documents = []
+                logger.info("Nema postojećih dokumenata, počinjem sa praznom listom")
         except Exception as e:
-            print(f"Greška pri memory check-u: {e}")
+            logger.error(f"Greška pri učitavanju dokumenata: {e}")
+            self.documents = []
     
-    @lru_cache(maxsize=1000)
-    def _cached_embedding(self, text: str) -> List[float]:
-        """Cache-ovani embedding za često korišćene tekstove"""
-        return self.vector_store.model.encode([text])[0].tolist()
+    def _save_documents(self):
+        """Sačuvaj dokumente u lokalni storage"""
+        try:
+            with open(self.documents_file, 'w', encoding='utf-8') as f:
+                json.dump(self.documents, f, ensure_ascii=False, indent=2)
+            logger.info(f"Sačuvano {len(self.documents)} dokumenata u lokalni storage")
+        except Exception as e:
+            logger.error(f"Greška pri čuvanju dokumenata: {e}")
     
-    async def batch_search_documents(self, queries: List[str], top_k: int = 5) -> List[List[Dict[str, Any]]]:
-        """Batch pretraga za više upita"""
-        async with self.semaphore:
-            await self._check_memory_usage()
+    def _init_embedding_model(self):
+        """Inicijalizuj embedding model"""
+        try:
+            self.embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+            logger.info("Embedding model uspešno inicijalizovan")
+        except Exception as e:
+            logger.error(f"Greška pri inicijalizaciji embedding modela: {e}")
+            self.embedding_model = None
+    
+    def _init_vector_index(self):
+        """Inicijalizuj vector index"""
+        try:
+            if not self.embedding_model:
+                logger.error("Embedding model nije inicijalizovan")
+                return
             
-            # Podeli upite u batch-eve
-            batches = [queries[i:i + self.batch_size] for i in range(0, len(queries), self.batch_size)]
+            # Kreiraj FAISS index
+            embedding_dim = self.embedding_model.get_sentence_embedding_dimension()
+            self.vector_index = faiss.IndexFlatIP(embedding_dim)
+            
+            # Dodaj postojeće dokumente u index
+            if self.documents:
+                embeddings = []
+                for doc in self.documents:
+                    if 'embedding' in doc:
+                        embeddings.append(doc['embedding'])
+                
+                if embeddings:
+                    embeddings_array = np.array(embeddings, dtype=np.float32)
+                    self.vector_index.add(embeddings_array)
+                    logger.info(f"Dodato {len(embeddings)} embedding-a u vector index")
+            
+            logger.info("Vector index uspešno inicijalizovan")
+        except Exception as e:
+            logger.error(f"Greška pri inicijalizaciji vector index-a: {e}")
+            self.vector_index = None
+    
+    def add_document(self, content: str, metadata: Dict[str, Any] = None) -> str:
+        """Dodaj dokument u RAG sistem"""
+        try:
+            if not self.embedding_model:
+                raise Exception("Embedding model nije inicijalizovan")
+            
+            # Kreiraj embedding
+            embedding = self.embedding_model.encode(content).tolist()
+            
+            # Kreiraj dokument
+            doc_id = f"doc_{len(self.documents)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            document = {
+                'id': doc_id,
+                'content': content,
+                'embedding': embedding,
+                'metadata': metadata or {},
+                'created_at': datetime.now().isoformat()
+            }
+            
+            # Dodaj u listu dokumenata
+            self.documents.append(document)
+            
+            # Dodaj u vector index
+            if self.vector_index:
+                embedding_array = np.array([embedding], dtype=np.float32)
+                self.vector_index.add(embedding_array)
+            
+            # Sačuvaj u lokalni storage
+            self._save_documents()
+            
+            logger.info(f"Dokument {doc_id} uspešno dodat u RAG sistem")
+            return doc_id
+            
+            except Exception as e:
+            logger.error(f"Greška pri dodavanju dokumenta: {e}")
+            raise
+    
+    def search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+        """Pretraži dokumente na osnovu upita"""
+        try:
+            if not self.embedding_model or not self.vector_index:
+                raise Exception("RAG sistem nije inicijalizovan")
+            
+            # Kreiraj embedding za upit
+            query_embedding = self.embedding_model.encode(query)
+            
+            # Pretraži vector index
+            scores, indices = self.vector_index.search(
+                query_embedding.reshape(1, -1).astype(np.float32), 
+                min(top_k, len(self.documents))
+            )
+            
+            # Vraća rezultate
             results = []
+            for i, (score, idx) in enumerate(zip(scores[0], indices[0])):
+                if idx < len(self.documents):
+                    doc = self.documents[idx].copy()
+                    doc['score'] = float(score)
+                    doc['rank'] = i + 1
+                    results.append(doc)
             
-            for batch in batches:
-                batch_results = await asyncio.gather(*[
-                    self._async_search_single(query, top_k) for query in batch
-                ])
-                results.extend(batch_results)
-            
+            logger.info(f"Pretraga vratila {len(results)} rezultata za upit: {query[:50]}...")
             return results
-    
-    async def _async_search_single(self, query: str, top_k: int) -> List[Dict[str, Any]]:
-        """Asinhrona pretraga za jedan upit"""
-        try:
-            # Koristi thread pool za CPU-intensive operacije
-            loop = asyncio.get_event_loop()
-            results = await loop.run_in_executor(
-                self.executor, 
-                self.vector_store.search, 
-                query, 
-                top_k
-            )
-            return results
+            
         except Exception as e:
-            print(f"Greška pri async pretraživanju: {e}")
+            logger.error(f"Greška pri pretraživanju: {e}")
             return []
     
-    def upload_document(self, file_content: bytes, filename: str, 
-                       use_ocr: bool = True, languages: List[str] = None) -> Dict[str, Any]:
-        """Upload dokumenta sa OCR podrškom (bez lokalne baze)"""
-        try:
-            # Kreiraj direktorijum za čuvanje fajlova ako ne postoji
-            upload_dir = os.path.join(os.path.dirname(__file__), '..', '..', 'uploads')
-            os.makedirs(upload_dir, exist_ok=True)
-            
-            # Generiši jedinstveno ime fajla
-            file_extension = os.path.splitext(filename)[1]
-            unique_filename = f"{uuid.uuid4()}{file_extension}"
-            file_path = os.path.join(upload_dir, unique_filename)
-            
-            # Sačuvaj fajl trajno
-            with open(file_path, 'wb') as f:
-                f.write(file_content)
-            
-            try:
-                # Pokušaj OCR ako je omogućen i ako je slika
-                if use_ocr and self.ocr_service.is_supported_format(filename):
-                    ocr_result = self.ocr_service.extract_text_from_bytes(
-                        file_content, 
-                        filename,
-                        languages=languages or ['srp+eng']
-                    )
-                    
-                    if ocr_result and ocr_result.get('text'):
-                        # Sačuvaj OCR rezultat u Supabase
-                        self._save_ocr_to_supabase(filename, file_path, ocr_result['text'], ocr_result)
-                        
-                        # Kreiraj privremeni fajl sa OCR tekstom
-                        with tempfile.NamedTemporaryFile(delete=False, suffix='.txt') as ocr_temp_file:
-                            ocr_temp_file.write(ocr_result['text'].encode('utf-8'))
-                            ocr_temp_path = ocr_temp_file.name
-                        
-                        # Procesiraj dokument sa OCR tekstom
-                        document_data = self.document_processor.process_document(ocr_temp_path)
-                        document_data['filename'] = filename
-                        document_data['ocr_info'] = {
-                            'text': ocr_result['text'],
-                            'confidence': ocr_result.get('confidence', 0),
-                            'languages': ocr_result.get('languages', ['srp+eng']),
-                            'processing_time': 0  # OCR servis ne meri processing time
-                        }
-                        
-                        # Obriši privremeni OCR fajl
-                        os.unlink(ocr_temp_path)
-                    else:
-                        # Ako OCR nije uspešan, koristi običan document processor
-                        document_data = self.document_processor.process_document(file_path)
-                        document_data['filename'] = filename
-                        document_data['ocr_info'] = {
-                            'text': '',
-                            'confidence': 0,
-                            'languages': ['srp+eng'],
-                            'processing_time': 0
-                        }
-                else:
-                    # Procesiraj dokument bez OCR-a
-                    document_data = self.document_processor.process_document(file_path)
-                    document_data['filename'] = filename
-                    document_data['ocr_info'] = {
-                        'text': '',
-                        'confidence': 0,
-                        'languages': ['srp+eng'],
-                        'processing_time': 0
-                    }
-                
-                # Dodaj dokument u vector store
-                doc_id = self.vector_store.add_document(document_data)
-                
-                # Sačuvaj u Supabase
-                if self.use_supabase and self.supabase_manager:
-                    supabase_doc_id = self.supabase_manager.insert_document(
-                        filename=document_data['filename'],
-                        file_path=file_path,
-                        file_type=document_data['file_type'],
-                        file_size=len(file_content),
-                        content=document_data.get('content', ''),
-                        metadata={
-                            'total_pages': document_data['total_pages'],
-                            'chunks': document_data.get('pages', []),
-                            'embedding_count': sum(len(page.get('chunks', [])) for page in document_data.get('pages', [])),
-                            'ocr_info': document_data.get('ocr_info', {})
-                        }
-                    )
-                
-                response = {
-                    'status': 'success',
-                    'message': 'Dokument uspešno uploadovan',
-                    'document_id': doc_id,  # Dodaj document_id
-                    'filename': document_data['filename'],
-                    'file_type': document_data['file_type'],
-                    'total_pages': document_data['total_pages'],
-                    'chunks_created': sum(len(page['chunks']) for page in document_data['pages'])
-                }
-                
-                # Dodaj OCR informacije ako postoje
-                if 'ocr_info' in document_data:
-                    response['ocr_info'] = document_data['ocr_info']
-                
-                return response
-                
-            except Exception as e:
-                # Ako dođe do greške, obriši dokument iz vector store-a i fajl
-                if 'doc_id' in locals():
-                    self.vector_store.delete_document(doc_id)
-                if os.path.exists(file_path):
-                    os.unlink(file_path)
-                raise e
-                    
-        except Exception as e:
-            raise RAGError(f"Greška pri upload-u dokumenta: {str(e)}", ErrorCategory.DOCUMENT_PROCESSING)
-    
-    def _save_ocr_to_supabase(self, filename: str, file_path: str, ocr_text: str, ocr_metadata: dict):
-        """Čuva OCR sliku u Supabase"""
-        try:
-            if not self.use_supabase or not self.supabase_manager:
-                return
-            
-            # Sačuvaj OCR sliku
-            self.supabase_manager.save_ocr_image(
-                original_filename=filename,
-                original_path=file_path,
-                ocr_text=ocr_text,
-                confidence_score=ocr_metadata.get('confidence', 0),
-                language=ocr_metadata.get('languages', ['srp+eng'])[0] if ocr_metadata.get('languages') else 'srp+eng'
-            )
-            
-        except Exception as e:
-            print(f"Greška pri čuvanju OCR slike u Supabase: {e}")
-    
-    def search_documents(self, query: str, top_k: int = 5, use_rerank: bool = True) -> List[Dict[str, Any]]:
-        """Pretražuje dokumente sa reranking opcijom"""
-        try:
-            # Osnovna pretraga
-            results = self.vector_store.search(query, top_k * 2)  # Dohvati više rezultata za reranking
-            
-            if use_rerank and results:
-                # Primeni reranking
-                results = self.reranker.rerank(query, results, top_k)
-            
-            return results[:top_k]
-            
-        except Exception as e:
-            print(f"Greška pri pretraživanju: {e}")
-            return []
-    
-    def search_documents_with_rerank(self, query: str, top_k: int = 5, 
-                                   use_metadata: bool = True) -> List[Dict[str, Any]]:
-        """Pretražuje dokumente sa naprednim reranking-om"""
-        try:
-            # Osnovna pretraga
-            initial_results = self.vector_store.search(query, top_k * 3)
-            
-            if not initial_results:
-                return []
-            
-            # Primeni reranking sa metapodacima
-            reranked_results = self.reranker.rerank_with_metadata(
-                query, initial_results, top_k, use_metadata
-            )
-            
-            return reranked_results
-            
-        except Exception as e:
-            print(f"Greška pri pretraživanju sa rerank-om: {e}")
-            return []
-    
-    def _to_native_types(self, obj):
-        """Rekurzivno konvertuje numpy tipove u native Python tipove (float, int, list, dict)."""
-        if isinstance(obj, dict):
-            return {k: self._to_native_types(v) for k, v in obj.items()}
-        elif isinstance(obj, list):
-            return [self._to_native_types(v) for v in obj]
-        elif isinstance(obj, (np.generic, np.ndarray)):
-            if isinstance(obj, np.ndarray):
-                return obj.tolist()
-            else:
-                return obj.item()
-        else:
-            return obj
-    
-    async def generate_rag_response(self, query: str, context: str = "", max_results: int = 3, 
-                            use_rerank: bool = True, session_id: str = None) -> Dict[str, Any]:
-        """Generiše RAG odgovor sa chat istorijom podrškom i caching-om"""
-        try:
-            # Validacija input-a
-            if not query or not query.strip():
-                raise ValidationError("Upit ne može biti prazan", "RAG_EMPTY_QUERY")
-            
-            if max_results <= 0:
-                raise ValidationError("max_results mora biti veći od 0", "RAG_INVALID_MAX_RESULTS")
-            
-            # Proveri cache prvo
-            cache_key = f"{query}:{context}:{max_results}:{use_rerank}"
-            cached_result = await get_cached_rag_result(query, context)
-            
-            if cached_result:
-                print(f"Cache hit za upit: {query[:50]}...")
-                return cached_result
-            
-            # Ako nema u cache-u, generiši novi odgovor
-            print(f"Cache miss za upit: {query[:50]}...")
-            
-            # Pretraži dokumente
-            search_results = self.search_documents(query, max_results * 2, use_rerank)
-            if not search_results:
-                result = self._generate_simple_response(query)
-                # Cache-uj i jednostavan odgovor
-                await set_cached_rag_result(query, result, context)
-                return result
-                
-            # Pripremi kontekst iz dokumenata
-            document_context = self._prepare_document_context(search_results[:max_results])
-            
-            # Kreiraj prompt
-            prompt = self._create_rag_prompt(query, document_context, context)
-            
-            # Generiši odgovor
-            try:
-                response = self.ollama_client.generate(
-                    model=self.model_name,
-                    prompt=prompt,
-                    stream=False
-                )
-                assistant_message = response['response']
-            except Exception as e:
-                raise ExternalServiceError(f"Greška pri komunikaciji sa Ollama: {str(e)}", "RAG_OLLAMA_ERROR")
-            
-            # Sačuvaj chat istoriju u Supabase ako je omogućen
-            if self.use_supabase and session_id:
-                try:
-                    self._save_chat_history(session_id, query, assistant_message, search_results[:max_results])
-                except Exception as e:
-                    # Loguj grešku ali ne prekini izvršavanje
-                    print(f"Greška pri čuvanju chat istorije: {e}")
-            
-            result = {
-                'status': 'success',
-                'response': assistant_message,
-                'sources': search_results[:max_results],
-                'query': query,
-                'model': self.model_name,
-                'context_length': len(document_context),
-                'cached': False
-            }
-            
-            # Cache-uj rezultat
-            try:
-                await set_cached_rag_result(query, result, context)
-            except Exception as e:
-                # Loguj grešku ali ne prekini izvršavanje
-                print(f"Greška pri cache-ovanju rezultata: {e}")
-            
-            return self._to_native_types(result)
-            
-        except ValidationError:
-            # Re-raise validation greške
-            raise
-        except ExternalServiceError:
-            # Re-raise external service greške
-            raise
-        except Exception as e:
-            # Podigni RAG grešku
-            raise RAGError(f"Greška pri generisanju RAG odgovora: {str(e)}", "RAG_GENERATION_FAILED")
-    
-    async def generate_rag_response_optimized(self, query: str, context: str = "", max_results: int = 3, 
-                                   use_rerank: bool = True, session_id: str = None) -> Dict[str, Any]:
-        """Optimizovana verzija RAG response generisanja"""
-        start_time = time.time()
-        
-        try:
-            # Validacija input-a
-            if not query or not query.strip():
-                raise ValidationError("Upit ne može biti prazan", "RAG_EMPTY_QUERY")
-            
-            if max_results <= 0:
-                raise ValidationError("max_results mora biti veći od 0", "RAG_INVALID_MAX_RESULTS")
-            
-            # Proveri cache prvo
-            cache_key = f"{query}:{context}:{max_results}:{use_rerank}"
-            cached_result = await get_cached_rag_result(query, context)
-            
-            if cached_result:
-                print(f"Cache hit za upit: {query[:50]}...")
-                cached_result['response_time'] = time.time() - start_time
-                return cached_result
-            
-            # Ako nema u cache-u, generiši novi odgovor
-            print(f"Cache miss za upit: {query[:50]}...")
-            
-            # Paralelno pretraži dokumente i pripremi kontekst
-            search_task = asyncio.create_task(
-                self._async_search_single(query, max_results * 2)
-            )
-            
-            # Ako je potrebno, pripremi reranking
-            if use_rerank:
-                search_results = await search_task
-                if search_results:
-                    rerank_task = asyncio.create_task(
-                        asyncio.get_event_loop().run_in_executor(
-                            self.executor,
-                            self.reranker.rerank_with_metadata,
-                            query, search_results, max_results, True
-                        )
-                    )
-                    search_results = await rerank_task
-            else:
-                search_results = await search_task
-            
-            if not search_results:
-                result = await self._generate_simple_response_async(query)
-                result['response_time'] = time.time() - start_time
-                await set_cached_rag_result(query, result, context)
-                return result
-                
-            # Pripremi kontekst iz dokumenata
-            document_context = self._prepare_document_context(search_results[:max_results])
-            
-            # Kreiraj prompt
-            prompt = self._create_rag_prompt(query, document_context, context)
-            
-            # Generiši odgovor
-            try:
-                response = await asyncio.get_event_loop().run_in_executor(
-                    self.executor,
-                    self.ollama_client.generate,
-                    self.model_name,
-                    prompt,
-                    False
-                )
-                assistant_message = response['response']
-            except Exception as e:
-                raise ExternalServiceError(f"Greška pri komunikaciji sa Ollama: {str(e)}", "RAG_OLLAMA_ERROR")
-            
-            # Sačuvaj chat istoriju u Supabase ako je omogućen
-            if self.use_supabase and session_id:
-                try:
-                    await asyncio.get_event_loop().run_in_executor(
-                        self.executor,
-                        self._save_chat_history,
-                        session_id, query, assistant_message, search_results[:max_results]
-                    )
-                except Exception as e:
-                    print(f"Greška pri čuvanju chat istorije: {e}")
-            
-            result = {
-                'status': 'success',
-                'response': assistant_message,
-                'sources': search_results[:max_results],
-                'query': query,
-                'model': self.model_name,
-                'context_length': len(document_context),
-                'cached': False,
-                'response_time': time.time() - start_time
-            }
-            
-            # Cache-uj rezultat
-            try:
-                await set_cached_rag_result(query, result, context)
-            except Exception as e:
-                print(f"Greška pri cache-ovanju rezultata: {e}")
-            
-            return self._to_native_types(result)
-            
-        except ValidationError:
-            raise
-        except ExternalServiceError:
-            raise
-        except Exception as e:
-            raise RAGError(f"Greška pri generisanju RAG odgovora: {str(e)}", "RAG_GENERATION_FAILED")
-    
-    def _save_chat_history(self, session_id: str, user_message: str, assistant_message: str, sources: List[Dict]):
-        """Čuva chat istoriju u Supabase"""
-        try:
-            if not self.use_supabase or not self.supabase_manager:
-                return
-            
-            # Pripremi sources za čuvanje
-            sources_data = []
-            for source in sources:
-                sources_data.append({
-                    'filename': source.get('filename', 'Unknown'),
-                    'content': source.get('content', '')[:200] + '...' if len(source.get('content', '')) > 200 else source.get('content', ''),
-                    'score': float(source.get('score', 0)),
-                    'page': source.get('page', 1)
-                })
-            
-            # Sačuvaj chat poruku
-            self.supabase_manager.save_chat_message(
-                session_id=session_id,
-                user_message=user_message,
-                assistant_message=assistant_message,
-                sources=sources_data
-            )
-            
-        except Exception as e:
-            print(f"Greška pri čuvanju chat istorije: {e}")
-    
-    def _generate_simple_response(self, query: str) -> Dict[str, Any]:
-        """Sinhrona verzija jednostavnog odgovora"""
-        try:
-            prompt = f"""Ti si AcAIA, AI learning assistant. Korisnik te je pitao: "{query}"
-
-Pošto trenutno nemam pristup relevantnim dokumentima, odgovori na osnovu svojih opštih znanja.
-Budi koristan i informativan, ali napomeni da ne možeš da pristupiš specifičnim dokumentima.
-
-Odgovor:"""
-            
-            response = self.ollama_client.generate(
-                model=self.model_name,
-                prompt=prompt,
-                stream=False
-            )
-            
-            return {
-                'status': 'success',
-                'response': response['response'],
-                'sources': [],
-                'query': query,
-                'model': self.model_name,
-                'note': 'Nema relevantnih dokumenata - odgovor na osnovu opštih znanja'
-            }
-            
-        except Exception as e:
-            print(f"Greška pri generisanju jednostavnog odgovora: {e}")
-            return {
-                'status': 'error',
-                'message': str(e),
-                'response': 'Izvinjavam se, došlo je do greške pri generisanju odgovora.'
-            }
-
-    async def _generate_simple_response_async(self, query: str) -> Dict[str, Any]:
-        """Asinhrona verzija jednostavnog odgovora"""
-        try:
-            prompt = f"""Ti si AcAIA, AI learning assistant. Korisnik te je pitao: "{query}"
-
-Pošto trenutno nemam pristup relevantnim dokumentima, odgovori na osnovu svojih opštih znanja.
-Budi koristan i informativan, ali napomeni da ne možeš da pristupiš specifičnim dokumentima.
-
-Odgovor:"""
-            
-            response = await asyncio.get_event_loop().run_in_executor(
-                self.executor,
-                self.ollama_client.generate,
-                self.model_name,
-                prompt,
-                False
-            )
-            
-            return {
-                'status': 'success',
-                'response': response['response'],
-                'sources': [],
-                'query': query,
-                'model': self.model_name,
-                'note': 'Nema relevantnih dokumenata - odgovor na osnovu opštih znanja'
-            }
-            
-        except Exception as e:
-            print(f"Greška pri generisanju jednostavnog odgovora: {e}")
-            return {
-                'status': 'error',
-                'message': str(e),
-                'response': 'Izvinjavam se, došlo je do greške pri generisanju odgovora.'
-            }
-    
-    def _create_rag_prompt(self, query: str, document_context: str, conversation_context: str = "") -> str:
-        """Kreira prompt za RAG odgovor"""
-        prompt = f"""Ti si AcAIA, napredni AI learning assistant koji koristi RAG (Retrieval-Augmented Generation) tehnologiju.
-
-Tvoja uloga je da pružiš tačne, korisne i kontekstualno relevantne odgovore na osnovu dostupnih dokumenata.
-
-Korisničko pitanje: {query}
-
-{f"Kontekst prethodne konverzacije: {conversation_context}" if conversation_context else ""}
-
-Relevantni dokumenti:
-{document_context}
-
-Uputstva:
-1. Koristi informacije iz dokumenata za tačne odgovore
-2. Ako dokumenti ne sadrže relevantne informacije, reci to jasno
-3. Budi konkretan i koristan
-4. Ako je potrebno, citiraj relevantne delove dokumenata
-5. Odgovori na srpskom jeziku
-
-Odgovor:"""
-        
-        return prompt
-    
-    def list_documents(self) -> List[Dict[str, Any]]:
-        """Lista svih dokumenata"""
-        return self.vector_store.list_documents()
-    
-    def get_document_info(self, doc_id: str) -> Optional[Dict[str, Any]]:
-        """Dohvata informacije o dokumentu"""
-        return self.vector_store.get_document(doc_id)
+    def get_document(self, doc_id: str) -> Optional[Dict[str, Any]]:
+        """Dohvati dokument po ID-u"""
+        for doc in self.documents:
+            if doc['id'] == doc_id:
+                return doc
+        return None
     
     def delete_document(self, doc_id: str) -> bool:
-        """Briše dokument"""
-        return self.vector_store.delete_document(doc_id)
+        """Obriši dokument"""
+        try:
+            # Pronađi dokument
+            doc_index = None
+            for i, doc in enumerate(self.documents):
+                if doc['id'] == doc_id:
+                    doc_index = i
+                    break
+            
+            if doc_index is None:
+                logger.warning(f"Dokument {doc_id} nije pronađen")
+                return False
+            
+            # Ukloni iz liste
+            removed_doc = self.documents.pop(doc_index)
+            
+            # Rekreiraj vector index (FAISS ne podržava brisanje)
+            self._init_vector_index()
+            
+            # Sačuvaj u lokalni storage
+            self._save_documents()
+            
+            logger.info(f"Dokument {doc_id} uspešno obrisan")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Greška pri brisanju dokumenta: {e}")
+            return False
     
     def get_stats(self) -> Dict[str, Any]:
-        """Dohvata statistike"""
-        stats = self.vector_store.get_stats()
-        stats['model_name'] = self.model_name
-        stats['use_supabase'] = self.use_supabase
-        return stats
-    
-    def test_connection(self) -> Dict[str, Any]:
-        """Testira konekciju sa Ollama"""
-        try:
-            # Test Ollama konekcije
-            models = self.ollama_client.list()
-            available_models = [model['name'] for model in models['models']]
-            
-            # Test modela
-            test_response = self.ollama_client.generate(
-                model=self.model_name,
-                prompt="Test konekcije",
-                stream=False
-            )
-            
-            return {
-                'status': 'success',
-                'ollama_connection': True,
-                'model_available': True,
-                'available_models': available_models,
-                'current_model': self.model_name,
-                'test_response': test_response['response'][:100] + '...' if len(test_response['response']) > 100 else test_response['response']
-            }
-            
-        except Exception as e:
-            return {
-                'status': 'error',
-                'ollama_connection': False,
-                'error': str(e)
-            }
-    
-    async def generate_multi_step_rag_response(self, query: str, context: str = "", max_results: int = 3, 
-                                        use_rerank: bool = True, session_id: str = None) -> Dict[str, Any]:
-        """Generiše RAG odgovor koristeći multi-step retrieval sa caching-om"""
-        try:
-            # Proveri cache prvo
-            cache_key = f"multistep:{query}:{context}:{max_results}:{use_rerank}"
-            cached_result = await get_cached_rag_result(query, context)
-            
-            if cached_result:
-                print(f"Cache hit za multi-step upit: {query[:50]}...")
-                return cached_result
-            
-            # Ako nema u cache-u, generiši novi odgovor
-            print(f"Cache miss za multi-step upit: {query[:50]}...")
-            
-            # Koristi multi-step retrieval
-            retrieval_result = self.multi_step_retrieval.retrieve(query, max_results)
-            if not retrieval_result['results']:
-                result = self._generate_simple_response(query)
-                # Cache-uj i jednostavan odgovor
-                await set_cached_rag_result(query, result, context)
-                return result
-                
-            # Pripremi kontekst
-            document_context = self._prepare_document_context(retrieval_result['results'])
-            # Kreiraj prompt
-            prompt = self._create_rag_prompt(query, document_context, context)
-            # Generiši odgovor
-            response = self.ollama_client.generate(
-                model=self.model_name,
-                prompt=prompt,
-                stream=False
-            )
-            assistant_message = response['response']
-            # Sačuvaj chat istoriju i retrieval sesiju u Supabase
-            if self.use_supabase and session_id:
-                self._save_chat_history(session_id, query, assistant_message, retrieval_result['results'])
-                self._save_retrieval_session(session_id, query, retrieval_result)
-            result = {
-                'status': 'success',
-                'response': assistant_message,
-                'sources': retrieval_result['results'],
-                'query': query,
-                'model': self.model_name,
-                'retrieval_steps': retrieval_result['steps'],
-                'context_length': len(document_context),
-                'cached': False
-            }
-            
-            # Cache-uj rezultat
-            await set_cached_rag_result(query, result, context)
-            
-            return self._to_native_types(result)
-        except Exception as e:
-            print(f"Greška pri generisanju multi-step RAG odgovora: {e}")
-            return {
-                'status': 'error',
-                'message': str(e),
-                'response': 'Izvinjavam se, došlo je do greške pri generisanju odgovora.'
-            }
-    
-    def _save_retrieval_session(self, session_id: str, query: str, retrieval_result: Dict):
-        """Čuva multi-step retrieval sesiju u Supabase"""
-        try:
-            if not self.use_supabase or not self.supabase_manager:
-                return
-            
-            # Pripremi finalne rezultate
-            final_results = []
-            for result in retrieval_result['results']:
-                final_results.append({
-                    'filename': result.get('filename', 'Unknown'),
-                    'content': result.get('content', '')[:200] + '...' if len(result.get('content', '')) > 200 else result.get('content', ''),
-                    'score': float(result.get('score', 0)),
-                    'page': result.get('page', 1)
-                })
-            
-            # Sačuvaj retrieval sesiju
-            self.supabase_manager.save_retrieval_session(
-                session_id=session_id,
-                query=query,
-                steps=retrieval_result['steps'],
-                final_results=final_results
-            )
-            
-        except Exception as e:
-            print(f"Greška pri čuvanju retrieval sesije: {e}")
-    
-    def _prepare_document_context(self, results: List[Dict[str, Any]]) -> str:
-        """Priprema kontekst iz rezultata pretrage"""
-        if not results:
-            return "Nema dostupnih dokumenata."
-        
-        context_parts = []
-        for i, result in enumerate(results, 1):
-            filename = result.get('filename', 'Unknown')
-            content = result.get('content', '')
-            page = result.get('page', 1)
-            score = result.get('score', 0)
-            
-            context_parts.append(f"""Dokument {i}: {filename} (strana {page}, relevantnost: {score:.2f})
-Sadržaj: {content}
----""")
-        
-        return "\n".join(context_parts)
-    
-    def get_query_analytics(self, query: str) -> Dict[str, Any]:
-        """Analizira upit i vraća informacije o tome"""
-        try:
-            # Osnovna analiza upita
-            query_length = len(query)
-            word_count = len(query.split())
-            # Pretraži dokumente
-            search_results = self.search_documents(query, 10, use_rerank=False)
-            # Analiza rezultata
-            if search_results:
-                avg_score = float(sum(r.get('score', 0) for r in search_results) / len(search_results))
-                max_score = float(max(r.get('score', 0) for r in search_results))
-                min_score = float(min(r.get('score', 0) for r in search_results))
-                # Analiza dokumenata
-                document_types = {}
-                for result in search_results:
-                    filename = result.get('filename', 'Unknown')
-                    ext = filename.split('.')[-1].lower() if '.' in filename else 'unknown'
-                    document_types[ext] = document_types.get(ext, 0) + 1
-            else:
-                avg_score = max_score = min_score = 0.0
-                document_types = {}
-            # Multi-step analitika
-            analytics = self.multi_step_retrieval.get_search_analytics(query)
-            return {
-                'query_length': query_length,
-                'word_count': word_count,
-                'results_count': len(search_results),
-                'avg_score': avg_score,
-                'max_score': max_score,
-                'min_score': min_score,
-                'document_types': document_types,
-                'has_results': len(search_results) > 0,
-                'is_complex': analytics.get('is_complex', False),
-                'has_questions': analytics.get('has_questions', False),
-                'concepts': analytics.get('concepts', []),
-                'complexity_score': analytics.get('complexity_score', 0.0)
-            }
-        except Exception as e:
-            print(f"Greška pri analizi upita: {e}")
-            return {'error': str(e)}
-    
-    async def generate_enhanced_context_response(self, query: str, available_contexts: Dict[str, Any], 
-                                                max_results: int = 5, session_id: str = None) -> Dict[str, Any]:
-        """Generiše RAG odgovor koristeći enhanced context selection"""
-        try:
-            print(f"Enhanced context selection za upit: {query[:50]}...")
-            
-            # Korak 1: Izbor optimalnog konteksta
-            context_selection = self.context_selector.select_context(query, available_contexts, max_results)
-            
-            if context_selection['status'] != 'success':
-                # Fallback na običan RAG ako context selection ne uspe
-                return await self.generate_multi_step_rag_response(query, "", max_results, True, session_id)
-            
-            selected_context = context_selection['selected_context']
-            context_analysis = context_selection['context_analysis']
-            
-            # Korak 2: Multi-step retrieval sa odabranim kontekstom
-            retrieval_result = self.multi_step_retrieval.multi_step_search(query, max_results, True)
-            
-            if not retrieval_result['results']:
-                # Ako nema rezultata, koristi samo odabrani kontekst
-                prompt = self._create_enhanced_prompt(query, selected_context)
-                response = self.ollama_client.generate(
-                    model=self.model_name,
-                    prompt=prompt,
-                    stream=False
-                )
-                assistant_message = response['response']
-            else:
-                # Kombinuj odabrani kontekst sa rezultatima pretrage
-                document_context = self._prepare_document_context(retrieval_result['results'])
-                combined_context = f"{selected_context}\n\nDokumenti:\n{document_context}"
-                prompt = self._create_enhanced_prompt(query, combined_context)
-                
-                response = self.ollama_client.generate(
-                    model=self.model_name,
-                    prompt=prompt,
-                    stream=False
-                )
-                assistant_message = response['response']
-            
-            # Korak 3: Sačuvaj rezultate
-            if self.use_supabase and session_id:
-                self._save_chat_history(session_id, query, assistant_message, retrieval_result.get('results', []))
-                self._save_enhanced_context_session(session_id, query, context_selection, retrieval_result)
-            
-            # Korak 4: Pripremi response
-            result = {
-                'status': 'success',
-                'response': assistant_message,
-                'query': query,
-                'model': self.model_name,
-                'context_analysis': context_analysis,
-                'context_selector_used': True,
-                'selected_context_length': len(selected_context),
-                'retrieval_results_count': len(retrieval_result.get('results', [])),
-                'sources': retrieval_result.get('results', []),
-                'retrieval_steps': retrieval_result.get('steps_used', 0),
-                'query_type': retrieval_result.get('query_type', 'unknown')
-            }
-            
-            return self._to_native_types(result)
-            
-        except Exception as e:
-            print(f"Greška pri enhanced context response: {e}")
-            return {
-                'status': 'error',
-                'message': str(e),
-                'response': 'Izvinjavam se, došlo je do greške pri generisanju odgovora.'
-            }
-    
-    def _create_enhanced_prompt(self, query: str, context: str) -> str:
-        """Kreira enhanced prompt sa naprednim kontekstom"""
-        system_prompt = """Ti si AI Study Assistant, napredni asistent za učenje koji koristi različite izvore informacija za pružanje tačnih i korisnih odgovora.
-
-Koristi sledeći kontekst za generisanje odgovora:
-- Analiziraj sve dostupne informacije
-- Poveži informacije iz različitih izvora
-- Daj jasne i strukturirane odgovore
-- Ako nema dovoljno informacija, reci to otvoreno
-- Koristi srpski jezik za odgovore
-
-Kontekst:
-{context}
-
-Korisnik: {query}
-
-AI Study Assistant:"""
-        
-        return system_prompt.format(context=context, query=query)
-    
-    def _save_enhanced_context_session(self, session_id: str, query: str, context_selection: Dict, retrieval_result: Dict):
-        """Čuva enhanced context sesiju u Supabase"""
-        try:
-            if not self.use_supabase or not self.supabase_manager:
-                return
-            
-            # Pripremi podatke za čuvanje
-            session_data = {
-                'session_id': session_id,
-                'query': query,
-                'context_analysis': context_selection.get('context_analysis', {}),
-                'context_candidates': context_selection.get('context_candidates', 0),
-                'selected_candidates': context_selection.get('selected_candidates', 0),
-                'retrieval_steps': retrieval_result.get('steps_used', 0),
-                'query_type': retrieval_result.get('query_type', 'unknown'),
-                'enhanced_context_used': True
-            }
-            
-            # Sačuvaj u Supabase (možemo koristiti postojeću tabelu ili kreirati novu)
-            print(f"Enhanced context sesija sačuvana za session_id: {session_id}")
-            
-        except Exception as e:
-            print(f"Greška pri čuvanju enhanced context sesije: {e}")
-    
-    def get_context_selector_info(self) -> Dict[str, Any]:
-        """Vraća informacije o context selector-u"""
+        """Dohvati statistike RAG sistema"""
         return {
-            'max_context_length': self.context_selector.max_context_length,
-            'min_relevance_score': self.context_selector.min_relevance_score,
-            'context_overlap_threshold': self.context_selector.context_overlap_threshold,
-            'context_types': self.context_selector.context_types,
-            'description': 'Enhanced context selection sistem za pametni izbor konteksta'
+            'total_documents': len(self.documents),
+            'vector_index_size': self.vector_index.ntotal if self.vector_index else 0,
+            'embedding_model': 'all-MiniLM-L6-v2' if self.embedding_model else None,
+            'storage_type': 'local',
+            'last_updated': datetime.now().isoformat()
         }
-
-    def get_performance_metrics(self) -> Dict[str, Any]:
-        """Dohvata performance metrike"""
-        try:
-            memory_info = psutil.virtual_memory()
-            return {
-                'memory_usage_percent': memory_info.percent,
-                'memory_available_gb': memory_info.available / (1024**3),
-                'cpu_usage_percent': psutil.cpu_percent(),
-                'active_threads': len(self.executor._threads),
-                'cache_hit_rate': self._get_cache_hit_rate(),
-                'avg_response_time': self._get_avg_response_time()
-            }
-        except Exception as e:
-            print(f"Greška pri dohvatanju performance metrika: {e}")
-            return {}
-    
-    def _get_cache_hit_rate(self) -> float:
-        """Računa cache hit rate (pojednostavljena verzija)"""
-        # Ovo bi trebalo da se implementira sa Redis statistika
-        return 0.75  # Placeholder
-    
-    def _get_avg_response_time(self) -> float:
-        """Računa prosečno vreme odgovora (pojednostavljena verzija)"""
-        # Ovo bi trebalo da se implementira sa monitoring-om
-        return 1.2  # Placeholder

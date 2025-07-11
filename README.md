@@ -19,7 +19,7 @@ AcAIA je napredna AI aplikacija sa real-time chat funkcionalnostima, multi-langu
 - **Exam Simulation** sa AI generisanim pitanjima i brisanjem ispita
 - **Problem Generator** sa AI-powered generisanjem problema za studente
 - **Docker Support** za jednostavan deployment i skaliranje
-- **Ollama Integration** za lokalno AI procesiranje
+- **Lokalni Storage** za čuvanje podataka
 
 ## 🚀 Brzo Pokretanje
 
@@ -55,17 +55,10 @@ npm install
 npm run dev
 ```
 
-#### **Ollama Setup (AI Backend)**
+#### **AI Services Setup**
 ```bash
-# Instalacija Ollama
-curl -fsSL https://ollama.ai/install.sh | sh
-
-# Pokretanje Ollama servisa
-ollama serve
-
-# Preuzimanje modela (u novom terminalu)
-ollama pull mistral
-ollama pull llama2
+# AI servisi su konfigurisani za lokalno procesiranje
+# Koriste se postojeći modeli i servisi
 ```
 
 #### **Redis (Cache)**
@@ -127,14 +120,13 @@ Sva detaljna dokumentacija se nalazi u [`docs/`](docs/) folderu:
 ## 🏗️ Arhitektura
 
 ```
-Frontend (Next.js) ←→ Backend (FastAPI) ←→ Ollama (AI Services)
+Frontend (Next.js) ←→ Backend (FastAPI) ←→ AI Services
      ↓                    ↓                      ↓
-WebSocket Chat    Redis Caching        Local AI Processing
-Voice Input       Async Processing     Query Rewriting
-File Handling     Error Handling       Fact Checking
-Session Mgmt      Performance Monitor  Context Selection
-Mobile Responsive Virtual Scrolling    Multi-step RAG
-Docker Support    Docker Container     Code Highlighting
+WebSocket Chat    Redis Caching        Query Rewriting
+Voice Input       Local Storage        Fact Checking
+File Handling     Error Handling       Context Selection
+Session Mgmt      Performance Monitor  Multi-step RAG
+Mobile Responsive Virtual Scrolling    Code Highlighting
 ```
 
 ## 📊 Status Implementacije
@@ -152,7 +144,7 @@ Docker Support    Docker Container     Code Highlighting
 - **Faza 10**: Virtual Scrolling (100%) - React Window optimizacije
 - **Faza 11**: Chat System Restructuring (100%) - Session management, sidebar, history, API integracija
 - **Faza 12**: Docker Integration (100%) - Multi-stage build, production-ready container
-- **Faza 13**: Ollama Integration (100%) - Lokalno AI procesiranje sa Mistral modelom
+- **Faza 13**: Lokalni Storage Integration (100%) - JSON-based storage bez Supabase-a
 
 ### **📋 U Razvoju (0%):**
 - **Faza 14**: Advanced Accessibility
@@ -168,7 +160,7 @@ Docker Support    Docker Container     Code Highlighting
 
 ### **Backend:**
 - FastAPI, Python 3.11+, Redis
-- Supabase, Ollama, Pytesseract
+- Pytesseract, Local Storage (JSON)
 
 ### **DevOps & Deployment:**
 - Docker, Multi-stage builds
@@ -373,7 +365,7 @@ Proverite da li čita ARIA labels
 - ✅ Answer Accuracy: > 85%
 - ✅ Multi-language Support: 12 jezika
 - ✅ Code Generation: Syntax highlighting
-- ✅ Ollama Integration: 100% funkcionalna
+- ✅ Lokalni Storage: 100% funkcionalan
 
 ## 🚀 Deployment
 
@@ -439,4 +431,4 @@ Ovaj projekat je licenciran pod MIT licencom - pogledaj [LICENSE](LICENSE) fajl 
 
 *AcAIA - Advanced Context-Aware AI Assistant*
 *Status: 100% završeno, 0% u razvoju*
-*Verzija: 1.3.0 - Docker support, Ollama integration, production-ready* 
+*Verzija: 2.0.0 - Docker support, local storage, production-ready* 

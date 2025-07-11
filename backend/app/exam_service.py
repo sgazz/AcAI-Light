@@ -1,632 +1,426 @@
 """
-Exam Simulation Service
-Upravlja kreiranjem, pokretanjem i ocenjivanjem ispita
+Exam Service - Lokalna verzija
+Upravlja exam funkcionalnostima bez Supabase integracije
 """
 
-import uuid
+import os
 import json
-from datetime import datetime, timedelta, timezone
-from typing import List, Dict, Any, Optional
-from enum import Enum
 import logging
+from typing import List, Dict, Any, Optional
+from datetime import datetime, timedelta
+from .config import Config
 
 logger = logging.getLogger(__name__)
 
-class QuestionType(Enum):
-    MULTIPLE_CHOICE = "multiple_choice"
-    TRUE_FALSE = "true_false"
-    SHORT_ANSWER = "short_answer"
-    ESSAY = "essay"
-    MATCHING = "matching"
-
-class ExamStatus(Enum):
-    DRAFT = "draft"
-    ACTIVE = "active"
-    IN_PROGRESS = "in_progress"
-    COMPLETED = "completed"
-    ARCHIVED = "archived"
-
-class Question:
-    """Reprezentuje jedno pitanje u ispitu"""
-    
-    def __init__(self, 
-                 question_id: str = None,
-                 question_text: str = "",
-                 question_type: QuestionType = QuestionType.MULTIPLE_CHOICE,
-                 options: List[str] = None,
-                 correct_answer: Any = None,
-                 explanation: str = "",
-                 points: int = 1,
-                 difficulty: str = "medium",
-                 subject: str = "",
-                 tags: List[str] = None):
-        
-        self.question_id = question_id or str(uuid.uuid4())
-        self.question_text = question_text
-        self.question_type = question_type
-        self.options = options or []
-        self.correct_answer = correct_answer
-        self.explanation = explanation
-        self.points = points
-        self.difficulty = difficulty
-        self.subject = subject
-        self.tags = tags or []
-        self.created_at = datetime.now()
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Konvertuj u dictionary za JSON serializaciju"""
-        return {
-            "question_id": self.question_id,
-            "question_text": self.question_text,
-            "question_type": self.question_type.value,
-            "options": self.options,
-            "correct_answer": self.correct_answer,
-            "explanation": self.explanation,
-            "points": self.points,
-            "difficulty": self.difficulty,
-            "subject": self.subject,
-            "tags": self.tags,
-            "created_at": self.created_at.isoformat()
-        }
-    
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Question':
-        """Kreiraj Question iz dictionary-a"""
-        return cls(
-            question_id=data.get("question_id"),
-            question_text=data.get("question_text", ""),
-            question_type=QuestionType(data.get("question_type", "multiple_choice")),
-            options=data.get("options", []),
-            correct_answer=data.get("correct_answer"),
-            explanation=data.get("explanation", ""),
-            points=data.get("points", 1),
-            difficulty=data.get("difficulty", "medium"),
-            subject=data.get("subject", ""),
-            tags=data.get("tags", [])
-        )
-
-class Exam:
-    """Reprezentuje jedan ispit"""
-    
-    def __init__(self,
-                 exam_id: str = None,
-                 title: str = "",
-                 description: str = "",
-                 subject: str = "",
-                 duration_minutes: int = 60,
-                 total_points: int = 100,
-                 passing_score: int = 70,
-                 questions: List[Question] = None,
-                 status: ExamStatus = ExamStatus.DRAFT,
-                 created_by: str = "",
-                 is_public: bool = False,
-                 allow_retakes: bool = True,
-                 max_attempts: int = 3):
-        
-        self.exam_id = exam_id or str(uuid.uuid4())
-        self.title = title
-        self.description = description
-        self.subject = subject
-        self.duration_minutes = duration_minutes
-        self.total_points = total_points
-        self.passing_score = passing_score
-        self.questions = questions or []
-        self.status = status
-        self.created_by = created_by
-        self.is_public = is_public
-        self.allow_retakes = allow_retakes
-        self.max_attempts = max_attempts
-        self.created_at = datetime.now()
-        self.updated_at = datetime.now()
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Konvertuj u dictionary za JSON serializaciju"""
-        return {
-            "exam_id": self.exam_id,
-            "title": self.title,
-            "description": self.description,
-            "subject": self.subject,
-            "duration_minutes": self.duration_minutes,
-            "total_points": self.total_points,
-            "passing_score": self.passing_score,
-            "questions": [q.to_dict() for q in self.questions],
-            "status": self.status.value,
-            "created_by": self.created_by,
-            "is_public": self.is_public,
-            "allow_retakes": self.allow_retakes,
-            "max_attempts": self.max_attempts,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat()
-        }
-    
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Exam':
-        """Kreiraj Exam iz dictionary-a"""
-        questions = [Question.from_dict(q) for q in data.get("questions", [])]
-        return cls(
-            exam_id=data.get("exam_id"),
-            title=data.get("title", ""),
-            description=data.get("description", ""),
-            subject=data.get("subject", ""),
-            duration_minutes=data.get("duration_minutes", 60),
-            total_points=data.get("total_points", 100),
-            passing_score=data.get("passing_score", 70),
-            questions=questions,
-            status=ExamStatus(data.get("status", "draft")),
-            created_by=data.get("created_by", ""),
-            is_public=data.get("is_public", False),
-            allow_retakes=data.get("allow_retakes", True),
-            max_attempts=data.get("max_attempts", 3)
-        )
-
-class ExamAttempt:
-    """Reprezentuje pokušaj polaganja ispita"""
-    
-    def __init__(self,
-                 attempt_id: str = None,
-                 exam_id: str = "",
-                 user_id: str = "",
-                 username: str = "",
-                 start_time: datetime = None,
-                 end_time: datetime = None,
-                 answers: Dict[str, Any] = None,
-                 score: int = 0,
-                 total_points: int = 0,
-                 percentage: float = 0.0,
-                 passed: bool = False,
-                 time_taken_minutes: int = 0):
-        
-        self.attempt_id = attempt_id or str(uuid.uuid4())
-        self.exam_id = exam_id
-        self.user_id = user_id
-        self.username = username
-        self.start_time = start_time or datetime.now(timezone.utc)
-        self.end_time = end_time
-        self.answers = answers or {}
-        self.score = score
-        self.total_points = total_points
-        self.percentage = percentage
-        self.passed = passed
-        self.time_taken_minutes = time_taken_minutes
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Konvertuj u dictionary za JSON serializaciju"""
-        return {
-            "attempt_id": self.attempt_id,
-            "exam_id": self.exam_id,
-            "user_id": self.user_id,
-            "username": self.username,
-            "start_time": self.start_time.isoformat(),
-            "end_time": self.end_time.isoformat() if self.end_time else None,
-            "answers": self.answers,
-            "score": self.score,
-            "total_points": self.total_points,
-            "percentage": self.percentage,
-            "passed": self.passed,
-            "time_taken_minutes": self.time_taken_minutes
-        }
-    
-    @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'ExamAttempt':
-        """Kreiraj ExamAttempt iz dictionary-a"""
-        start_time = None
-        end_time = None
-        
-        if data.get("start_time"):
-            start_time = datetime.fromisoformat(data["start_time"])
-            # Ako nema timezone info, dodaj UTC
-            if start_time.tzinfo is None:
-                start_time = start_time.replace(tzinfo=timezone.utc)
-        
-        if data.get("end_time"):
-            end_time = datetime.fromisoformat(data["end_time"])
-            # Ako nema timezone info, dodaj UTC
-            if end_time.tzinfo is None:
-                end_time = end_time.replace(tzinfo=timezone.utc)
-        
-        return cls(
-            attempt_id=data.get("attempt_id"),
-            exam_id=data.get("exam_id", ""),
-            user_id=data.get("user_id", ""),
-            username=data.get("username", ""),
-            start_time=start_time,
-            end_time=end_time,
-            answers=data.get("answers", {}),
-            score=data.get("score", 0),
-            total_points=data.get("total_points", 0),
-            percentage=data.get("percentage", 0.0),
-            passed=data.get("passed", False),
-            time_taken_minutes=data.get("time_taken_minutes", 0)
-        )
-
 class ExamService:
-    """Glavni servis za upravljanje ispitima"""
+    """Exam servis za lokalni storage"""
     
-    def __init__(self, supabase_manager=None):
-        self.supabase_manager = supabase_manager
-        self.active_attempts: Dict[str, ExamAttempt] = {}
+    def __init__(self):
+        """Inicijalizuj Exam servis"""
+        self.data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'exams')
+        self.exams_file = os.path.join(self.data_dir, 'exams.json')
+        self.attempts_file = os.path.join(self.data_dir, 'attempts.json')
+        self.results_file = os.path.join(self.data_dir, 'results.json')
+        
+        # Kreiraj direktorijum ako ne postoji
+        os.makedirs(self.data_dir, exist_ok=True)
+        
+        # Učitaj postojeće podatke
+        self.exams = self._load_exams()
+        self.attempts = self._load_attempts()
+        self.results = self._load_results()
     
-    async def create_exam(self, exam_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Kreiraj novi ispit"""
+    def _load_exams(self) -> List[Dict[str, Any]]:
+        """Učitaj examove iz lokalnog storage-a"""
         try:
-            exam = Exam.from_dict(exam_data)
-            
-            if self.supabase_manager:
-                exam_dict = exam.to_dict()
-                result = self.supabase_manager.client.table("exams").insert(exam_dict).execute()
-                
-                if result.data:
-                    logger.info(f"✅ Ispit kreiran: {exam.exam_id}")
-                    return {
-                        "status": "success",
-                        "exam": result.data[0],
-                        "message": "Ispit uspešno kreiran"
-                    }
-            
-            return {
-                "status": "success",
-                "exam": exam.to_dict(),
-                "message": "Ispit kreiran (offline mode)"
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ Greška pri kreiranju ispita: {e}")
-            return {
-                "status": "error",
-                "message": f"Greška pri kreiranju ispita: {str(e)}"
-            }
-    
-    async def get_exam(self, exam_id: str) -> Dict[str, Any]:
-        """Dohvati ispit po ID-u"""
-        try:
-            if self.supabase_manager:
-                result = self.supabase_manager.client.table("exams").select("*").eq("exam_id", exam_id).execute()
-                
-                if result.data:
-                    exam = Exam.from_dict(result.data[0])
-                    return {
-                        "status": "success",
-                        "exam": exam.to_dict(),
-                        "message": "Ispit pronađen"
-                    }
-            
-            return {
-                "status": "error",
-                "message": "Ispit nije pronađen"
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ Greška pri dohvatanju ispita: {e}")
-            return {
-                "status": "error",
-                "message": f"Greška pri dohvatanju ispita: {str(e)}"
-            }
-    
-    async def list_exams(self, user_id: str = None, subject: str = None) -> Dict[str, Any]:
-        """Listaj sve ispite"""
-        try:
-            if self.supabase_manager:
-                query = self.supabase_manager.client.table("exams").select("*")
-                
-                if user_id and user_id != "list":
-                    query = query.eq("created_by", user_id)
-                
-                if subject:
-                    query = query.eq("subject", subject)
-                
-                result = query.execute()
-                
-                return {
-                    "status": "success",
-                    "exams": result.data,
-                    "message": f"Pronađeno {len(result.data)} ispita"
-                }
-            
-            return {
-                "status": "success",
-                "exams": [],
-                "message": "Nema dostupnih ispita"
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ Greška pri listanju ispita: {e}")
-            return {
-                "status": "error",
-                "message": f"Greška pri listanju ispita: {str(e)}"
-            }
-
-    async def delete_exam(self, exam_id: str) -> Dict[str, Any]:
-        """Obriši ispit"""
-        try:
-            if self.supabase_manager:
-                # Prvo proveri da li ispit postoji
-                exam_result = await self.get_exam(exam_id)
-                if exam_result["status"] != "success":
-                    return {
-                        "status": "error",
-                        "message": "Ispit nije pronađen"
-                    }
-                
-                # Obriši ispit iz baze
-                result = self.supabase_manager.client.table("exams").delete().eq("exam_id", exam_id).execute()
-                
-                if result.data:
-                    logger.info(f"✅ Ispit obrisan: {exam_id}")
-                    return {
-                        "status": "success",
-                        "message": "Ispit uspešno obrisan"
-                    }
-                else:
-                    return {
-                        "status": "error",
-                        "message": "Ispit nije mogao biti obrisan"
-                    }
-            
-            return {
-                "status": "error",
-                "message": "Brisanje nije podržano u offline modu"
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ Greška pri brisanju ispita: {e}")
-            return {
-                "status": "error",
-                "message": f"Greška pri brisanju ispita: {str(e)}"
-            }
-    
-    async def start_exam_attempt(self, exam_id: str, user_id: str, username: str) -> Dict[str, Any]:
-        """Započni pokušaj polaganja ispita"""
-        try:
-            # Dohvati ispit
-            exam_result = await self.get_exam(exam_id)
-            if exam_result["status"] != "success":
-                return exam_result
-            
-            exam = Exam.from_dict(exam_result["exam"])
-            
-            # Proveri da li korisnik može da polaže ispit
-            if not exam.is_public and exam.created_by != user_id:
-                return {
-                    "status": "error",
-                    "message": "Nemate pristup ovom ispitu"
-                }
-            
-            # Proveri broj pokušaja
-            attempts_result = await self.get_user_attempts(exam_id, user_id)
-            if attempts_result["status"] == "success":
-                attempts_count = len(attempts_result["attempts"])
-                if attempts_count >= exam.max_attempts:
-                    return {
-                        "status": "error",
-                        "message": f"Dostigli ste maksimalan broj pokušaja ({exam.max_attempts})"
-                    }
-            
-            # Kreiraj novi pokušaj
-            attempt = ExamAttempt(
-                exam_id=exam_id,
-                user_id=user_id,
-                username=username,
-                total_points=exam.total_points,
-                start_time=datetime.now(timezone.utc)
-            )
-            
-            # Sačuvaj u bazu
-            if self.supabase_manager:
-                attempt_dict = attempt.to_dict()
-                result = self.supabase_manager.client.table("exam_attempts").insert(attempt_dict).execute()
-                
-                if result.data:
-                    attempt = ExamAttempt.from_dict(result.data[0])
-            
-            # Dodaj u aktivne pokušaje
-            self.active_attempts[attempt.attempt_id] = attempt
-            
-            logger.info(f"✅ Pokušaj započet: {attempt.attempt_id}")
-            return {
-                "status": "success",
-                "attempt": attempt.to_dict(),
-                "exam": exam.to_dict(),
-                "message": "Pokušaj uspešno započet"
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ Greška pri započinjanju pokušaja: {e}")
-            return {
-                "status": "error",
-                "message": f"Greška pri započinjanju pokušaja: {str(e)}"
-            }
-    
-    async def submit_answer(self, attempt_id: str, question_id: str, answer: Any) -> Dict[str, Any]:
-        """Predaj odgovor na pitanje"""
-        try:
-            if attempt_id not in self.active_attempts:
-                return {
-                    "status": "error",
-                    "message": "Aktivni pokušaj nije pronađen"
-                }
-            
-            attempt = self.active_attempts[attempt_id]
-            attempt.answers[question_id] = answer
-            
-            # Ažuriraj u bazi
-            if self.supabase_manager:
-                self.supabase_manager.client.table("exam_attempts").update({
-                    "answers": attempt.answers
-                }).eq("attempt_id", attempt_id).execute()
-            
-            return {
-                "status": "success",
-                "message": "Odgovor uspešno predat"
-            }
-            
-        except Exception as e:
-            logger.error(f"❌ Greška pri predaji odgovora: {e}")
-            return {
-                "status": "error",
-                "message": f"Greška pri predaji odgovora: {str(e)}"
-            }
-    
-    async def finish_exam_attempt(self, attempt_id: str) -> Dict[str, Any]:
-        """Završi pokušaj polaganja ispita"""
-        try:
-            if attempt_id not in self.active_attempts:
-                return {
-                    "status": "error",
-                    "message": "Aktivni pokušaj nije pronađen"
-                }
-            
-            attempt = self.active_attempts[attempt_id]
-            attempt.end_time = datetime.now(timezone.utc)
-            
-            # Izračunaj vreme - osiguraj da oba datetime objekta imaju timezone info
-            if attempt.end_time and attempt.start_time:
-                # Ako start_time nema timezone info, dodaj ga
-                if attempt.start_time.tzinfo is None:
-                    attempt.start_time = attempt.start_time.replace(tzinfo=attempt.end_time.tzinfo)
-                # Ako end_time nema timezone info, dodaj ga
-                elif attempt.end_time.tzinfo is None:
-                    attempt.end_time = attempt.end_time.replace(tzinfo=attempt.start_time.tzinfo)
-                
-                time_diff = attempt.end_time - attempt.start_time
-                attempt.time_taken_minutes = int(time_diff.total_seconds() / 60)
+            if os.path.exists(self.exams_file):
+                with open(self.exams_file, 'r', encoding='utf-8') as f:
+                    exams = json.load(f)
+                logger.info(f"Učitano {len(exams)} examova")
+                return exams
             else:
-                attempt.time_taken_minutes = 0
+                logger.info("Nema postojećih examova")
+                return []
+        except Exception as e:
+            logger.error(f"Greška pri učitavanju examova: {e}")
+            return []
+    
+    def _save_exams(self):
+        """Sačuvaj examove u lokalni storage"""
+        try:
+            with open(self.exams_file, 'w', encoding='utf-8') as f:
+                json.dump(self.exams, f, ensure_ascii=False, indent=2)
+            logger.info(f"Sačuvano {len(self.exams)} examova")
+        except Exception as e:
+            logger.error(f"Greška pri čuvanju examova: {e}")
+    
+    def _load_attempts(self) -> List[Dict[str, Any]]:
+        """Učitaj attempts iz lokalnog storage-a"""
+        try:
+            if os.path.exists(self.attempts_file):
+                with open(self.attempts_file, 'r', encoding='utf-8') as f:
+                    attempts = json.load(f)
+                logger.info(f"Učitano {len(attempts)} exam attempts")
+                return attempts
+            else:
+                logger.info("Nema postojećih exam attempts")
+                return []
+        except Exception as e:
+            logger.error(f"Greška pri učitavanju exam attempts: {e}")
+            return []
+    
+    def _save_attempts(self):
+        """Sačuvaj attempts u lokalni storage"""
+        try:
+            with open(self.attempts_file, 'w', encoding='utf-8') as f:
+                json.dump(self.attempts, f, ensure_ascii=False, indent=2)
+            logger.info(f"Sačuvano {len(self.attempts)} exam attempts")
+        except Exception as e:
+            logger.error(f"Greška pri čuvanju exam attempts: {e}")
+    
+    def _load_results(self) -> List[Dict[str, Any]]:
+        """Učitaj results iz lokalnog storage-a"""
+        try:
+            if os.path.exists(self.results_file):
+                with open(self.results_file, 'r', encoding='utf-8') as f:
+                    results = json.load(f)
+                logger.info(f"Učitano {len(results)} exam results")
+                return results
+            else:
+                logger.info("Nema postojećih exam results")
+                return []
+        except Exception as e:
+            logger.error(f"Greška pri učitavanju exam results: {e}")
+            return []
+    
+    def _save_results(self):
+        """Sačuvaj results u lokalni storage"""
+        try:
+            with open(self.results_file, 'w', encoding='utf-8') as f:
+                json.dump(self.results, f, ensure_ascii=False, indent=2)
+            logger.info(f"Sačuvano {len(self.results)} exam results")
+        except Exception as e:
+            logger.error(f"Greška pri čuvanju exam results: {e}")
+    
+    def create_exam(self, exam_data: Dict[str, Any]) -> str:
+        """Kreira novi exam"""
+        try:
+            exam_id = f"exam_{len(self.exams)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             
-            # Dohvati ispit za ocenjivanje
-            exam_result = await self.get_exam(attempt.exam_id)
-            if exam_result["status"] != "success":
-                return exam_result
+            exam = {
+                'id': exam_id,
+                'title': exam_data.get('title', 'Bez naslova'),
+                'description': exam_data.get('description', ''),
+                'subject': exam_data.get('subject', 'Opšte'),
+                'questions': exam_data.get('questions', []),
+                'time_limit_minutes': exam_data.get('time_limit_minutes', 60),
+                'passing_score': exam_data.get('passing_score', 70),
+                'max_attempts': exam_data.get('max_attempts', 3),
+                'is_active': exam_data.get('is_active', True),
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(),
+                'metadata': exam_data.get('metadata', {})
+            }
             
-            exam = Exam.from_dict(exam_result["exam"])
+            self.exams.append(exam)
+            self._save_exams()
             
-            # Ocenjivanje
-            score, total_points = await self._grade_exam(attempt, exam)
-            attempt.score = score
-            attempt.total_points = total_points
-            attempt.percentage = (score / total_points * 100) if total_points > 0 else 0
-            attempt.passed = attempt.percentage >= exam.passing_score
+            logger.info(f"Exam {exam_id} uspešno kreiran")
+            return exam_id
             
-            # Sačuvaj rezultate
-            if self.supabase_manager:
-                self.supabase_manager.client.table("exam_attempts").update({
-                    "end_time": attempt.end_time.isoformat(),
-                    "answers": attempt.answers,
-                    "score": attempt.score,
-                    "total_points": attempt.total_points,
-                    "percentage": attempt.percentage,
-                    "passed": attempt.passed,
-                    "time_taken_minutes": attempt.time_taken_minutes
-                }).eq("attempt_id", attempt_id).execute()
+        except Exception as e:
+            logger.error(f"Greška pri kreiranju exam-a: {e}")
+            raise
+    
+    def get_exam(self, exam_id: str) -> Optional[Dict[str, Any]]:
+        """Dohvati exam po ID-u"""
+        for exam in self.exams:
+            if exam['id'] == exam_id:
+                return exam
+        return None
+    
+    def update_exam(self, exam_id: str, update_data: Dict[str, Any]) -> bool:
+        """Ažuriraj postojeći exam"""
+        try:
+            for exam in self.exams:
+                if exam['id'] == exam_id:
+                    # Ažuriraj polja
+                    for key, value in update_data.items():
+                        if key in ['title', 'description', 'subject', 'questions', 'time_limit_minutes', 
+                                 'passing_score', 'max_attempts', 'is_active', 'metadata']:
+                            exam[key] = value
+                    
+                    exam['updated_at'] = datetime.now().isoformat()
+                    self._save_exams()
+                    
+                    logger.info(f"Exam {exam_id} uspešno ažuriran")
+                    return True
             
-            # Ukloni iz aktivnih pokušaja
-            del self.active_attempts[attempt_id]
+            logger.warning(f"Exam {exam_id} nije pronađen")
+            return False
             
-            logger.info(f"✅ Pokušaj završen: {attempt_id}, Rezultat: {attempt.percentage:.1f}%")
+        except Exception as e:
+            logger.error(f"Greška pri ažuriranju exam-a: {e}")
+            return False
+    
+    def delete_exam(self, exam_id: str) -> bool:
+        """Obriši exam"""
+        try:
+            for i, exam in enumerate(self.exams):
+                if exam['id'] == exam_id:
+                    removed_exam = self.exams.pop(i)
+                    self._save_exams()
+                    
+                    logger.info(f"Exam {exam_id} uspešno obrisan")
+                    return True
+            
+            logger.warning(f"Exam {exam_id} nije pronađen")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Greška pri brisanju exam-a: {e}")
+            return False
+    
+    def list_exams(self, filters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+        """Lista svih examova sa opcionim filterima"""
+        try:
+            exams = self.exams.copy()
+            
+            if filters:
+                # Primeni filtere
+                if 'subject' in filters:
+                    exams = [e for e in exams if e.get('subject') == filters['subject']]
+                
+                if 'is_active' in filters:
+                    exams = [e for e in exams if e.get('is_active') == filters['is_active']]
+                
+                if 'title' in filters:
+                    title_filter = filters['title'].lower()
+                    exams = [e for e in exams if title_filter in e.get('title', '').lower()]
+            
+            # Sortiraj po datumu kreiranja (najnoviji prvi)
+            exams.sort(key=lambda x: x['created_at'], reverse=True)
+            
+            return exams
+            
+        except Exception as e:
+            logger.error(f"Greška pri listanju examova: {e}")
+            return []
+    
+    def start_exam_attempt(self, exam_id: str, user_id: str = "default_user") -> str:
+        """Započni novi exam attempt"""
+        try:
+            exam = self.get_exam(exam_id)
+            if not exam:
+                raise Exception(f"Exam {exam_id} nije pronađen")
+            
+            if not exam.get('is_active', True):
+                raise Exception(f"Exam {exam_id} nije aktivan")
+            
+            # Proveri broj prethodnih attempts
+            user_attempts = [a for a in self.attempts if a.get('exam_id') == exam_id and a.get('user_id') == user_id]
+            if len(user_attempts) >= exam.get('max_attempts', 3):
+                raise Exception(f"Prekoračen maksimalan broj attempts za exam {exam_id}")
+            
+            attempt_id = f"attempt_{len(self.attempts)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            attempt = {
+                'id': attempt_id,
+                'exam_id': exam_id,
+                'user_id': user_id,
+                'started_at': datetime.now().isoformat(),
+                'status': 'in_progress',
+                'answers': {},
+                'score': None,
+                'completed_at': None,
+                'time_spent_minutes': 0,
+                'metadata': {}
+            }
+            
+            self.attempts.append(attempt)
+            self._save_attempts()
+            
+            logger.info(f"Exam attempt {attempt_id} uspešno započet")
+            return attempt_id
+            
+        except Exception as e:
+            logger.error(f"Greška pri započinjanju exam attempt-a: {e}")
+            raise
+    
+    def submit_exam_attempt(self, attempt_id: str, answers: Dict[str, Any]) -> Dict[str, Any]:
+        """Predaj exam attempt i izračunaj rezultat"""
+        try:
+            attempt = None
+            for a in self.attempts:
+                if a['id'] == attempt_id:
+                    attempt = a
+                    break
+            
+            if not attempt:
+                raise Exception(f"Attempt {attempt_id} nije pronađen")
+            
+            if attempt.get('status') != 'in_progress':
+                raise Exception(f"Attempt {attempt_id} nije u toku")
+            
+            exam = self.get_exam(attempt['exam_id'])
+            if not exam:
+                raise Exception(f"Exam {attempt['exam_id']} nije pronađen")
+            
+            # Izračunaj rezultat
+            score, results = self._calculate_exam_score(exam, answers)
+            
+            # Ažuriraj attempt
+            attempt['answers'] = answers
+            attempt['score'] = score
+            attempt['status'] = 'completed'
+            attempt['completed_at'] = datetime.now().isoformat()
+            
+            # Izračunaj vreme provedeno
+            start_time = datetime.fromisoformat(attempt['started_at'])
+            end_time = datetime.now()
+            attempt['time_spent_minutes'] = int((end_time - start_time).total_seconds() / 60)
+            
+            self._save_attempts()
+            
+            # Kreiraj result
+            result_id = f"result_{len(self.results)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            result = {
+                'id': result_id,
+                'attempt_id': attempt_id,
+                'exam_id': attempt['exam_id'],
+                'user_id': attempt['user_id'],
+                'score': score,
+                'max_score': len(exam.get('questions', [])),
+                'passing_score': exam.get('passing_score', 70),
+                'passed': score >= exam.get('passing_score', 70),
+                'time_spent_minutes': attempt['time_spent_minutes'],
+                'completed_at': attempt['completed_at'],
+                'detailed_results': results,
+                'created_at': datetime.now().isoformat()
+            }
+            
+            self.results.append(result)
+            self._save_results()
+            
+            logger.info(f"Exam attempt {attempt_id} uspešno završen sa score-om {score}")
+            
             return {
-                "status": "success",
-                "attempt": attempt.to_dict(),
-                "message": "Pokušaj uspešno završen"
+                'attempt_id': attempt_id,
+                'result_id': result_id,
+                'score': score,
+                'max_score': len(exam.get('questions', [])),
+                'passed': score >= exam.get('passing_score', 70),
+                'time_spent_minutes': attempt['time_spent_minutes'],
+                'detailed_results': results
             }
             
         except Exception as e:
-            logger.error(f"❌ Greška pri završavanju pokušaja: {e}")
-            return {
-                "status": "error",
-                "message": f"Greška pri završavanju pokušaja: {str(e)}"
-            }
+            logger.error(f"Greška pri predaji exam attempt-a: {e}")
+            raise
     
-    async def _grade_exam(self, attempt: ExamAttempt, exam: Exam) -> tuple[int, int]:
-        """Ocenjivanje ispita"""
-        score = 0
-        total_points = 0
+    def _calculate_exam_score(self, exam: Dict[str, Any], answers: Dict[str, Any]) -> tuple:
+        """Izračunaj score za exam na osnovu odgovora"""
+        questions = exam.get('questions', [])
+        total_score = 0
+        detailed_results = []
         
-        for question in exam.questions:
-            total_points += question.points
+        for i, question in enumerate(questions):
+            question_id = str(i)
+            user_answer = answers.get(question_id, '')
+            correct_answer = question.get('correct_answer', '')
             
-            if question.question_id in attempt.answers:
-                user_answer = attempt.answers[question.question_id]
-                
-                if question.question_type == QuestionType.MULTIPLE_CHOICE:
-                    if user_answer == question.correct_answer:
-                        score += question.points
-                
-                elif question.question_type == QuestionType.TRUE_FALSE:
-                    if user_answer == question.correct_answer:
-                        score += question.points
-                
-                elif question.question_type == QuestionType.SHORT_ANSWER:
-                    # Jednostavno poređenje teksta
-                    if str(user_answer).lower().strip() == str(question.correct_answer).lower().strip():
-                        score += question.points
-                
-                # Za essay i matching pitanja treba AI ocenjivanje
-                elif question.question_type in [QuestionType.ESSAY, QuestionType.MATCHING]:
-                    # TODO: Implementirati AI ocenjivanje
-                    pass
+            # Jednostavna logika za proveru odgovora
+            is_correct = user_answer.lower().strip() == correct_answer.lower().strip()
+            score = 1 if is_correct else 0
+            total_score += score
+            
+            detailed_results.append({
+                'question_id': question_id,
+                'question_text': question.get('question', ''),
+                'user_answer': user_answer,
+                'correct_answer': correct_answer,
+                'is_correct': is_correct,
+                'score': score
+            })
         
-        return score, total_points
+        return total_score, detailed_results
     
-    async def get_user_attempts(self, exam_id: str, user_id: str) -> Dict[str, Any]:
-        """Dohvati sve pokušaje korisnika za određeni ispit"""
+    def get_exam_results(self, user_id: str = None, exam_id: str = None) -> List[Dict[str, Any]]:
+        """Dohvati exam results"""
+        results = self.results.copy()
+        
+        if user_id:
+            results = [r for r in results if r.get('user_id') == user_id]
+        
+        if exam_id:
+            results = [r for r in results if r.get('exam_id') == exam_id]
+        
+        # Sortiraj po datumu završetka (najnoviji prvi)
+        results.sort(key=lambda x: x['completed_at'], reverse=True)
+        
+        return results
+    
+    def get_user_stats(self, user_id: str) -> Dict[str, Any]:
+        """Dohvati statistike korisnika"""
         try:
-            if self.supabase_manager:
-                result = self.supabase_manager.client.table("exam_attempts").select("*").eq("exam_id", exam_id).eq("user_id", user_id).execute()
-                
+            user_results = self.get_exam_results(user_id=user_id)
+            
+            if not user_results:
                 return {
-                    "status": "success",
-                    "attempts": result.data,
-                    "message": f"Pronađeno {len(result.data)} pokušaja"
+                    'total_exams_taken': 0,
+                    'total_passed': 0,
+                    'average_score': 0,
+                    'total_time_spent': 0,
+                    'favorite_subject': None
                 }
             
+            total_exams = len(user_results)
+            passed_exams = len([r for r in user_results if r.get('passed', False)])
+            average_score = sum(r.get('score', 0) for r in user_results) / total_exams
+            total_time = sum(r.get('time_spent_minutes', 0) for r in user_results)
+            
+            # Najčešći subject
+            exam_ids = [r.get('exam_id') for r in user_results]
+            subjects = []
+            for exam_id in exam_ids:
+                exam = self.get_exam(exam_id)
+                if exam:
+                    subjects.append(exam.get('subject', 'Opšte'))
+            
+            favorite_subject = max(set(subjects), key=subjects.count) if subjects else None
+            
             return {
-                "status": "success",
-                "attempts": [],
-                "message": "Nema pokušaja"
+                'total_exams_taken': total_exams,
+                'total_passed': passed_exams,
+                'pass_rate': (passed_exams / total_exams) * 100 if total_exams > 0 else 0,
+                'average_score': round(average_score, 2),
+                'total_time_spent': total_time,
+                'favorite_subject': favorite_subject
             }
             
         except Exception as e:
-            logger.error(f"❌ Greška pri dohvatanju pokušaja: {e}")
-            return {
-                "status": "error",
-                "message": f"Greška pri dohvatanju pokušaja: {str(e)}"
-            }
+            logger.error(f"Greška pri dohvatanju korisničkih statistika: {e}")
+            return {}
     
-    async def generate_ai_questions(self, subject: str, topic: str, count: int = 10, difficulty: str = "medium") -> List[Question]:
-        """Generiši pitanja pomoću AI-a"""
+    def get_stats(self) -> Dict[str, Any]:
+        """Dohvati statistike exam sistema"""
         try:
-            # TODO: Implementirati AI generisanje pitanja
-            # Ovo će koristiti Ollama model za generisanje pitanja
-            questions = []
-            
-            # Placeholder implementacija
-            for i in range(count):
-                question = Question(
-                    question_text=f"AI generisano pitanje {i+1} za {subject} - {topic}",
-                    question_type=QuestionType.MULTIPLE_CHOICE,
-                    options=["Opcija A", "Opcija B", "Opcija C", "Opcija D"],
-                    correct_answer="Opcija A",
-                    explanation="AI generisano objašnjenje",
-                    points=1,
-                    difficulty=difficulty,
-                    subject=subject,
-                    tags=[topic, difficulty]
-                )
-                questions.append(question)
-            
-            return questions
-            
+            return {
+                'total_exams': len(self.exams),
+                'total_attempts': len(self.attempts),
+                'total_results': len(self.results),
+                'active_exams': len([e for e in self.exams if e.get('is_active', True)]),
+                'completed_attempts': len([a for a in self.attempts if a.get('status') == 'completed']),
+                'average_score': sum(r.get('score', 0) for r in self.results) / len(self.results) if self.results else 0,
+                'last_updated': datetime.now().isoformat()
+            }
         except Exception as e:
-            logger.error(f"❌ Greška pri AI generisanju pitanja: {e}")
-            return []
+            logger.error(f"Greška pri dohvatanju exam statistika: {e}")
+            return {}
 
-# Globalna instanca servisa
-exam_service = None
+# Globalna instanca
+exam_service = ExamService()
 
-async def get_exam_service() -> ExamService:
-    """Dohvati globalnu instancu ExamService-a"""
-    global exam_service
-    if exam_service is None:
-        from .supabase_client import get_supabase_manager
-        supabase_manager = get_supabase_manager()
-        exam_service = ExamService(supabase_manager)
+def get_exam_service() -> ExamService:
+    """Dohvati globalnu instancu exam servisa"""
     return exam_service 

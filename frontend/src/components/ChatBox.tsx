@@ -184,7 +184,7 @@ export default function ChatBox() {
         localStorage.removeItem('currentSessionTitle');
         localStorage.removeItem('currentSessionType');
         
-        // Automatski kreiraj session metadata u Supabase
+        // Automatski kreiraj session metadata
         try {
           await createSessionMetadata(data.session_id, `Sesija ${new Date().toLocaleString('sr-RS')}`, 'Automatski kreirana sesija');
         } catch (metadataError) {

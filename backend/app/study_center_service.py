@@ -1,555 +1,503 @@
 """
-Study Center Service
-Upravlja svim operacijama vezanim za Study Center funkcionalnost
+Study Center Service - Lokalna verzija
+Upravlja study center funkcionalnostima bez Supabase integracije
 """
 
-import uuid
+import os
+import json
 import logging
-from datetime import datetime, date, timedelta
-from typing import List, Dict, Optional, Any
-from dataclasses import dataclass
-from enum import Enum
-
-from .supabase_client import get_supabase_manager
-from .rag_service import RAGService
+from typing import List, Dict, Any, Optional
+from datetime import datetime, timedelta
+from .config import Config
 
 logger = logging.getLogger(__name__)
 
-class SessionType(str, Enum):
-    TUTORING = "tutoring"
-    PRACTICE = "practice"
-    REVIEW = "review"
-    ASSESSMENT = "assessment"
-
-class TutorMode(str, Enum):
-    SOCRATIC = "socratic"
-    DIRECT = "direct"
-    CONVERSATIONAL = "conversational"
-    PRACTICE = "practice"
-
-class InteractionType(str, Enum):
-    QUESTION = "question"
-    ANSWER = "answer"
-    HINT = "hint"
-    EXPLANATION = "explanation"
-    FEEDBACK = "feedback"
-    CORRECTION = "correction"
-
-@dataclass
-class StudySession:
-    id: str
-    user_id: str
-    session_type: SessionType
-    subject: str
-    topic: Optional[str]
-    difficulty_level: str
-    ai_tutor_mode: TutorMode
-    session_data: Dict[str, Any]
-    progress_data: Dict[str, Any]
-    related_documents: List[str]
-    questions_asked: int
-    correct_answers: int
-    total_time_minutes: int
-    started_at: datetime
-    completed_at: Optional[datetime]
-    created_at: datetime
-    updated_at: datetime
-
-@dataclass
-class TutorInteraction:
-    id: str
-    session_id: str
-    user_id: str
-    interaction_type: InteractionType
-    ai_message: str
-    user_response: Optional[str]
-    response_quality: Optional[int]
-    time_taken_seconds: Optional[int]
-    difficulty_adjustment: Dict[str, Any]
-    rag_sources: List[Dict[str, Any]]
-    concept_tags: List[str]
-    is_correct: Optional[bool]
-    feedback_message: Optional[str]
-    created_at: datetime
-
-@dataclass
-class KnowledgeConcept:
-    id: str
-    user_id: str
-    subject: str
-    topic: str
-    concept: str
-    mastery_level: int
-    confidence_score: float
-    last_reviewed: Optional[datetime]
-    next_review_date: Optional[date]
-    review_count: int
-    correct_reviews: int
-    total_time_spent_minutes: int
-    related_document_ids: List[str]
-    learning_path: List[Dict[str, Any]]
-    created_at: datetime
-    updated_at: datetime
-
 class StudyCenterService:
+    """Study Center servis za lokalni storage"""
+    
     def __init__(self):
-        self.supabase = get_supabase_manager()
-        self.rag_service = RAGService()
+        """Inicijalizuj Study Center servis"""
+        self.data_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'study_center')
+        self.rooms_file = os.path.join(self.data_dir, 'rooms.json')
+        self.sessions_file = os.path.join(self.data_dir, 'sessions.json')
+        self.materials_file = os.path.join(self.data_dir, 'materials.json')
+        
+        # Kreiraj direktorijum ako ne postoji
+        os.makedirs(self.data_dir, exist_ok=True)
+        
+        # Učitaj postojeće podatke
+        self.rooms = self._load_rooms()
+        self.sessions = self._load_sessions()
+        self.materials = self._load_materials()
     
-    def _handle_error(self, error: Exception, operation: str) -> Dict[str, Any]:
-        """Centralizovano rukovanje greškama"""
-        error_msg = f"Greška pri {operation}: {str(error)}"
-        logger.error(error_msg, exc_info=True)
-        return {
-            "status": "error",
-            "message": error_msg,
-            "data": None
-        }
-    
-    async def start_tutoring_session(
-        self, 
-        user_id: str, 
-        subject: str, 
-        topic: str = None,
-        session_type: SessionType = SessionType.TUTORING,
-        difficulty_level: str = "medium",
-        ai_tutor_mode: TutorMode = TutorMode.SOCRATIC
-    ) -> Dict[str, Any]:
-        """Kreira novu tutoring sesiju"""
+    def _load_rooms(self) -> List[Dict[str, Any]]:
+        """Učitaj sobe iz lokalnog storage-a"""
         try:
-            if not self.supabase:
-                raise Exception("Supabase nije dostupan")
+            if os.path.exists(self.rooms_file):
+                with open(self.rooms_file, 'r', encoding='utf-8') as f:
+                    rooms = json.load(f)
+                logger.info(f"Učitano {len(rooms)} study soba")
+                return rooms
+            else:
+                logger.info("Nema postojećih study soba")
+                return []
+        except Exception as e:
+            logger.error(f"Greška pri učitavanju study soba: {e}")
+            return []
+    
+    def _save_rooms(self):
+        """Sačuvaj sobe u lokalni storage"""
+        try:
+            with open(self.rooms_file, 'w', encoding='utf-8') as f:
+                json.dump(self.rooms, f, ensure_ascii=False, indent=2)
+            logger.info(f"Sačuvano {len(self.rooms)} study soba")
+        except Exception as e:
+            logger.error(f"Greška pri čuvanju study soba: {e}")
+    
+    def _load_sessions(self) -> List[Dict[str, Any]]:
+        """Učitaj sesije iz lokalnog storage-a"""
+        try:
+            if os.path.exists(self.sessions_file):
+                with open(self.sessions_file, 'r', encoding='utf-8') as f:
+                    sessions = json.load(f)
+                logger.info(f"Učitano {len(sessions)} study sesija")
+                return sessions
+            else:
+                logger.info("Nema postojećih study sesija")
+                return []
+        except Exception as e:
+            logger.error(f"Greška pri učitavanju study sesija: {e}")
+            return []
+    
+    def _save_sessions(self):
+        """Sačuvaj sesije u lokalni storage"""
+        try:
+            with open(self.sessions_file, 'w', encoding='utf-8') as f:
+                json.dump(self.sessions, f, ensure_ascii=False, indent=2)
+            logger.info(f"Sačuvano {len(self.sessions)} study sesija")
+        except Exception as e:
+            logger.error(f"Greška pri čuvanju study sesija: {e}")
+    
+    def _load_materials(self) -> List[Dict[str, Any]]:
+        """Učitaj materijale iz lokalnog storage-a"""
+        try:
+            if os.path.exists(self.materials_file):
+                with open(self.materials_file, 'r', encoding='utf-8') as f:
+                    materials = json.load(f)
+                logger.info(f"Učitano {len(materials)} study materijala")
+                return materials
+            else:
+                logger.info("Nema postojećih study materijala")
+                return []
+        except Exception as e:
+            logger.error(f"Greška pri učitavanju study materijala: {e}")
+            return []
+    
+    def _save_materials(self):
+        """Sačuvaj materijale u lokalni storage"""
+        try:
+            with open(self.materials_file, 'w', encoding='utf-8') as f:
+                json.dump(self.materials, f, ensure_ascii=False, indent=2)
+            logger.info(f"Sačuvano {len(self.materials)} study materijala")
+        except Exception as e:
+            logger.error(f"Greška pri čuvanju study materijala: {e}")
+    
+    def create_room(self, room_data: Dict[str, Any]) -> str:
+        """Kreira novu study sobu"""
+        try:
+            room_id = f"room_{len(self.rooms)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
             
-            session_id = str(uuid.uuid4())
-            session_data = {
-                "id": session_id,
-                "user_id": user_id,
-                "session_type": session_type.value,
-                "subject": subject,
-                "topic": topic,
-                "difficulty_level": difficulty_level,
-                "ai_tutor_mode": ai_tutor_mode.value,
-                "session_data": {},
-                "progress_data": {
-                    "current_question": 0,
-                    "total_questions": 0,
-                    "correct_answers": 0,
-                    "session_start": datetime.now().isoformat()
+            room = {
+                'id': room_id,
+                'name': room_data.get('name', 'Bez imena'),
+                'description': room_data.get('description', ''),
+                'subject': room_data.get('subject', 'Opšte'),
+                'capacity': room_data.get('capacity', 10),
+                'is_public': room_data.get('is_public', True),
+                'created_by': room_data.get('created_by', 'system'),
+                'tags': room_data.get('tags', []),
+                'settings': room_data.get('settings', {}),
+                'is_active': room_data.get('is_active', True),
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(),
+                'metadata': room_data.get('metadata', {})
+            }
+            
+            self.rooms.append(room)
+            self._save_rooms()
+            
+            logger.info(f"Study soba {room_id} uspešno kreirana")
+            return room_id
+                
+        except Exception as e:
+            logger.error(f"Greška pri kreiranju study sobe: {e}")
+            raise
+    
+    def get_room(self, room_id: str) -> Optional[Dict[str, Any]]:
+        """Dohvati sobu po ID-u"""
+        for room in self.rooms:
+            if room['id'] == room_id:
+                return room
+        return None
+    
+    def update_room(self, room_id: str, update_data: Dict[str, Any]) -> bool:
+        """Ažuriraj postojeću sobu"""
+        try:
+            for room in self.rooms:
+                if room['id'] == room_id:
+                    # Ažuriraj polja
+                    for key, value in update_data.items():
+                        if key in ['name', 'description', 'subject', 'capacity', 'is_public', 
+                                 'tags', 'settings', 'is_active', 'metadata']:
+                            room[key] = value
+                    
+                    room['updated_at'] = datetime.now().isoformat()
+                    self._save_rooms()
+                    
+                    logger.info(f"Study soba {room_id} uspešno ažurirana")
+                    return True
+            
+            logger.warning(f"Study soba {room_id} nije pronađena")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Greška pri ažuriranju study sobe: {e}")
+            return False
+    
+    def delete_room(self, room_id: str) -> bool:
+        """Obriši sobu"""
+        try:
+            for i, room in enumerate(self.rooms):
+                if room['id'] == room_id:
+                    removed_room = self.rooms.pop(i)
+                    self._save_rooms()
+                    
+                    logger.info(f"Study soba {room_id} uspešno obrisana")
+                    return True
+            
+            logger.warning(f"Study soba {room_id} nije pronađena")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Greška pri brisanju study sobe: {e}")
+            return False
+    
+    def list_rooms(self, filters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+        """Lista svih soba sa opcionim filterima"""
+        try:
+            rooms = self.rooms.copy()
+            
+            if filters:
+                # Primeni filtere
+                if 'subject' in filters:
+                    rooms = [r for r in rooms if r.get('subject') == filters['subject']]
+                
+                if 'is_public' in filters:
+                    rooms = [r for r in rooms if r.get('is_public') == filters['is_public']]
+                
+                if 'is_active' in filters:
+                    rooms = [r for r in rooms if r.get('is_active') == filters['is_active']]
+                
+                if 'created_by' in filters:
+                    rooms = [r for r in rooms if r.get('created_by') == filters['created_by']]
+                
+                if 'tags' in filters:
+                    tag_filter = filters['tags']
+                    if isinstance(tag_filter, list):
+                        rooms = [r for r in rooms if any(tag in r.get('tags', []) for tag in tag_filter)]
+                    else:
+                        rooms = [r for r in rooms if tag_filter in r.get('tags', [])]
+            
+            # Sortiraj po datumu kreiranja (najnoviji prvi)
+            rooms.sort(key=lambda x: x['created_at'], reverse=True)
+            
+            return rooms
+            
+        except Exception as e:
+            logger.error(f"Greška pri listanju study soba: {e}")
+            return []
+    
+    def create_session(self, session_data: Dict[str, Any]) -> str:
+        """Kreira novu study sesiju"""
+        try:
+            session_id = f"session_{len(self.sessions)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            session = {
+                'id': session_id,
+                'room_id': session_data.get('room_id'),
+                'title': session_data.get('title', 'Bez naslova'),
+                'description': session_data.get('description', ''),
+                'subject': session_data.get('subject', 'Opšte'),
+                'start_time': session_data.get('start_time', datetime.now().isoformat()),
+                'end_time': session_data.get('end_time'),
+                'duration_minutes': session_data.get('duration_minutes', 60),
+                'max_participants': session_data.get('max_participants', 10),
+                'participants': session_data.get('participants', []),
+                'materials': session_data.get('materials', []),
+                'status': session_data.get('status', 'scheduled'),  # scheduled, active, completed, cancelled
+                'created_by': session_data.get('created_by', 'system'),
+                'notes': session_data.get('notes', ''),
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(),
+                'metadata': session_data.get('metadata', {})
+            }
+            
+            self.sessions.append(session)
+            self._save_sessions()
+            
+            logger.info(f"Study sesija {session_id} uspešno kreirana")
+            return session_id
+            
+        except Exception as e:
+            logger.error(f"Greška pri kreiranju study sesije: {e}")
+            raise
+    
+    def get_session(self, session_id: str) -> Optional[Dict[str, Any]]:
+        """Dohvati sesiju po ID-u"""
+        for session in self.sessions:
+            if session['id'] == session_id:
+                return session
+        return None
+    
+    def update_session(self, session_id: str, update_data: Dict[str, Any]) -> bool:
+        """Ažuriraj postojeću sesiju"""
+        try:
+            for session in self.sessions:
+                if session['id'] == session_id:
+                    # Ažuriraj polja
+                    for key, value in update_data.items():
+                        if key in ['title', 'description', 'subject', 'start_time', 'end_time', 
+                                 'duration_minutes', 'max_participants', 'participants', 'materials', 
+                                 'status', 'notes', 'metadata']:
+                            session[key] = value
+                    
+                    session['updated_at'] = datetime.now().isoformat()
+                    self._save_sessions()
+                    
+                    logger.info(f"Study sesija {session_id} uspešno ažurirana")
+                    return True
+            
+            logger.warning(f"Study sesija {session_id} nije pronađena")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Greška pri ažuriranju study sesije: {e}")
+            return False
+    
+    def delete_session(self, session_id: str) -> bool:
+        """Obriši sesiju"""
+        try:
+            for i, session in enumerate(self.sessions):
+                if session['id'] == session_id:
+                    removed_session = self.sessions.pop(i)
+                    self._save_sessions()
+                    
+                    logger.info(f"Study sesija {session_id} uspešno obrisana")
+                    return True
+            
+            logger.warning(f"Study sesija {session_id} nije pronađena")
+            return False
+            
+        except Exception as e:
+            logger.error(f"Greška pri brisanju study sesije: {e}")
+            return False
+    
+    def list_sessions(self, filters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+        """Lista svih sesija sa opcionim filterima"""
+        try:
+            sessions = self.sessions.copy()
+            
+            if filters:
+                # Primeni filtere
+                if 'room_id' in filters:
+                    sessions = [s for s in sessions if s.get('room_id') == filters['room_id']]
+                
+                if 'subject' in filters:
+                    sessions = [s for s in sessions if s.get('subject') == filters['subject']]
+                
+                if 'status' in filters:
+                    sessions = [s for s in sessions if s.get('status') == filters['status']]
+                
+                if 'created_by' in filters:
+                    sessions = [s for s in sessions if s.get('created_by') == filters['created_by']]
+                
+                if 'date_from' in filters:
+                    date_from = datetime.fromisoformat(filters['date_from'])
+                    sessions = [s for s in sessions if datetime.fromisoformat(s['start_time']) >= date_from]
+                
+                if 'date_to' in filters:
+                    date_to = datetime.fromisoformat(filters['date_to'])
+                    sessions = [s for s in sessions if datetime.fromisoformat(s['start_time']) <= date_to]
+            
+            # Sortiraj po vremenu početka (najnoviji prvi)
+            sessions.sort(key=lambda x: x['start_time'], reverse=True)
+            
+            return sessions
+            
+        except Exception as e:
+            logger.error(f"Greška pri listanju study sesija: {e}")
+            return []
+    
+    def join_session(self, session_id: str, user_id: str) -> bool:
+        """Pridruži se sesiji"""
+        try:
+            session = self.get_session(session_id)
+            if not session:
+                raise Exception(f"Sesija {session_id} nije pronađena")
+            
+            if session.get('status') != 'scheduled' and session.get('status') != 'active':
+                raise Exception(f"Sesija {session_id} nije dostupna za pridruživanje")
+            
+            participants = session.get('participants', [])
+            if user_id in participants:
+                logger.warning(f"Korisnik {user_id} je već u sesiji {session_id}")
+                return True
+            
+            max_participants = session.get('max_participants', 10)
+            if len(participants) >= max_participants:
+                raise Exception(f"Sesija {session_id} je puna")
+            
+            participants.append(user_id)
+            self.update_session(session_id, {'participants': participants})
+            
+            logger.info(f"Korisnik {user_id} uspešno pridružen sesiji {session_id}")
+            return True
+                
+        except Exception as e:
+            logger.error(f"Greška pri pridruživanju sesiji: {e}")
+            return False
+    
+    def leave_session(self, session_id: str, user_id: str) -> bool:
+        """Napusti sesiju"""
+        try:
+            session = self.get_session(session_id)
+            if not session:
+                raise Exception(f"Sesija {session_id} nije pronađena")
+            
+            participants = session.get('participants', [])
+            if user_id not in participants:
+                logger.warning(f"Korisnik {user_id} nije u sesiji {session_id}")
+                return True
+            
+            participants.remove(user_id)
+            self.update_session(session_id, {'participants': participants})
+            
+            logger.info(f"Korisnik {user_id} uspešno napustio sesiju {session_id}")
+            return True
+                
+        except Exception as e:
+            logger.error(f"Greška pri napuštanju sesije: {e}")
+            return False
+    
+    def create_material(self, material_data: Dict[str, Any]) -> str:
+        """Kreira novi study materijal"""
+        try:
+            material_id = f"material_{len(self.materials)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+            
+            material = {
+                'id': material_id,
+                'title': material_data.get('title', 'Bez naslova'),
+                'description': material_data.get('description', ''),
+                'subject': material_data.get('subject', 'Opšte'),
+                'type': material_data.get('type', 'document'),  # document, video, link, etc.
+                'content': material_data.get('content', ''),
+                'file_path': material_data.get('file_path', ''),
+                'url': material_data.get('url', ''),
+                'tags': material_data.get('tags', []),
+                'difficulty': material_data.get('difficulty', 'medium'),
+                'duration_minutes': material_data.get('duration_minutes', 0),
+                'is_public': material_data.get('is_public', True),
+                'created_by': material_data.get('created_by', 'system'),
+                'is_active': material_data.get('is_active', True),
+                'created_at': datetime.now().isoformat(),
+                'updated_at': datetime.now().isoformat(),
+                'metadata': material_data.get('metadata', {})
+            }
+            
+            self.materials.append(material)
+            self._save_materials()
+            
+            logger.info(f"Study materijal {material_id} uspešno kreiran")
+            return material_id
+            
+        except Exception as e:
+            logger.error(f"Greška pri kreiranju study materijala: {e}")
+            raise
+    
+    def get_material(self, material_id: str) -> Optional[Dict[str, Any]]:
+        """Dohvati materijal po ID-u"""
+        for material in self.materials:
+            if material['id'] == material_id:
+                return material
+        return None
+    
+    def list_materials(self, filters: Dict[str, Any] = None) -> List[Dict[str, Any]]:
+        """Lista svih materijala sa opcionim filterima"""
+        try:
+            materials = self.materials.copy()
+            
+            if filters:
+                # Primeni filtere
+                if 'subject' in filters:
+                    materials = [m for m in materials if m.get('subject') == filters['subject']]
+                
+                if 'type' in filters:
+                    materials = [m for m in materials if m.get('type') == filters['type']]
+                
+                if 'difficulty' in filters:
+                    materials = [m for m in materials if m.get('difficulty') == filters['difficulty']]
+                
+                if 'is_public' in filters:
+                    materials = [m for m in materials if m.get('is_public') == filters['is_public']]
+                
+                if 'is_active' in filters:
+                    materials = [m for m in materials if m.get('is_active') == filters['is_active']]
+                
+                if 'created_by' in filters:
+                    materials = [m for m in materials if m.get('created_by') == filters['created_by']]
+                
+                if 'tags' in filters:
+                    tag_filter = filters['tags']
+                    if isinstance(tag_filter, list):
+                        materials = [m for m in materials if any(tag in m.get('tags', []) for tag in tag_filter)]
+                    else:
+                        materials = [m for m in materials if tag_filter in m.get('tags', [])]
+            
+            # Sortiraj po datumu kreiranja (najnoviji prvi)
+            materials.sort(key=lambda x: x['created_at'], reverse=True)
+            
+            return materials
+            
+        except Exception as e:
+            logger.error(f"Greška pri listanju study materijala: {e}")
+            return []
+    
+    def get_stats(self) -> Dict[str, Any]:
+        """Dohvati statistike study center sistema"""
+        try:
+            return {
+                'total_rooms': len(self.rooms),
+                'total_sessions': len(self.sessions),
+                'total_materials': len(self.materials),
+                'active_rooms': len([r for r in self.rooms if r.get('is_active', True)]),
+                'active_sessions': len([s for s in self.sessions if s.get('status') in ['scheduled', 'active']]),
+                'active_materials': len([m for m in self.materials if m.get('is_active', True)]),
+                'sessions_by_status': {
+                    'scheduled': len([s for s in self.sessions if s.get('status') == 'scheduled']),
+                    'active': len([s for s in self.sessions if s.get('status') == 'active']),
+                    'completed': len([s for s in self.sessions if s.get('status') == 'completed']),
+                    'cancelled': len([s for s in self.sessions if s.get('status') == 'cancelled'])
                 },
-                "related_documents": [],
-                "questions_asked": 0,
-                "correct_answers": 0,
-                "total_time_minutes": 0,
-                "started_at": datetime.now().isoformat(),
-                "created_at": datetime.now().isoformat(),
-                "updated_at": datetime.now().isoformat()
+                'materials_by_type': {
+                    'document': len([m for m in self.materials if m.get('type') == 'document']),
+                    'video': len([m for m in self.materials if m.get('type') == 'video']),
+                    'link': len([m for m in self.materials if m.get('type') == 'link'])
+                },
+                'last_updated': datetime.now().isoformat()
             }
-            
-            result = self.supabase.table("study_center_sessions").insert(session_data).execute()
-            
-            if result.data:
-                logger.info(f"Study Center sesija kreirana: {session_id}")
-                return {
-                    "status": "success",
-                    "message": "Tutoring sesija uspešno započeta",
-                    "data": {
-                        "session_id": session_id,
-                        "session": result.data[0]
-                    }
-                }
-            else:
-                raise Exception("Greška pri kreiranju sesije")
-                
         except Exception as e:
-            return self._handle_error(e, "kreiranju tutoring sesije")
-    
-    async def generate_tutor_question(
-        self, 
-        session_id: str, 
-        context: Dict[str, Any] = None
-    ) -> Dict[str, Any]:
-        """Generiše pitanje od AI tutor-a"""
-        try:
-            if not self.supabase:
-                raise Exception("Supabase nije dostupan")
-            
-            # Dohvati sesiju
-            session_result = self.supabase.table("study_center_sessions").select("*").eq("id", session_id).execute()
-            
-            if not session_result.data:
-                raise Exception("Sesija nije pronađena")
-            
-            session = session_result.data[0]
-            
-            # Dohvati relevantne dokumente iz RAG-a ako postoje
-            rag_context = ""
-            if session.get("related_documents"):
-                # TODO: Implementirati RAG pretragu za relevantne informacije
-                rag_context = "Koristeći vaše uploadovane dokumente..."
-            
-            # Generiši pitanje na osnovu konteksta
-            question_prompt = f"""
-            Ti si AI tutor koji pomaže studentu da uči {session['subject']}.
-            {f"Tema: {session['topic']}" if session['topic'] else ""}
-            Nivo težine: {session['difficulty_level']}
-            Mod: {session['ai_tutor_mode']}
-            
-            {rag_context}
-            
-            Generiši jedno pitanje koje će pomoći studentu da razume koncept.
-            Pitanje treba da bude:
-            - Prilagođeno nivou težine
-            - U skladu sa tutor modom
-            - Kontekstualno relevantno
-            """
-            
-            # TODO: Implementirati poziv ka AI modelu za generisanje pitanja
-            # Za sada koristimo placeholder
-            ai_question = f"Možete li mi objasniti ključne koncepte iz {session['subject']}?"
-            
-            # Sačuvaj interakciju
-            interaction_data = {
-                "id": str(uuid.uuid4()),
-                "session_id": session_id,
-                "user_id": session["user_id"],
-                "interaction_type": InteractionType.QUESTION.value,
-                "ai_message": ai_question,
-                "user_response": None,
-                "response_quality": None,
-                "time_taken_seconds": None,
-                "difficulty_adjustment": {},
-                "rag_sources": [],
-                "concept_tags": [session["subject"]],
-                "is_correct": None,
-                "feedback_message": None,
-                "created_at": datetime.now().isoformat()
-            }
-            
-            self.supabase.table("ai_tutor_interactions").insert(interaction_data).execute()
-            
-            # Ažuriraj sesiju
-            self.supabase.table("study_center_sessions").update({
-                "questions_asked": session["questions_asked"] + 1,
-                "progress_data": {
-                    **session["progress_data"],
-                    "current_question": session["questions_asked"] + 1
-                }
-            }).eq("id", session_id).execute()
-            
-            return {
-                "status": "success",
-                "message": "Pitanje uspešno generisano",
-                "data": {
-                    "question": ai_question,
-                    "session_id": session_id,
-                    "context": {
-                        "subject": session["subject"],
-                        "topic": session["topic"],
-                        "difficulty": session["difficulty_level"],
-                        "mode": session["ai_tutor_mode"]
-                    }
-                }
-            }
-            
-        except Exception as e:
-            return self._handle_error(e, "generisanju tutor pitanja")
-    
-    async def evaluate_student_response(
-        self, 
-        session_id: str, 
-        response: str,
-        interaction_id: str = None
-    ) -> Dict[str, Any]:
-        """Evaluira odgovor studenta"""
-        try:
-            if not self.supabase:
-                raise Exception("Supabase nije dostupan")
-            
-            # Dohvati sesiju
-            session_result = self.supabase.table("study_center_sessions").select("*").eq("id", session_id).execute()
-            
-            if not session_result.data:
-                raise Exception("Sesija nije pronađena")
-            
-            session = session_result.data[0]
-            
-            # TODO: Implementirati AI evaluaciju odgovora
-            # Za sada koristimo jednostavnu evaluaciju
-            evaluation_prompt = f"""
-            Evaluiraj odgovor studenta na pitanje iz {session['subject']}.
-            
-            Odgovor studenta: {response}
-            
-            Oceni:
-            1. Tačnost (1-5)
-            2. Kompletnost (1-5)
-            3. Razumevanje (1-5)
-            4. Da li je odgovor tačan (true/false)
-            5. Feedback poruka
-            """
-            
-            # Placeholder evaluacija
-            response_quality = 4  # TODO: AI evaluacija
-            is_correct = True  # TODO: AI evaluacija
-            feedback_message = "Odličan odgovor! Pokazujete dobro razumevanje koncepta."
-            
-            # Sačuvaj evaluaciju
-            evaluation_data = {
-                "id": str(uuid.uuid4()),
-                "session_id": session_id,
-                "user_id": session["user_id"],
-                "interaction_type": InteractionType.FEEDBACK.value,
-                "ai_message": feedback_message,
-                "user_response": response,
-                "response_quality": response_quality,
-                "time_taken_seconds": 30,  # TODO: Implementirati praćenje vremena
-                "difficulty_adjustment": {},
-                "rag_sources": [],
-                "concept_tags": [session["subject"]],
-                "is_correct": is_correct,
-                "feedback_message": feedback_message,
-                "created_at": datetime.now().isoformat()
-            }
-            
-            self.supabase.table("ai_tutor_interactions").insert(evaluation_data).execute()
-            
-            # Ažuriraj sesiju
-            new_correct_answers = session["correct_answers"] + (1 if is_correct else 0)
-            self.supabase.table("study_center_sessions").update({
-                "correct_answers": new_correct_answers,
-                "progress_data": {
-                    **session["progress_data"],
-                    "correct_answers": new_correct_answers
-                }
-            }).eq("id", session_id).execute()
-            
-            # Ažuriraj knowledge tracking
-            await self._update_knowledge_tracking(session["user_id"], session["subject"], session["topic"], is_correct)
-            
-            return {
-                "status": "success",
-                "message": "Odgovor uspešno evaluiran",
-                "data": {
-                    "evaluation": {
-                        "quality": response_quality,
-                        "is_correct": is_correct,
-                        "feedback": feedback_message
-                    },
-                    "session_progress": {
-                        "correct_answers": new_correct_answers,
-                        "total_questions": session["questions_asked"]
-                    }
-                }
-            }
-            
-        except Exception as e:
-            return self._handle_error(e, "evaluaciji odgovora studenta")
-    
-    async def get_learning_progress(self, user_id: str) -> Dict[str, Any]:
-        """Dohvata napredak učenja korisnika"""
-        try:
-            if not self.supabase:
-                raise Exception("Supabase nije dostupan")
-            
-            # Koristi custom funkciju za napredak
-            result = self.supabase.rpc(
-                "get_user_study_center_progress",
-                {"user_id_param": user_id}
-            ).execute()
-            
-            if result.data:
-                progress = result.data[0]
-                return {
-                    "status": "success",
-                    "message": "Napredak uspešno dohvaćen",
-                    "data": progress
-                }
-            else:
-                return {
-                    "status": "success",
-                    "message": "Nema podataka o napretku",
-                    "data": {
-                        "total_sessions": 0,
-                        "total_time_hours": 0,
-                        "total_questions": 0,
-                        "total_correct": 0,
-                        "overall_accuracy": 0,
-                        "subjects_studied": [],
-                        "mastery_levels": {},
-                        "weak_areas": [],
-                        "strength_areas": []
-                    }
-                }
-                
-        except Exception as e:
-            return self._handle_error(e, "dohvatanju napretka učenja")
-    
-    async def end_tutoring_session(self, session_id: str) -> Dict[str, Any]:
-        """Završava tutoring sesiju"""
-        try:
-            if not self.supabase:
-                raise Exception("Supabase nije dostupan")
-            
-            # Dohvati sesiju
-            session_result = self.supabase.table("study_center_sessions").select("*").eq("id", session_id).execute()
-            
-            if not session_result.data:
-                raise Exception("Sesija nije pronađena")
-            
-            session = session_result.data[0]
-            
-            # Ažuriraj sesiju
-            update_data = {
-                "completed_at": datetime.now().isoformat(),
-                "progress_data": {
-                    **session["progress_data"],
-                    "session_end": datetime.now().isoformat(),
-                    "total_duration": session.get("total_time_minutes", 0)
-                }
-            }
-            
-            result = self.supabase.table("study_center_sessions").update(update_data).eq("id", session_id).execute()
-            
-            if result.data:
-                # Ažuriraj analitiku
-                self.supabase.rpc(
-                    "update_study_center_analytics",
-                    {"user_id_param": session["user_id"]}
-                ).execute()
-                
-                logger.info(f"Study Center sesija završena: {session_id}")
-                return {
-                    "status": "success",
-                    "message": "Tutoring sesija uspešno završena",
-                    "data": {
-                        "session_id": session_id,
-                        "summary": {
-                            "total_questions": session["questions_asked"],
-                            "correct_answers": session["correct_answers"],
-                            "accuracy": round((session["correct_answers"] / max(session["questions_asked"], 1)) * 100, 2),
-                            "duration_minutes": session.get("total_time_minutes", 0)
-                        }
-                    }
-                }
-            else:
-                raise Exception("Greška pri završavanju sesije")
-                
-        except Exception as e:
-            return self._handle_error(e, "završavanju tutoring sesije")
-    
-    async def get_concepts_for_review(self, user_id: str, limit: int = 20) -> Dict[str, Any]:
-        """Dohvata koncepte za review (spaced repetition)"""
-        try:
-            if not self.supabase:
-                raise Exception("Supabase nije dostupan")
-            
-            result = self.supabase.rpc(
-                "get_concepts_for_review",
-                {"user_id_param": user_id, "limit_count": limit}
-            ).execute()
-            
-            return {
-                "status": "success",
-                "message": f"Dohvaćeno {len(result.data)} koncepata za review",
-                "data": result.data
-            }
-            
-        except Exception as e:
-            return self._handle_error(e, "dohvatanju koncepata za review")
-    
-    async def _update_knowledge_tracking(
-        self, 
-        user_id: str, 
-        subject: str, 
-        topic: str, 
-        was_correct: bool,
-        concept: str = None
-    ) -> None:
-        """Ažurira knowledge tracking za koncept"""
-        try:
-            if not concept:
-                concept = f"{subject} - {topic}"
-            
-            # Dohvati postojeći koncept ili kreiraj novi
-            existing = self.supabase.table("knowledge_tracking").select("*").eq("user_id", user_id).eq("subject", subject).eq("topic", topic).eq("concept", concept).execute()
-            
-            if existing.data:
-                # Ažuriraj postojeći
-                current = existing.data[0]
-                new_mastery = min(current["mastery_level"] + (1 if was_correct else -1), 5)
-                new_mastery = max(new_mastery, 1)
-                
-                # Izračunaj interval za sledeći review
-                review_intervals = {1: 1, 2: 3, 3: 7, 4: 14, 5: 30}
-                next_review = date.today() + timedelta(days=review_intervals.get(new_mastery, 7))
-                
-                self.supabase.table("knowledge_tracking").update({
-                    "mastery_level": new_mastery,
-                    "review_count": current["review_count"] + 1,
-                    "correct_reviews": current["correct_reviews"] + (1 if was_correct else 0),
-                    "last_reviewed": datetime.now().isoformat(),
-                    "next_review_date": next_review.isoformat(),
-                    "updated_at": datetime.now().isoformat()
-                }).eq("id", current["id"]).execute()
-            else:
-                # Kreiraj novi koncept
-                new_concept = {
-                    "id": str(uuid.uuid4()),
-                    "user_id": user_id,
-                    "subject": subject,
-                    "topic": topic,
-                    "concept": concept,
-                    "mastery_level": 2 if was_correct else 1,
-                    "confidence_score": 0.5 if was_correct else 0.2,
-                    "last_reviewed": datetime.now().isoformat(),
-                    "next_review_date": (date.today() + timedelta(days=3 if was_correct else 1)).isoformat(),
-                    "review_count": 1,
-                    "correct_reviews": 1 if was_correct else 0,
-                    "total_time_spent_minutes": 0,
-                    "related_document_ids": [],
-                    "learning_path": [],
-                    "created_at": datetime.now().isoformat(),
-                    "updated_at": datetime.now().isoformat()
-                }
-                
-                self.supabase.table("knowledge_tracking").insert(new_concept).execute()
-                
-        except Exception as e:
-            logger.error(f"Greška pri ažuriranju knowledge tracking: {e}")
-    
-    async def get_user_sessions(self, user_id: str, limit: int = 50) -> Dict[str, Any]:
-        """Dohvata sesije korisnika"""
-        try:
-            if not self.supabase:
-                raise Exception("Supabase nije dostupan")
-            
-            result = self.supabase.table("study_center_sessions").select("*").eq("user_id", user_id).order("created_at", desc=True).limit(limit).execute()
-            
-            return {
-                "status": "success",
-                "message": f"Dohvaćeno {len(result.data)} sesija",
-                "data": result.data
-            }
-            
-        except Exception as e:
-            return self._handle_error(e, "dohvatanju sesija korisnika")
-    
-    async def get_session_interactions(self, session_id: str) -> Dict[str, Any]:
-        """Dohvata interakcije za sesiju"""
-        try:
-            if not self.supabase:
-                raise Exception("Supabase nije dostupan")
-            
-            result = self.supabase.table("ai_tutor_interactions").select("*").eq("session_id", session_id).order("created_at", asc=True).execute()
-            
-            return {
-                "status": "success",
-                "message": f"Dohvaćeno {len(result.data)} interakcija",
-                "data": result.data
-            }
-            
-        except Exception as e:
-            return self._handle_error(e, "dohvatanju interakcija sesije")
+            logger.error(f"Greška pri dohvatanju study center statistika: {e}")
+            return {}
 
-# Globalna instanca servisa
+# Globalna instanca
 study_center_service = StudyCenterService() 

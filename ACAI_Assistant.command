@@ -26,6 +26,15 @@ echo "Pritisnite Ctrl+C za zaustavljanje."
 echo "Pokrećem backend server..."
 cd backend
 
+# Provera Python verzije
+PY_VER=$(source venv/bin/activate && python --version 2>&1)
+if [[ $PY_VER != *"3.11"* ]]; then
+    echo "Greška: Virtuelno okruženje nije kreirano sa Python 3.11! (Trenutno: $PY_VER)"
+    echo "Kreirajte venv sa: python3.11 -m venv venv"
+    read -p "Pritisnite Enter za izlaz..."
+    exit 1
+fi
+
 # Učitavanje .env fajla za Supabase kredencijale
 if [ -f ".env" ]; then
     echo "Učitavam .env fajl sa Supabase kredencijalima..."

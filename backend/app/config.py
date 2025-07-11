@@ -15,7 +15,7 @@ except ImportError:
     print("python-dotenv nije instaliran. Environment varijable možda neće biti učitate.")
 
 class Config:
-    """Centralizovana konfiguracija za backend aplikaciju (samo Supabase)"""
+    """Centralizovana konfiguracija za backend aplikaciju (lokalna verzija)"""
     
     # API konfiguracija
     API_HOST = os.getenv("API_HOST", "0.0.0.0")
@@ -30,11 +30,8 @@ class Config:
     OCR_MIN_CONFIDENCE = float(os.getenv("OCR_MIN_CONFIDENCE", "50.0"))
     OCR_BATCH_SIZE = int(os.getenv("OCR_BATCH_SIZE", "5"))
     
-    # Supabase konfiguracija
-    SUPABASE_URL = os.getenv("SUPABASE_URL")
-    SUPABASE_KEY = os.getenv("SUPABASE_ANON_KEY")  # Koristi SUPABASE_ANON_KEY iz .env
-    SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")
-    USE_SUPABASE = True  # Uvek koristi Supabase
+    # Lokalni storage konfiguracija
+    USE_LOCAL_STORAGE = True  # Uvek koristi lokalni storage
     
     # RAG konfiguracija
     RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "500"))
