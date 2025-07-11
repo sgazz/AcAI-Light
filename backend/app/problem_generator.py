@@ -114,7 +114,7 @@ class ProblemGenerator:
             else:
                 logger.info("Nema postojećih kategorija")
                 return []
-            except Exception as e:
+        except Exception as e:
             logger.error(f"Greška pri učitavanju kategorija: {e}")
             return []
     
@@ -302,7 +302,7 @@ class ProblemGenerator:
                     if isinstance(tag_filter, list):
                         problems = [p for p in problems if any(tag in p.get('tags', []) for tag in tag_filter)]
             else:
-                        problems = [p for p in problems if tag_filter in p.get('tags', [])]
+                problems = [p for p in problems if tag_filter in p.get('tags', [])]
             
             # Sortiraj po datumu kreiranja (najnoviji prvi)
             problems.sort(key=lambda x: x['created_at'], reverse=True)

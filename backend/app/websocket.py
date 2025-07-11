@@ -289,8 +289,8 @@ class WebSocketManager:
     async def connect(self, websocket: WebSocket, user_id: str = None, session_id: str = None) -> 'WebSocketConnection':
         """Prihvati novu WebSocket konekciju"""
         try:
-        await websocket.accept()
-        
+            await websocket.accept()
+            
             connection_id = str(uuid.uuid4())
             connection = WebSocketConnection(
                 websocket=websocket,
@@ -312,8 +312,8 @@ class WebSocketManager:
             self.stats["active_connections"] += 1
             
             logger.info(f"WebSocket konekcija uspostavljena: {connection_id}")
-        return connection
-    
+            return connection
+            
         except Exception as e:
             logger.error(f"Greška pri uspostavljanju WebSocket konekcije: {e}")
             raise
@@ -359,13 +359,13 @@ class WebSocketManager:
                 connection = self.connections[connection_id]
                 
                 # Preskoči ako je exclude_user
-            if exclude_user and connection.user_id == exclude_user:
-                continue
+                if exclude_user and connection.user_id == exclude_user:
+                    continue
             
-            try:
-                await connection.send_message(message)
-                self.stats["messages_sent"] += 1
-            except Exception as e:
+                try:
+                    await connection.send_message(message)
+                    self.stats["messages_sent"] += 1
+                except Exception as e:
                     logger.error(f"Greška pri slanju poruke: {e}")
                     disconnected_connections.append(connection)
             
@@ -379,16 +379,16 @@ class WebSocketManager:
     async def send_typing_indicator(self, session_id: str, user_id: str, is_typing: bool):
         """Pošalji typing indicator"""
         try:
-        typing_message = WebSocketMessage(
-            message_type=MessageType.TYPING,
-            content={
-                "user_id": user_id,
-                "is_typing": is_typing
-            },
-            sender=user_id,
-            session_id=session_id
-        )
-        
+            typing_message = WebSocketMessage(
+                message_type=MessageType.TYPING,
+                content={
+                    "user_id": user_id,
+                    "is_typing": is_typing
+                },
+                sender=user_id,
+                session_id=session_id
+            )
+            
             await self.broadcast_to_session(typing_message, session_id)
             
         except Exception as e:
@@ -432,15 +432,15 @@ class WebSocketManager:
         """Zatvori sve konekcije"""
         try:
             for connection in list(self.connections.values()):
-            try:
-                await connection.websocket.close()
+                try:
+                    await connection.websocket.close()
                 except:
                     pass
         
             self.connections.clear()
-        self.session_connections.clear()
-        self.stats["active_connections"] = 0
-        
+            self.session_connections.clear()
+            self.stats["active_connections"] = 0
+            
             logger.info("Sve WebSocket konekcije zatvorene")
             
         except Exception as e:

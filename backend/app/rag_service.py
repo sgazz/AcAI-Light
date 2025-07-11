@@ -136,7 +136,7 @@ class RAGService:
             logger.info(f"Dokument {doc_id} uspešno dodat u RAG sistem")
             return doc_id
             
-            except Exception as e:
+        except Exception as e:
             logger.error(f"Greška pri dodavanju dokumenta: {e}")
             raise
     
