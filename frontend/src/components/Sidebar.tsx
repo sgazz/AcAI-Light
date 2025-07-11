@@ -38,7 +38,7 @@ export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
 
       <div className="relative flex flex-col h-full p-3 lg:p-4 overflow-y-auto">
         {/* Premium Header - Hidden on mobile since we have mobile header */}
-        <div className="hidden lg:flex items-center gap-3 mb-8 mt-2 flex-shrink-0">
+        <div className="hidden lg:flex items-center gap-3 mb-4 mt-2 flex-shrink-0">
           <div className="relative">
             <div className="p-3 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl shadow-lg">
               <FaGraduationCap className="text-white" size={28} />
@@ -50,6 +50,25 @@ export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
               AI Study Assistant
             </h1>
             <p className="text-xs text-slate-400 font-medium">Premium Learning Experience</p>
+          </div>
+        </div>
+
+        {/* Premium User Profile - Positioned below header */}
+        <div className="flex items-center gap-3 p-3 lg:p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 backdrop-blur-sm flex-shrink-0 mb-6">
+          <div className="relative">
+            <img 
+              src="https://randomuser.me/api/portraits/men/32.jpg" 
+              alt="avatar" 
+              className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl border-2 border-blue-500/50 shadow-lg" 
+            />
+            <div className="absolute -bottom-1 -right-1 w-3 h-3 lg:w-4 lg:h-4 bg-green-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-white text-sm lg:text-base truncate">Korisnik</div>
+            <div className="text-xs text-slate-400 truncate">Premium Member</div>
+          </div>
+          <div className="p-1.5 lg:p-2 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg lg:rounded-xl border border-white/10">
+            <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 bg-blue-400 rounded-full"></div>
           </div>
         </div>
 
@@ -130,24 +149,7 @@ export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
           ))}
         </nav>
 
-        {/* Premium User Profile - Hidden on mobile */}
-        <div className="hidden lg:flex items-center gap-3 p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 backdrop-blur-sm flex-shrink-0 mt-4">
-          <div className="relative">
-            <img 
-              src="https://randomuser.me/api/portraits/men/32.jpg" 
-              alt="avatar" 
-              className="w-12 h-12 rounded-2xl border-2 border-blue-500/50 shadow-lg" 
-            />
-            <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
-          </div>
-          <div className="flex-1">
-            <div className="font-semibold text-white">Korisnik</div>
-            <div className="text-xs text-slate-400">Premium Member</div>
-          </div>
-          <div className="p-2 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl border border-white/10">
-            <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-          </div>
-        </div>
+
       </div>
     </aside>
   );
