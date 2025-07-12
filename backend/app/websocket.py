@@ -285,6 +285,17 @@ class WebSocketManager:
             "messages_sent": 0,
             "created_at": datetime.now().isoformat()
         }
+        self.is_running = False
+    
+    def start(self):
+        """Pokreni WebSocket Manager"""
+        self.is_running = True
+        logger.info("WebSocket Manager pokrenut")
+    
+    def stop(self):
+        """Zaustavi WebSocket Manager"""
+        self.is_running = False
+        logger.info("WebSocket Manager zaustavljen")
     
     async def connect(self, websocket: WebSocket, user_id: str = None, session_id: str = None) -> 'WebSocketConnection':
         """Prihvati novu WebSocket konekciju"""

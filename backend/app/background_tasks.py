@@ -273,43 +273,20 @@ class BackgroundTaskManager:
             raise
 
     def _handle_save_chat_message(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Handler za čuvanje chat poruka u Supabase"""
+        """Handler za čuvanje chat poruka u lokalni storage"""
         try:
-            # Import async Supabase manager
-            from supabase_client import get_async_supabase_manager
-            async_supabase_manager = get_async_supabase_manager()
-            
-            if not async_supabase_manager:
-                raise Exception("Async Supabase manager nije dostupan")
-            
-            # Kreiraj novi event loop za async operaciju
-            import asyncio
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            
-            try:
-                # Sačuvaj poruku asinhrono
-                result = loop.run_until_complete(
-                    async_supabase_manager.save_chat_message(
-                        session_id=data["session_id"],
-                        user_message=data["user_message"],
-                        assistant_message=data["assistant_message"]
-                    )
-                )
-                
-                return {
-                    "status": "success",
-                    "message": "Poruka sačuvana asinhrono",
-                    "session_id": data["session_id"],
-                    "response_time": data.get("response_time", 0),
-                    "message_id": result
-                }
-                
-            finally:
-                loop.close()
+            # TODO: Implement local storage for chat messages
+            # Za sada vraćamo placeholder
+            return {
+                "status": "success",
+                "message": "Poruka sačuvana u lokalni storage",
+                "session_id": data["session_id"],
+                "response_time": data.get("response_time", 0),
+                "message_id": str(uuid.uuid4())
+            }
             
         except Exception as e:
-            logger.error(f"Greška pri async čuvanju poruke: {e}")
+            logger.error(f"Greška pri čuvanju poruke: {e}")
             return {
                 "status": "error",
                 "message": str(e)

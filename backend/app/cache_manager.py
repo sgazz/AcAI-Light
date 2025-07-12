@@ -40,6 +40,22 @@ class CacheManager:
             logger.error(f"Greška pri povezivanju sa Redis-om: {e}")
             self.redis = None
     
+    def is_available(self) -> bool:
+        """
+        Proveri da li je cache manager dostupan
+        
+        Returns:
+            True ako je Redis dostupan, False inače
+        """
+        if not self.redis:
+            return False
+        
+        try:
+            self.redis.ping()
+            return True
+        except Exception:
+            return False
+    
     def _generate_key(self, prefix: str, *args) -> str:
         """
         Generiše cache ključ na osnovu prefix-a i argumenata

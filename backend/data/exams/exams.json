@@ -1,0 +1,30 @@
+[
+  {
+    "id": "exam_0_20250712_123045",
+    "title": "Test Exam",
+    "description": "Test",
+    "subject": "Opšte",
+    "questions": [],
+    "time_limit_minutes": 60,
+    "passing_score": 70,
+    "max_attempts": 3,
+    "is_active": true,
+    "created_at": "2025-07-12T12:30:45.289156",
+    "updated_at": "2025-07-12T12:30:45.289160",
+    "metadata": {}
+  },
+  {
+    "id": "exam_1_20250712_123626",
+    "title": "Test Exam 2",
+    "description": "Test",
+    "subject": "Opšte",
+    "questions": [],
+    "time_limit_minutes": 60,
+    "passing_score": 70,
+    "max_attempts": 3,
+    "is_active": true,
+    "created_at": "2025-07-12T12:36:26.347246",
+    "updated_at": "2025-07-12T12:36:26.347249",
+    "metadata": {}
+  }
+]
