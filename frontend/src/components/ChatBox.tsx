@@ -305,7 +305,7 @@ export default function ChatBox() {
         }
       } else {
         // Za običan chat, dodaj model parametar
-        body.model = "mistral:latest";
+        body.model = "gpt-4";
       }
 
       const data = await apiRequest(endpoint, {

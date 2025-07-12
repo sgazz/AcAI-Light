@@ -50,7 +50,7 @@ async def test_rag_cache():
         "response": "RAG je Retrieval-Augmented Generation tehnologija.",
         "sources": [{"filename": "test.pdf", "content": "RAG je...", "score": 0.95}],
         "query": test_query,
-        "model": "mistral",
+        "model": "gpt-4",
         "context_length": 100
     }
     

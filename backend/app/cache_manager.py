@@ -360,7 +360,7 @@ class CacheManager:
             }
 
     # AI Response Cache metode
-    async def get_ai_response(self, query: str, model: str = "mistral:latest", context: str = "") -> Optional[Dict]:
+    async def get_ai_response(self, query: str, model: str = "gpt-4", context: str = "") -> Optional[Dict]:
         """
         Dohvati AI odgovor iz cache-a
         
@@ -375,7 +375,7 @@ class CacheManager:
         key = self._generate_key("ai_response", query, model, context)
         return await self.get(key)
     
-    async def set_ai_response(self, query: str, response: str, model: str = "mistral:latest", 
+    async def set_ai_response(self, query: str, response: str, model: str = "gpt-4", 
                             context: str = "", response_time: float = 0.0, ttl: int = 3600) -> bool:
         """
         Sačuvaj AI odgovor u cache
@@ -595,11 +595,11 @@ async def set_cached_session(session_id: str, data: Dict, ttl: int = 86400) -> b
     return await cache_manager.set_session_data(session_id, data, ttl)
 
 # Napredne cache helper funkcije
-async def get_cached_ai_response(query: str, model: str = "mistral:latest", context: str = "") -> Optional[Dict]:
+async def get_cached_ai_response(query: str, model: str = "gpt-4", context: str = "") -> Optional[Dict]:
     """Helper funkcija za dohvatanje AI odgovora iz cache-a"""
     return await cache_manager.get_ai_response(query, model, context)
 
-async def set_cached_ai_response(query: str, response: str, model: str = "mistral:latest", 
+async def set_cached_ai_response(query: str, response: str, model: str = "gpt-4", 
                                 context: str = "", response_time: float = 0.0, ttl: int = 3600) -> bool:
     """Helper funkcija za čuvanje AI odgovora u cache"""
     return await cache_manager.set_ai_response(query, response, model, context, response_time, ttl)

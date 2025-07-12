@@ -192,7 +192,7 @@ export function useChat(initialSessionId?: string) {
         }
       } else {
         body.content = content.trim();
-        body.model = 'mistral:latest';
+        body.model = 'gpt-4';
       }
 
       const response = await apiRequest(endpoint, {

@@ -12,7 +12,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         message: body.message || "Test poruka",
         session_id: body.session_id || "test-session",
-        model: body.model || "mistral:latest"
+        model: body.model || "gpt-4"
       }),
     });
     
