@@ -122,12 +122,33 @@ class DatabaseManager:
             )
         """)
         
+        # Users tabela
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id VARCHAR(255) UNIQUE NOT NULL,
+                email VARCHAR(255) UNIQUE NOT NULL,
+                name VARCHAR(255) NOT NULL,
+                hashed_password VARCHAR(255) NOT NULL,
+                is_active BOOLEAN DEFAULT 1,
+                is_premium BOOLEAN DEFAULT 0,
+                avatar_url TEXT,
+                bio TEXT,
+                preferences TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_login DATETIME,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+        
         # Indeksi
         conn.execute("CREATE INDEX IF NOT EXISTS idx_sessions_session_id ON sessions(session_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_chat_history_session_id ON chat_history(session_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_documents_document_id ON documents(document_id)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_cache_cache_key ON cache(cache_key)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_analytics_event_type ON analytics(event_type)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_users_user_id ON users(user_id)")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)")
     
     @contextmanager
     def get_connection(self):
@@ -529,6 +550,155 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Greška pri optimizaciji baze: {e}")
             return False
+
+    # ============================================================================
+    # USER MANAGEMENT METODE
+    # ============================================================================
+    
+    def create_user(self, user_data: Dict[str, Any]) -> bool:
+        """Kreira novog korisnika"""
+        try:
+            with self.get_connection() as conn:
+                conn.execute(
+                    """INSERT INTO users 
+                       (user_id, email, name, hashed_password, is_active, is_premium, 
+                        avatar_url, bio, preferences) 
+                       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                    (
+                        user_data['user_id'],
+                        user_data['email'],
+                        user_data['name'],
+                        user_data['hashed_password'],
+                        user_data.get('is_active', True),
+                        user_data.get('is_premium', False),
+                        user_data.get('avatar_url'),
+                        user_data.get('bio'),
+                        json.dumps(user_data.get('preferences', {}))
+                    )
+                )
+                conn.commit()
+                logger.info(f"Kreiran novi korisnik: {user_data['email']}")
+                return True
+        except Exception as e:
+            logger.error(f"Greška pri kreiranju korisnika: {e}")
+            return False
+    
+    def get_user_by_id(self, user_id: str) -> Optional[Dict]:
+        """Dohvata korisnika po ID-u"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.execute(
+                    "SELECT * FROM users WHERE user_id = ?",
+                    (user_id,)
+                )
+                row = cursor.fetchone()
+                if row:
+                    user_data = dict(row)
+                    # Parse preferences JSON
+                    if user_data.get('preferences'):
+                        try:
+                            user_data['preferences'] = json.loads(user_data['preferences'])
+                        except:
+                            user_data['preferences'] = {}
+                    return user_data
+                return None
+        except Exception as e:
+            logger.error(f"Greška pri dohvatanju korisnika: {e}")
+            return None
+    
+    def get_user_by_email(self, email: str) -> Optional[Dict]:
+        """Dohvata korisnika po email-u"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.execute(
+                    "SELECT * FROM users WHERE email = ?",
+                    (email,)
+                )
+                row = cursor.fetchone()
+                if row:
+                    user_data = dict(row)
+                    # Parse preferences JSON
+                    if user_data.get('preferences'):
+                        try:
+                            user_data['preferences'] = json.loads(user_data['preferences'])
+                        except:
+                            user_data['preferences'] = {}
+                    return user_data
+                return None
+        except Exception as e:
+            logger.error(f"Greška pri dohvatanju korisnika po email-u: {e}")
+            return None
+    
+    def update_user(self, user_id: str, update_data: Dict[str, Any]) -> bool:
+        """Ažurira korisnika"""
+        try:
+            with self.get_connection() as conn:
+                # Pripremi podatke za ažuriranje
+                set_clause_parts = []
+                params = []
+                
+                for key, value in update_data.items():
+                    if key == 'preferences' and isinstance(value, dict):
+                        set_clause_parts.append(f"{key} = ?")
+                        params.append(json.dumps(value))
+                    elif key in ['name', 'email', 'avatar_url', 'bio', 'last_login']:
+                        set_clause_parts.append(f"{key} = ?")
+                        params.append(value)
+                    elif key in ['is_active', 'is_premium']:
+                        set_clause_parts.append(f"{key} = ?")
+                        params.append(1 if value else 0)
+                
+                if not set_clause_parts:
+                    return False
+                
+                set_clause = ", ".join(set_clause_parts)
+                set_clause += ", updated_at = CURRENT_TIMESTAMP"
+                params.append(user_id)
+                
+                query = f"UPDATE users SET {set_clause} WHERE user_id = ?"
+                conn.execute(query, params)
+                conn.commit()
+                
+                logger.info(f"Ažuriran korisnik: {user_id}")
+                return True
+        except Exception as e:
+            logger.error(f"Greška pri ažuriranju korisnika: {e}")
+            return False
+    
+    def delete_user(self, user_id: str) -> bool:
+        """Briše korisnika"""
+        try:
+            with self.get_connection() as conn:
+                conn.execute("DELETE FROM users WHERE user_id = ?", (user_id,))
+                conn.commit()
+                logger.info(f"Obrisan korisnik: {user_id}")
+                return True
+        except Exception as e:
+            logger.error(f"Greška pri brisanju korisnika: {e}")
+            return False
+    
+    def get_all_users(self, limit: int = 100) -> List[Dict]:
+        """Dohvata sve korisnike"""
+        try:
+            with self.get_connection() as conn:
+                cursor = conn.execute(
+                    "SELECT * FROM users ORDER BY created_at DESC LIMIT ?",
+                    (limit,)
+                )
+                users = []
+                for row in cursor.fetchall():
+                    user_data = dict(row)
+                    # Parse preferences JSON
+                    if user_data.get('preferences'):
+                        try:
+                            user_data['preferences'] = json.loads(user_data['preferences'])
+                        except:
+                            user_data['preferences'] = {}
+                    users.append(user_data)
+                return users
+        except Exception as e:
+            logger.error(f"Greška pri dohvatanju korisnika: {e}")
+            return []
 
 # Globalna instanca Database Manager-a
 db_manager = None

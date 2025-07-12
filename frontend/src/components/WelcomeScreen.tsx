@@ -21,6 +21,7 @@ import {
   FaPlus
 } from 'react-icons/fa';
 import { MdQuiz } from 'react-icons/md';
+import { useAuth } from '../hooks/useAuth';
 import LoginModal from './LoginModal';
 import SessionSetupModal from './SessionSetupModal';
 import { useErrorToast } from './ErrorToastProvider';
@@ -145,6 +146,7 @@ export default function WelcomeScreen({
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSessionSetup, setShowSessionSetup] = useState(false);
   const { showError, showSuccess } = useErrorToast();
+  const { isAuthenticated } = useAuth();
 
   useEffect(() => {
     setIsVisible(true);
@@ -177,18 +179,7 @@ export default function WelcomeScreen({
     }
   };
 
-  const handleLogin = (email: string, password: string) => {
-    console.log('Login attempt:', { email, password });
-    // Implementacija login-a
-    setShowLoginModal(false);
-    setShowSessionSetup(true);
-  };
 
-  const handleRegister = (email: string, password: string, name: string) => {
-    console.log('Register attempt:', { email, password, name });
-    // Implementacija registracije
-    setShowLoginModal(false);
-  };
 
   const handleStartSession = async (subject: string, topic: string, sessionType: 'subject' | 'general') => {
     console.log('Starting session:', { subject, topic, sessionType });
@@ -447,8 +438,6 @@ export default function WelcomeScreen({
       <LoginModal
         isOpen={showLoginModal}
         onClose={() => setShowLoginModal(false)}
-        onLogin={handleLogin}
-        onRegister={handleRegister}
       />
 
       {/* Session Setup Modal */}

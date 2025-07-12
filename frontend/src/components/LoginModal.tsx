@@ -2,27 +2,46 @@
 
 import { useState } from 'react';
 import { FaUser, FaLock, FaEye, FaEyeSlash, FaGoogle, FaGithub, FaTimes } from 'react-icons/fa';
+import { useAuth } from '../hooks/useAuth';
 
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLogin: (email: string, password: string) => void;
-  onRegister: (email: string, password: string, name: string) => void;
 }
 
-export default function LoginModal({ isOpen, onClose, onLogin, onRegister }: LoginModalProps) {
+export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
+  const { login, register } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLogin) {
-      onLogin(email, password);
-    } else {
-      onRegister(email, password, name);
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      let success = false;
+      
+      if (isLogin) {
+        success = await login({ email, password });
+      } else {
+        success = await register({ email, password, name });
+      }
+      
+      if (success) {
+        onClose();
+      } else {
+        setError(isLogin ? 'Pogrešan email ili lozinka' : 'Greška pri registraciji');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Greška pri autentifikaciji');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -61,6 +80,13 @@ export default function LoginModal({ isOpen, onClose, onLogin, onRegister }: Log
               {isLogin ? 'Prijavite se na svoj nalog' : 'Započnite svoju putovanje učenja'}
             </p>
           </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-xl text-red-300 text-sm">
+              {error}
+            </div>
+          )}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -145,9 +171,10 @@ export default function LoginModal({ isOpen, onClose, onLogin, onRegister }: Log
             {/* Submit Button */}
             <button
               type="submit"
-              className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg"
+              disabled={isLoading}
+              className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-xl hover:from-blue-600 hover:to-purple-700 transition-all duration-300 transform hover:scale-105 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLogin ? 'Prijavite se' : 'Kreirajte nalog'}
+              {isLoading ? 'Učitavanje...' : (isLogin ? 'Prijavite se' : 'Kreirajte nalog')}
             </button>
           </form>
 

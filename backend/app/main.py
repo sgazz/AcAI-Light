@@ -64,7 +64,7 @@ from .query_rewriter import QueryRewriter
 from .fact_checker import FactChecker, FactCheckResult
 from .study_journal_service import study_journal_service
 from .career_guidance_service import CareerGuidanceService
-from .models import SessionRenameRequest
+from .models import SessionRenameRequest, UserCreate, UserLogin, UserUpdate, UserResponse
 
 # Kreiraj FastAPI aplikaciju
 app = FastAPI(
@@ -94,8 +94,12 @@ async def acaia_exception_handler(request: Request, exc: AcAIAException):
 # Database manager
 from .database_manager import get_db_manager, init_database
 
+# Auth manager
+from .auth import UserManager
+
 # Inicijalizuj bazu podataka
 db_manager = get_db_manager()
+user_manager = UserManager(db_manager)
 
 # Lokalni storage za sve podatke (fallback)
 chat_history = {}
@@ -1558,5 +1562,154 @@ async def get_career_profile(user_id: str):
 
 # TODO: Dodati ostale endpoint-e (study rooms, exams, problems, etc.)
 # Trenutno su placeholder-i da se fokusiramo na osnovne funkcionalnosti
+
+# ============================================================================
+# AUTHENTICATION ENDPOINTS
+# ============================================================================
+
+@app.post("/auth/register")
+async def register_user(user_data: UserCreate):
+    """Registruje novog korisnika"""
+    try:
+        result = user_manager.create_user(user_data.email, user_data.password, user_data.name or "")
+        
+        return {
+            "status": "success",
+            "data": {
+                "user_id": result["user_id"],
+                "email": result["email"],
+                "name": result["name"],
+                "access_token": result["access_token"],
+                "token_type": result["token_type"],
+                "message": "Korisnik uspešno registrovan"
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Greška pri registraciji korisnika: {e}")
+        raise HTTPException(status_code=500, detail="Greška pri registraciji")
+
+@app.post("/auth/login")
+async def login_user(credentials: UserLogin):
+    """Prijavljuje korisnika"""
+    try:
+        result = user_manager.authenticate_user(credentials.email, credentials.password)
+        
+        if not result:
+            raise HTTPException(
+                status_code=401,
+                detail="Pogrešan email ili lozinka"
+            )
+        
+        return {
+            "status": "success",
+            "data": {
+                "user_id": result["user_id"],
+                "email": result["email"],
+                "name": result["name"],
+                "is_premium": result["is_premium"],
+                "access_token": result["access_token"],
+                "token_type": result["token_type"],
+                "message": "Uspešna prijava"
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Greška pri prijavi korisnika: {e}")
+        raise HTTPException(status_code=500, detail="Greška pri prijavi")
+
+@app.get("/auth/profile")
+async def get_user_profile(token: str):
+    """Dohvata korisnički profil"""
+    try:
+        user = user_manager.get_current_user(token)
+        
+        if not user:
+            raise HTTPException(
+                status_code=401,
+                detail="Nevažeći token"
+            )
+        
+        # Ukloni osetljive podatke
+        safe_user_data = {
+            "user_id": user["user_id"],
+            "email": user["email"],
+            "name": user["name"],
+            "is_premium": user.get("is_premium", False),
+            "avatar_url": user.get("avatar_url"),
+            "bio": user.get("bio"),
+            "preferences": user.get("preferences", {}),
+            "created_at": user.get("created_at"),
+            "last_login": user.get("last_login")
+        }
+        
+        return {
+            "status": "success",
+            "data": {
+                "user": safe_user_data
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Greška pri dohvatanju profila: {e}")
+        raise HTTPException(status_code=500, detail="Greška pri dohvatanju profila")
+
+@app.put("/auth/profile")
+async def update_user_profile(token: str, profile_data: UserUpdate):
+    """Ažurira korisnički profil"""
+    try:
+        user = user_manager.get_current_user(token)
+        
+        if not user:
+            raise HTTPException(
+                status_code=401,
+                detail="Nevažeći token"
+            )
+        
+        # Konvertuj Pydantic model u dict
+        update_data = profile_data.dict(exclude_unset=True)
+        success = user_manager.update_user_profile(user["user_id"], update_data)
+        
+        if not success:
+            raise HTTPException(
+                status_code=500,
+                detail="Greška pri ažuriranju profila"
+            )
+        
+        return {
+            "status": "success",
+            "data": {
+                "message": "Profil uspešno ažuriran"
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Greška pri ažuriranju profila: {e}")
+        raise HTTPException(status_code=500, detail="Greška pri ažuriranju profila")
+
+@app.post("/auth/logout")
+async def logout_user(token: str):
+    """Odjavljuje korisnika"""
+    try:
+        # U realnoj aplikaciji bi ovde invalidirali token
+        # Za sada samo vraćamo uspešan odgovor
+        return {
+            "status": "success",
+            "data": {
+                "message": "Uspešna odjava"
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Greška pri odjavi korisnika: {e}")
+        raise HTTPException(status_code=500, detail="Greška pri odjavi")
 
 

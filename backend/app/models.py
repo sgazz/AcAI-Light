@@ -14,6 +14,37 @@ class MessageType(str, Enum):
     AI = "ai"
     SYSTEM = "system"
 
+# User modeli
+class UserCreate(BaseModel):
+    """Model za kreiranje korisnika"""
+    email: EmailStr = Field(..., description="Email adresa")
+    password: str = Field(..., min_length=6, max_length=100, description="Lozinka")
+    name: Optional[str] = Field(None, max_length=100, description="Ime i prezime")
+
+class UserLogin(BaseModel):
+    """Model za login korisnika"""
+    email: EmailStr = Field(..., description="Email adresa")
+    password: str = Field(..., description="Lozinka")
+
+class UserUpdate(BaseModel):
+    """Model za ažuriranje korisnika"""
+    name: Optional[str] = Field(None, max_length=100, description="Ime i prezime")
+    bio: Optional[str] = Field(None, max_length=500, description="Bio")
+    avatar_url: Optional[str] = Field(None, description="URL avatara")
+    preferences: Optional[Dict[str, Any]] = Field(None, description="Korisnička podešavanja")
+
+class UserResponse(BaseModel):
+    """Model za user response"""
+    id: str = Field(..., description="ID korisnika")
+    email: str = Field(..., description="Email adresa")
+    name: Optional[str] = Field(None, description="Ime i prezime")
+    bio: Optional[str] = Field(None, description="Bio")
+    avatar_url: Optional[str] = Field(None, description="URL avatara")
+    is_premium: bool = Field(False, description="Da li je premium korisnik")
+    preferences: Optional[Dict[str, Any]] = Field(None, description="Korisnička podešavanja")
+    created_at: datetime = Field(..., description="Vreme kreiranja")
+    updated_at: datetime = Field(..., description="Vreme ažuriranja")
+
 class TaskPriority(str, Enum):
     LOW = "low"
     MEDIUM = "medium"
