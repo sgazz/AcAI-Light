@@ -4,7 +4,7 @@
 # ===========================================
 # STAGE 1: Backend Build
 # ===========================================
-FROM python:3.11-slim as backend-builder
+FROM --platform=linux/amd64 python:3.11-slim as backend-builder
 
 # Postavljanje radnog direktorijuma
 WORKDIR /app
@@ -36,7 +36,7 @@ COPY backend/ ./backend/
 # ===========================================
 # STAGE 2: Frontend Build
 # ===========================================
-FROM node:18-alpine as frontend-builder
+FROM --platform=linux/amd64 node:18-alpine as frontend-builder
 
 WORKDIR /app
 
@@ -55,7 +55,7 @@ RUN npm run build
 # ===========================================
 # STAGE 3: Production Image
 # ===========================================
-FROM python:3.11-slim
+FROM --platform=linux/amd64 python:3.11-slim
 
 # Metadata
 LABEL maintainer="AcAIA Team"
