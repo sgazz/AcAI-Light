@@ -103,37 +103,84 @@ class RAGService:
             logger.error(f"Greška pri inicijalizaciji vector index-a: {e}")
             self.vector_index = None
     
+    def _chunk_text(self, text: str, chunk_size: int = 1000, overlap: int = 200) -> List[str]:
+        """Podeli tekst na manje delove (chunks)"""
+        if len(text) <= chunk_size:
+            return [text]
+        
+        chunks = []
+        start = 0
+        
+        while start < len(text):
+            end = start + chunk_size
+            
+            # Ako nije kraj teksta, pokušaj da nađeš prirodnu granicu
+            if end < len(text):
+                # Traži najbliži razmak ili novi red
+                for i in range(end, max(start, end - 100), -1):
+                    if text[i] in [' ', '\n', '.', '!', '?']:
+                        end = i + 1
+                        break
+            
+            chunk = text[start:end].strip()
+            if chunk:
+                chunks.append(chunk)
+            
+            # Pomeri start za sledeći chunk sa overlap-om
+            start = end - overlap
+            if start >= len(text):
+                break
+        
+        return chunks
+
     def add_document(self, content: str, metadata: Dict[str, Any] = None) -> str:
-        """Dodaj dokument u RAG sistem"""
+        """Dodaj dokument u RAG sistem sa chunking-om"""
         try:
             if not self.embedding_model:
                 raise Exception("Embedding model nije inicijalizovan")
             
-            # Kreiraj embedding
-            embedding = self.embedding_model.encode(content).tolist()
+            # Podeli tekst na chunks
+            chunks = self._chunk_text(content)
+            logger.info(f"Dokument podeljen na {len(chunks)} chunks")
             
-            # Kreiraj dokument
+            # Kreiraj dokument ID
             doc_id = f"doc_{len(self.documents)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-            document = {
-                'id': doc_id,
-                'content': content,
-                'embedding': embedding,
-                'metadata': metadata or {},
-                'created_at': datetime.now().isoformat()
-            }
             
-            # Dodaj u listu dokumenata
-            self.documents.append(document)
-            
-            # Dodaj u vector index
-            if self.vector_index:
-                embedding_array = np.array([embedding], dtype=np.float32)
-                self.vector_index.add(embedding_array)
+            # Dodaj svaki chunk kao poseban dokument
+            for i, chunk in enumerate(chunks):
+                # Kreiraj embedding za chunk
+                embedding = self.embedding_model.encode(chunk).tolist()
+                
+                # Kreiraj chunk dokument
+                chunk_doc = {
+                    'id': f"{doc_id}_chunk_{i}",
+                    'content': chunk,
+                    'embedding': embedding,
+                    'metadata': {
+                        **(metadata or {}),
+                        'original_doc_id': doc_id,
+                        'chunk_index': i,
+                        'total_chunks': len(chunks)
+                    } if metadata else {
+                        'original_doc_id': doc_id,
+                        'chunk_index': i,
+                        'total_chunks': len(chunks)
+                    },
+                    'created_at': datetime.now().isoformat()
+                }
+                
+                # Dodaj u listu dokumenata
+                self.documents.append(chunk_doc)
+                
+                # Dodaj u vector index
+                if self.vector_index:
+                    embedding_array = np.array([embedding], dtype=np.float32)
+                    self.vector_index.add(embedding_array)
             
             # Sačuvaj u lokalni storage
             self._save_documents()
             
-            logger.info(f"Dokument {doc_id} uspešno dodat u RAG sistem")
+            logger.info(f"Dokument {doc_id} uspešno dodat u RAG sistem sa {len(chunks)} chunks")
             return doc_id
             
         except Exception as e:

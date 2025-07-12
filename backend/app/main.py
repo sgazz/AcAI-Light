@@ -18,6 +18,24 @@ import asyncio
 import hashlib
 import aiohttp
 from pydantic import BaseModel
+import mimetypes
+from io import BytesIO
+try:
+    import docx
+except ImportError:
+    docx = None
+try:
+    import PyPDF2
+except ImportError:
+    PyPDF2 = None
+try:
+    from PIL import Image
+except ImportError:
+    Image = None
+try:
+    import pytesseract
+except ImportError:
+    pytesseract = None
 
 # Konfiguracija logging-a
 logger = logging.getLogger(__name__)
@@ -78,6 +96,34 @@ documents = {}
 study_rooms = {}
 study_room_members = {}
 study_room_messages = {}
+
+# Fajl za čuvanje dokumenata
+DOCUMENTS_FILE = "data/documents.json"
+
+def load_documents():
+    """Učitaj dokumente iz JSON fajla"""
+    global documents
+    try:
+        if os.path.exists(DOCUMENTS_FILE):
+            with open(DOCUMENTS_FILE, 'r', encoding='utf-8') as f:
+                documents = json.load(f)
+            logger.info(f"Učitano {len(documents)} dokumenata iz {DOCUMENTS_FILE}")
+        else:
+            documents = {}
+            logger.info("Dokumenti fajl ne postoji, kreiran prazan dictionary")
+    except Exception as e:
+        logger.error(f"Greška pri učitavanju dokumenata: {e}")
+        documents = {}
+
+def save_documents():
+    """Sačuvaj dokumente u JSON fajl"""
+    try:
+        os.makedirs(os.path.dirname(DOCUMENTS_FILE), exist_ok=True)
+        with open(DOCUMENTS_FILE, 'w', encoding='utf-8') as f:
+            json.dump(documents, f, ensure_ascii=False, indent=2)
+        logger.info(f"Sačuvano {len(documents)} dokumenata u {DOCUMENTS_FILE}")
+    except Exception as e:
+        logger.error(f"Greška pri čuvanju dokumenata: {e}")
 
 # Inicijalizuj servise
 rag_service = RAGService(use_supabase=False)
@@ -459,10 +505,20 @@ async def rag_chat_endpoint(message: dict):
             logger.info(f"Validnih rezultata: {len(valid_results)}")
             
             if valid_results:
-                context = "\n\n".join([
-                    f"Source {i+1}: {result['content']}"
-                    for i, result in enumerate(valid_results)
-                ])
+                # Ograniči dužinu konteksta na ~1000 karaktera (otprilike 250 tokena)
+                max_context_length = 1000
+                context_parts = []
+                current_length = 0
+                
+                for i, result in enumerate(valid_results):
+                    source_text = f"Source {i+1}: {result['content']}"
+                    if current_length + len(source_text) > max_context_length:
+                        break
+                    context_parts.append(source_text)
+                    current_length += len(source_text)
+                
+                context = "\n\n".join(context_parts)
+                logger.info(f"Kontekst dužina: {len(context)} karaktera")
                 
                 sources = [
                     {
@@ -478,13 +534,14 @@ async def rag_chat_endpoint(message: dict):
                 sources = []
                 logger.warning("Nema validnih RAG rezultata sa content poljem")
             
-            # Kreiraj prompt sa RAG kontekstom
-            rag_prompt = f"{SYSTEM_PROMPT}\n\n{CONTEXT_PROMPT}\n\nRelevant sources:\n{context}\n\nUser question: {query}\n\nAI Assistant:"
+            # Kreiraj pojednostavljen prompt sa RAG kontekstom
+            rag_prompt = f"Ti si AI Study Assistant. Odgovaraj na srpskom.\n\nRelevant sources:\n{context}\n\nUser question: {query}\n\nAI Assistant:"
+            logger.info(f"Prompt dužina: {len(rag_prompt)} karaktera")
         else:
             # Ako nema dokumenata, koristi običan prompt
             context = ""
             sources = []
-            rag_prompt = f"{SYSTEM_PROMPT}\n\nKorisnik: {query}\n\nAI Assistant:"
+            rag_prompt = f"Ti si AI Study Assistant. Odgovaraj na srpskom.\n\nKorisnik: {query}\n\nAI Assistant:"
         
         # Pozovi AI model (placeholder)
         ai_response = await ai_chat_async(
@@ -524,12 +581,14 @@ async def rag_chat_endpoint(message: dict):
 
 @app.post("/documents/upload")
 async def upload_document(file: UploadFile = File(...)):
-    """Upload dokumenta"""
+    """Upload dokumenta sa automatskom ekstrakcijom teksta za RAG"""
     try:
         if not file.filename:
             raise ValidationError("Filename is required")
         
-        if file.size > 50 * 1024 * 1024:  # 50MB limit
+        # Provera veličine fajla (ako postoji)
+        file_size = getattr(file, 'size', None)
+        if file_size is not None and file_size > 50 * 1024 * 1024:  # 50MB limit
             raise ValidationError("File size exceeds 50MB limit")
         
         allowed_types = [
@@ -537,7 +596,10 @@ async def upload_document(file: UploadFile = File(...)):
             'text/plain',
             'text/markdown',
             'application/msword',
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'image/png',
+            'image/jpeg',
+            'image/jpg'
         ]
         
         if file.content_type not in allowed_types:
@@ -545,9 +607,32 @@ async def upload_document(file: UploadFile = File(...)):
         
         # Procesiraj dokument
         content = await file.read()
-        
-        # Sačuvaj u lokalni storage
         doc_id = str(uuid.uuid4())
+        extracted_text = ""
+        
+        # Ekstrakcija teksta po tipu fajla
+        if file.content_type.startswith('text/'):
+            extracted_text = content.decode('utf-8', errors='ignore')
+        elif file.content_type == 'application/pdf' and PyPDF2:
+            try:
+                pdf_reader = PyPDF2.PdfReader(BytesIO(content))
+                extracted_text = "\n".join([page.extract_text() or '' for page in pdf_reader.pages])
+            except Exception as e:
+                logger.error(f"PDF extraction error: {e}")
+        elif file.content_type in ['application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'] and docx:
+            try:
+                doc = docx.Document(BytesIO(content))
+                extracted_text = "\n".join([p.text for p in doc.paragraphs])
+            except Exception as e:
+                logger.error(f"DOCX extraction error: {e}")
+        elif file.content_type in ['image/png', 'image/jpeg', 'image/jpg'] and pytesseract and Image:
+            try:
+                image = Image.open(BytesIO(content))
+                extracted_text = pytesseract.image_to_string(image)
+            except Exception as e:
+                logger.error(f"OCR extraction error: {e}")
+        else:
+            logger.warning(f"Ekstrakcija teksta nije podržana za: {file.content_type}")
         
         document_data = {
             "doc_id": doc_id,
@@ -556,15 +641,15 @@ async def upload_document(file: UploadFile = File(...)):
             "size": len(content),
             "user_id": "default_user",
             "created_at": datetime.now().isoformat(),
-            "content": content.decode('utf-8', errors='ignore') if file.content_type.startswith('text/') else ""
+            "content": extracted_text
         }
-        
         documents[doc_id] = document_data
+        save_documents() # Sačuvaj dokument u fajl
         
-        # Dodaj u vector store ako je tekstualni dokument
-        if file.content_type.startswith('text/'):
+        # Dodaj u vector store ako ima teksta
+        if extracted_text.strip():
             rag_service.add_document(
-                content=document_data["content"],
+                content=extracted_text,
                 metadata={"filename": file.filename, "content_type": file.content_type}
             )
         
@@ -652,6 +737,7 @@ async def delete_document(doc_id: str):
         
         # Obriši dokument
         del documents[doc_id]
+        save_documents() # Sačuvaj dokument u fajl
         
         # Obriši iz vector store-a ako postoji
         try:
@@ -727,6 +813,10 @@ async def startup_event():
     # Inicijalizuj WebSocket manager
     websocket_manager.start()
     print("✅ WebSocket manager pokrenut")
+
+    # Učitaj dokumente pri startupu
+    load_documents()
+    print("✅ Dokumenti učitani")
     
     print("✅ AcAIA Backend uspešno pokrenut!")
 
@@ -752,6 +842,10 @@ async def shutdown_event():
     if http_session:
         await http_session.close()
         print("✅ HTTP session zatvoren")
+    
+    # Sačuvaj dokumente pri zaustavljanju
+    save_documents()
+    print("✅ Dokumenti sačuvani")
     
     print("✅ AcAIA Backend uspešno zaustavljen!")
 

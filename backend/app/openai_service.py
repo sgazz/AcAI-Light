@@ -63,9 +63,7 @@ class OpenAIService:
             if not self.is_available():
                 raise ExternalServiceError(
                     "OpenAI servis nije dostupan - proveri API ključ",
-                    "OPENAI_NOT_AVAILABLE",
-                    ErrorCategory.EXTERNAL_SERVICE,
-                    ErrorSeverity.HIGH
+                    "OPENAI_NOT_AVAILABLE"
                 )
             
             # Koristi default vrednosti ako nisu prosleđene
@@ -111,9 +109,7 @@ class OpenAIService:
             logger.error(f"Greška pri komunikaciji sa OpenAI: {e}")
             raise ExternalServiceError(
                 f"Greška pri komunikaciji sa OpenAI: {str(e)}",
-                "OPENAI_API_ERROR",
-                ErrorCategory.EXTERNAL_SERVICE,
-                ErrorSeverity.HIGH
+                "OPENAI_API_ERROR"
             )
     
     async def simple_chat(self, user_message: str, context: str = "") -> str:
