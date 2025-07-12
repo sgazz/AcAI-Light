@@ -44,6 +44,7 @@ services:
     depends_on:
       - backend-dev
     restart: unless-stopped
+    working_dir: /app/frontend
     command: ["npm", "run", "dev"]
     networks:
       - acaia-dev-network
