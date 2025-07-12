@@ -38,7 +38,8 @@ export default function ChatHistory() {
       const data = await apiRequest(CHAT_SESSIONS_ENDPOINT);
       console.log('ChatHistory: API odgovor:', data);
       if (data.status === 'success') {
-        setSessions(data.sessions);
+        // Backend vraća data.data.sessions, ne data.sessions
+        setSessions(data.data?.sessions || []);
       } else {
         throw new Error(data.message || 'Greška pri učitavanju sesija');
       }

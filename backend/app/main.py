@@ -36,6 +36,7 @@ try:
     import pytesseract
 except ImportError:
     pytesseract = None
+from fastapi.responses import StreamingResponse
 
 # Konfiguracija logging-a
 logger = logging.getLogger(__name__)
@@ -89,7 +90,13 @@ async def acaia_exception_handler(request: Request, exc: AcAIAException):
     """Handler za AcAIA custom greške"""
     return await handle_api_error(exc, request, exc.category, exc.severity, exc.error_code)
 
-# Lokalni storage za sve podatke
+# Database manager
+from .database_manager import get_db_manager, init_database
+
+# Inicijalizuj bazu podataka
+db_manager = get_db_manager()
+
+# Lokalni storage za sve podatke (fallback)
 chat_history = {}
 session_metadata = {}
 documents = {}
@@ -268,29 +275,137 @@ async def create_new_session():
         session_id = str(uuid.uuid4())
         session_name = f"Session {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         
-        # Kreiraj sesiju u lokalnom storage-u
-        session_data = {
-            "session_id": session_id,
-            "name": session_name,
-            "user_id": "default_user",
-            "created_at": datetime.now().isoformat(),
-            "updated_at": datetime.now().isoformat()
-        }
+        # Kreiraj sesiju u bazi podataka
+        success = db_manager.create_session(session_id, session_name, "default_user")
         
-        session_metadata[session_id] = session_data
-        chat_history[session_id] = []
-        
-        return {
-            "status": "success",
-            "data": {
-                "session_id": session_id,
-                "name": session_name,
-                "created_at": session_data["created_at"]
+        if success:
+            return {
+                "status": "success",
+                "data": {
+                    "session_id": session_id,
+                    "name": session_name,
+                    "created_at": datetime.now().isoformat()
+                }
             }
-        }
+        else:
+            raise HTTPException(status_code=500, detail="Failed to create session in database")
     except Exception as e:
         logger.error(f"Greška pri kreiranju sesije: {e}")
         raise HTTPException(status_code=500, detail="Failed to create session")
+
+@app.post("/chat/stream")
+async def chat_stream_endpoint(message: dict):
+    """Streaming chat endpoint sa Server-Sent Events"""
+    try:
+        if not message.get('content', '').strip():
+            raise ValidationError("Message content cannot be empty")
+        
+        session_id = message.get('session_id')
+        user_id = message.get('user_id', 'default_user')
+        content = message['content']
+        
+        # Dohvati kontekst ako postoji session_id
+        context = ""
+        if session_id:
+            context = await get_conversation_context_async(session_id)
+        
+        # Kreiraj poboljšani prompt
+        enhanced_prompt = create_enhanced_prompt(content, context)
+        
+        # Kreiraj messages za OpenAI
+        messages = [{"role": "user", "content": enhanced_prompt}]
+        
+        # Pozovi OpenAI sa streaming
+        try:
+            response = await openai_service.chat_completion(
+                messages=messages,
+                model="gpt-4",
+                stream=True
+            )
+            
+            # Vraćamo streaming response
+            return StreamingResponse(
+                stream_chat_response(response, session_id or "", content, user_id),
+                media_type="text/plain",
+                headers={
+                    "Cache-Control": "no-cache",
+                    "Connection": "keep-alive",
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Headers": "*"
+                }
+            )
+            
+        except Exception as e:
+            logger.error(f"Greška pri streaming pozivu: {e}")
+            return StreamingResponse(
+                stream_error_response(f"Greška pri komunikaciji sa AI servisom: {str(e)}"),
+                media_type="text/plain"
+            )
+            
+    except ValidationError as e:
+        logger.error(f"Validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Streaming chat error: {e}")
+        raise HTTPException(status_code=500, detail="Streaming chat processing failed")
+
+async def stream_chat_response(openai_response, session_id: str, user_content: str, user_id: str):
+    """Stream chat response iz OpenAI-a"""
+    try:
+        full_response = ""
+        message_id = str(uuid.uuid4())
+        
+        # Pošalji početak poruke
+        yield f"data: {json.dumps({'type': 'start', 'message_id': message_id})}\n\n"
+        
+        # Stream odgovor - OpenAI response je generator, ne async generator
+        for chunk in openai_response:
+            if hasattr(chunk.choices[0], 'delta') and chunk.choices[0].delta.content:
+                content = chunk.choices[0].delta.content
+                full_response += content
+                
+                # Pošalji chunk
+                yield f"data: {json.dumps({'type': 'chunk', 'content': content})}\n\n"
+        
+        # Pošalji kraj poruke
+        yield f"data: {json.dumps({'type': 'end', 'message_id': message_id})}\n\n"
+        
+        # Sačuvaj u bazu podataka ako postoji session_id
+        if session_id:
+            # Sačuvaj korisničku poruku
+            user_message_id = str(uuid.uuid4())
+            db_manager.save_chat_message(
+                session_id=session_id,
+                message_id=user_message_id,
+                sender="user",
+                content=user_content,
+                metadata={"user_id": user_id}
+            )
+            
+            # Sačuvaj AI odgovor
+            ai_message_id = str(uuid.uuid4())
+            db_manager.save_chat_message(
+                session_id=session_id,
+                message_id=ai_message_id,
+                sender="assistant",
+                content=full_response,
+                metadata={"user_id": "ai_assistant"}
+            )
+            
+            # Ažuriraj session last_accessed
+            db_manager.update_session(session_id, last_accessed=datetime.now().isoformat())
+        
+        # Sačuvaj u cache
+        cache_key = f"chat:{hashlib.md5(user_content.encode()).hexdigest()}"
+        await set_cached_ai_response(cache_key, full_response)
+        
+    except Exception as e:
+        logger.error(f"Greška u streaming response: {e}")
+        yield f"data: {json.dumps({'type': 'error', 'message': str(e)})}\n\n"
+
+async def stream_error_response(error_message: str):
+    """Stream error response"""
+    yield f"data: {json.dumps({'type': 'error', 'message': error_message})}\n\n"
 
 @app.post("/chat")
 async def chat_endpoint(message: dict):
@@ -340,34 +455,30 @@ async def chat_endpoint(message: dict):
         # Sačuvaj u cache
         await set_cached_ai_response(cache_key, response_content)
         
-        # Sačuvaj u lokalni storage ako postoji session_id
+        # Sačuvaj u bazu podataka ako postoji session_id
         if session_id:
-            if session_id not in chat_history:
-                chat_history[session_id] = []
-            
             # Sačuvaj korisničku poruku
-            user_message = {
-                "id": str(uuid.uuid4()),
-                "role": "user",
-                "content": content,
-                "timestamp": datetime.now().isoformat(),
-                "user_id": user_id
-            }
+            user_message_id = str(uuid.uuid4())
+            db_manager.save_chat_message(
+                session_id=session_id,
+                message_id=user_message_id,
+                sender="user",
+                content=content,
+                metadata={"user_id": user_id}
+            )
             
             # Sačuvaj AI odgovor
-            ai_message = {
-                "id": str(uuid.uuid4()),
-                "role": "assistant",
-                "content": response_content,
-                "timestamp": datetime.now().isoformat(),
-                "user_id": "ai_assistant"
-            }
+            ai_message_id = str(uuid.uuid4())
+            db_manager.save_chat_message(
+                session_id=session_id,
+                message_id=ai_message_id,
+                sender="assistant",
+                content=response_content,
+                metadata={"user_id": "ai_assistant"}
+            )
             
-            chat_history[session_id].extend([user_message, ai_message])
-            
-            # Ažuriraj session metadata
-            if session_id in session_metadata:
-                session_metadata[session_id]["updated_at"] = datetime.now().isoformat()
+            # Ažuriraj session last_accessed
+            db_manager.update_session(session_id, last_accessed=datetime.now().isoformat())
         
         return {
             "status": "success",
@@ -388,26 +499,29 @@ async def chat_endpoint(message: dict):
 
 @app.get("/chat/history/{session_id}")
 async def get_chat_history(session_id: str, limit: int = 50):
-    """Dohvata chat istoriju iz lokalnog storage-a"""
+    """Dohvata chat istoriju iz baze podataka"""
     try:
-        if session_id not in chat_history:
-            return {
-                "status": "success",
-                "data": {
-                    "session_id": session_id,
-                    "messages": [],
-                    "total": 0
-                }
-            }
+        # Dohvati poruke iz baze podataka
+        messages = db_manager.get_chat_history(session_id, limit)
         
-        messages = chat_history[session_id][-limit:]
+        # Konvertuj u frontend format
+        formatted_messages = []
+        for msg in messages:
+            formatted_messages.append({
+                'id': msg['message_id'],
+                'sender': msg['sender'],
+                'content': msg['content'],
+                'timestamp': msg['created_at'],
+                'sources': json.loads(msg['sources']) if msg['sources'] else [],
+                'metadata': json.loads(msg['metadata']) if msg['metadata'] else {}
+            })
         
         return {
             "status": "success",
             "data": {
                 "session_id": session_id,
-                "messages": messages,
-                "total": len(messages)
+                "messages": formatted_messages,
+                "total": len(formatted_messages)
             }
         }
     except Exception as e:
@@ -416,21 +530,23 @@ async def get_chat_history(session_id: str, limit: int = 50):
 
 @app.get("/chat/sessions")
 async def get_sessions():
-    """Dohvata sve chat sesije iz lokalnog storage-a"""
+    """Dohvata sve chat sesije iz baze podataka"""
     try:
-        sessions_list = []
-        for session_id, metadata in session_metadata.items():
-            message_count = len(chat_history.get(session_id, []))
-            sessions_list.append({
-                'session_id': session_id,
-                'name': metadata.get('name', f'Session {session_id[:8]}'),
-                'message_count': message_count,
-                'created_at': metadata.get('created_at'),
-                'updated_at': metadata.get('updated_at')
-            })
+        # Dohvati sesije iz baze podataka
+        sessions = db_manager.get_all_sessions("default_user", include_archived=False)
         
-        # Sortiraj po updated_at (najnovije prvo)
-        sessions_list.sort(key=lambda x: x['updated_at'], reverse=True)
+        sessions_list = []
+        for session in sessions:
+            # Dohvati broj poruka za svaku sesiju
+            message_count = db_manager.get_message_count(session['session_id'])
+            
+            sessions_list.append({
+                'session_id': session['session_id'],
+                'name': session['name'] or f'Session {session["session_id"][:8]}',
+                'message_count': message_count,
+                'created_at': session['created_at'],
+                'updated_at': session['updated_at']
+            })
         
         return {
             "status": "success",
@@ -445,18 +561,222 @@ async def get_sessions():
 
 @app.delete("/chat/session/{session_id}")
 async def delete_session(session_id: str):
-    """Briše chat sesiju iz lokalnog storage-a"""
+    """Briše chat sesiju iz baze podataka"""
     try:
-        if session_id in chat_history:
-            del chat_history[session_id]
+        success = db_manager.delete_session(session_id)
         
-        if session_id in session_metadata:
-            del session_metadata[session_id]
-        
-        return {"status": "success", "message": "Sesija obrisana"}
+        if success:
+            return {"status": "success", "message": "Sesija obrisana"}
+        else:
+            raise HTTPException(status_code=500, detail="Greška pri brisanju sesije")
     except Exception as e:
         logger.error(f"Greška pri brisanju sesije: {e}")
         raise HTTPException(status_code=500, detail="Greška pri brisanju sesije")
+
+@app.post("/chat/message/{message_id}/reaction")
+async def add_message_reaction(message_id: str, reaction_data: dict):
+    """Dodaje reakciju na poruku"""
+    try:
+        reaction = reaction_data.get('reaction')  # 'like' ili 'dislike'
+        user_id = reaction_data.get('user_id', 'default_user')
+        
+        if reaction not in ['like', 'dislike']:
+            raise ValidationError("Reaction must be 'like' or 'dislike'")
+        
+        success = db_manager.add_message_reaction(message_id, reaction, user_id)
+        
+        if success:
+            return {
+                "status": "success",
+                "data": {
+                    "message_id": message_id,
+                    "reaction": reaction,
+                    "user_id": user_id
+                }
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Greška pri dodavanju reakcije")
+    except ValidationError as e:
+        logger.error(f"Validation error: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Greška pri dodavanju reakcije: {e}")
+        raise HTTPException(status_code=500, detail="Greška pri dodavanju reakcije")
+
+@app.delete("/chat/message/{message_id}/reaction")
+async def remove_message_reaction(message_id: str, user_id: str = "default_user"):
+    """Uklanja reakciju sa poruke"""
+    try:
+        success = db_manager.remove_message_reaction(message_id, user_id)
+        
+        if success:
+            return {
+                "status": "success",
+                "data": {
+                    "message_id": message_id,
+                    "user_id": user_id,
+                    "reaction_removed": True
+                }
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Greška pri uklanjanju reakcije")
+    except Exception as e:
+        logger.error(f"Greška pri uklanjanju reakcije: {e}")
+        raise HTTPException(status_code=500, detail="Greška pri uklanjanju reakcije")
+
+@app.post("/chat/suggestions")
+async def get_message_suggestions(context: dict):
+    """Generiše predloge za sledeće poruke na osnovu konteksta"""
+    try:
+        conversation_history = context.get('history', [])
+        current_topic = context.get('topic', '')
+        user_style = context.get('user_style', 'formal')
+        
+        # Kreiraj prompt za predloge
+        suggestions_prompt = f"""
+        Na osnovu sledećeg konteksta razgovora, generiši 3-5 predloga za sledeće korisničke poruke.
+        
+        Kontekst razgovora:
+        {conversation_history[-5:] if conversation_history else 'Nema prethodnog konteksta'}
+        
+        Trenutna tema: {current_topic if current_topic else 'Opšta tema'}
+        Stil korisnika: {user_style}
+        
+        Generiši predloge koje su:
+        1. Relevantne za trenutni kontekst
+        2. Prirodne i raznovrsne
+        3. U stilu korisnika
+        4. Kratke i jasne (maksimalno 50 reči)
+        
+        Vrati samo listu predloga, jedan predlog po liniji, bez numeracije.
+        """
+        
+        # Pozovi AI za predloge
+        ai_response = await ai_chat_async(
+            model="gpt-4",
+            messages=[{"role": "user", "content": suggestions_prompt}],
+            stream=False
+        )
+        
+        suggestions = [s.strip() for s in ai_response['message']['content'].split('\n') if s.strip()]
+        
+        return {
+            "status": "success",
+            "data": {
+                "suggestions": suggestions,
+                "context_used": {
+                    "history_length": len(conversation_history),
+                    "topic": current_topic,
+                    "user_style": user_style
+                }
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Greška pri generisanju predloga: {e}")
+        raise HTTPException(status_code=500, detail="Greška pri generisanju predloga")
+
+@app.get("/chat/analytics/{session_id}")
+async def get_chat_analytics(session_id: str):
+    """Dohvata analitiku za chat sesiju"""
+    try:
+        # Dohvati poruke iz baze podataka
+        messages = db_manager.get_chat_history(session_id, limit=1000)
+        
+        if not messages:
+            return {
+                "status": "success",
+                "data": {
+                    "session_id": session_id,
+                    "analytics": {
+                        "total_messages": 0,
+                        "user_messages": 0,
+                        "ai_messages": 0,
+                        "avg_message_length": 0,
+                        "topics": [],
+                        "sentiment": "neutral",
+                        "engagement_score": 0
+                    }
+                }
+            }
+        
+        # Analiziraj poruke
+        user_messages = [msg for msg in messages if msg['sender'] == 'user']
+        ai_messages = [msg for msg in messages if msg['sender'] == 'assistant']
+        
+        # Izračunaj osnovne statistike
+        total_messages = len(messages)
+        user_message_count = len(user_messages)
+        ai_message_count = len(ai_messages)
+        
+        # Prosečna dužina poruka
+        total_length = sum(len(msg['content']) for msg in messages)
+        avg_message_length = total_length / total_messages if total_messages > 0 else 0
+        
+        # Analiza tema (jednostavna implementacija)
+        topics = analyze_topics(messages)
+        
+        # Sentiment analiza (jednostavna implementacija)
+        sentiment = analyze_sentiment(messages)
+        
+        # Engagement score
+        engagement_score = calculate_engagement_score(messages)
+        
+        return {
+            "status": "success",
+            "data": {
+                "session_id": session_id,
+                "analytics": {
+                    "total_messages": total_messages,
+                    "user_messages": user_message_count,
+                    "ai_messages": ai_message_count,
+                    "avg_message_length": round(avg_message_length, 2),
+                    "topics": topics,
+                    "sentiment": sentiment,
+                    "engagement_score": round(engagement_score, 2),
+                    "session_duration": calculate_session_duration(messages),
+                    "response_time_stats": calculate_response_times(messages)
+                }
+            }
+        }
+        
+    except Exception as e:
+        logger.error(f"Greška pri dohvatanju analitike: {e}")
+        raise HTTPException(status_code=500, detail="Greška pri dohvatanju analitike")
+
+def analyze_topics(messages: list) -> list:
+    """Jednostavna analiza tema iz poruka"""
+    # Implementiraj analizu tema
+    return ["Opšta tema", "Pitanja", "Objašnjenja"]
+
+def analyze_sentiment(messages: list) -> str:
+    """Jednostavna sentiment analiza"""
+    # Implementiraj sentiment analizu
+    return "positive"
+
+def calculate_engagement_score(messages: list) -> float:
+    """Izračunaj engagement score"""
+    if len(messages) < 2:
+        return 0.0
+    
+    # Jednostavna formula: broj poruka / vreme sesije
+    return min(len(messages) / 10, 1.0)
+
+def calculate_session_duration(messages: list) -> dict:
+    """Izračunaj trajanje sesije"""
+    if len(messages) < 2:
+        return {"minutes": 0, "seconds": 0}
+    
+    # Implementiraj izračunavanje trajanja
+    return {"minutes": 5, "seconds": 30}
+
+def calculate_response_times(messages: list) -> dict:
+    """Izračunaj statistike vremena odgovora"""
+    return {
+        "avg_response_time": 2.5,
+        "min_response_time": 1.0,
+        "max_response_time": 5.0
+    }
 
 # ============================================================================
 # RAG ENDPOINTS

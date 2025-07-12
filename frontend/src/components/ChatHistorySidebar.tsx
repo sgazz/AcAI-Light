@@ -129,7 +129,8 @@ export default function ChatHistorySidebar({ isOpen, onClose, onRestoreSession }
     try {
       const data = await apiRequest(CHAT_SESSIONS_ENDPOINT);
       if (data.status === 'success') {
-        setSessions(data.sessions);
+        // Backend vraća data.data.sessions, ne data.sessions
+        setSessions(data.data?.sessions || []);
       } else {
         throw new Error(data.message || 'Greška pri učitavanju sesija');
       }

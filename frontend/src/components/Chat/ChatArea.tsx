@@ -1,10 +1,12 @@
 'use client';
 
 import React, { useRef, useEffect, useState } from 'react';
-import { FaToggleOn, FaToggleOff, FaCog, FaBook, FaMagic, FaBrain } from 'react-icons/fa';
+import { FaToggleOn, FaToggleOff, FaCog, FaBook, FaMagic, FaBrain, FaChartBar } from 'react-icons/fa';
 import { useErrorToast } from '../ErrorToastProvider';
 import MessageList from './MessageList';
 import ChatInput from './ChatInput';
+import MessageSuggestions from './MessageSuggestions';
+import ChatAnalytics from './ChatAnalytics';
 
 interface Message {
   id: string;
@@ -54,6 +56,10 @@ interface ChatAreaProps {
   setUseQueryRewriting?: (value: boolean) => void;
   useFactChecking?: boolean;
   setUseFactChecking?: (value: boolean) => void;
+  // Streaming props
+  useStreaming?: boolean;
+  setUseStreaming?: (value: boolean) => void;
+  streamingMessageId?: string | null;
 }
 
 export default function ChatArea({
@@ -71,12 +77,18 @@ export default function ChatArea({
   useQueryRewriting = false,
   setUseQueryRewriting,
   useFactChecking = false,
-  setUseFactChecking
+  setUseFactChecking,
+  // Streaming props
+  useStreaming = true,
+  setUseStreaming,
+  streamingMessageId
 }: ChatAreaProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [showScrollToBottom, setShowScrollToBottom] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(true);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   const settingsRef = useRef<HTMLDivElement>(null);
   const { showError, showSuccess, showInfo, showWarning } = useErrorToast();
 
@@ -135,6 +147,31 @@ export default function ChatArea({
           messages={messages} 
           isLoading={isLoading}
         />
+        
+        {/* Message Suggestions */}
+        {showSuggestions && messages.length > 0 && !isLoading && (
+          <div className="px-4 pb-4">
+            <MessageSuggestions
+              messages={messages}
+              onSuggestionClick={(suggestion) => {
+                onSendMessage(suggestion);
+                showInfo('Predlog primenjen', 'Predlog');
+              }}
+              onClose={() => setShowSuggestions(false)}
+            />
+          </div>
+        )}
+        
+        {/* Chat Analytics */}
+        {showAnalytics && sessionId && (
+          <div className="px-4 pb-4">
+            <ChatAnalytics
+              sessionId={sessionId}
+              onClose={() => setShowAnalytics(false)}
+            />
+          </div>
+        )}
+        
         <div ref={messagesEndRef} />
         
         {/* Scroll to Bottom Button */}
@@ -195,6 +232,14 @@ export default function ChatArea({
                 <span className="text-slate-400">Standardni Chat</span>
               </div>
             )}
+            
+            {/* Streaming Status */}
+            {useStreaming && (
+              <div className="flex items-center gap-1" title="Streaming omogućava real-time odgovore">
+                <div className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse"></div>
+                <span className="text-yellow-400 text-xs">Streaming</span>
+              </div>
+            )}
           </div>
 
           {/* Settings Button */}
@@ -211,6 +256,21 @@ export default function ChatArea({
             >
               <FaCog size={14} />
               <span className="text-sm">RAG</span>
+            </button>
+
+            {/* Analytics Button */}
+            <button
+              onClick={() => {
+                setShowAnalytics(!showAnalytics);
+                if (!showAnalytics) {
+                  showInfo('Analitika sesije je otvorena', 'Analitika');
+                }
+              }}
+              className="flex items-center gap-2 px-3 py-2 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors ml-2"
+              title="Analitika sesije"
+            >
+              <FaChartBar size={14} />
+              <span className="text-sm">Analitika</span>
             </button>
 
             {/* Settings Dropdown */}
@@ -384,6 +444,38 @@ export default function ChatArea({
                       </div>
                     </div>
                   )}
+
+                  {/* Streaming Toggle */}
+                  <div className="group relative">
+                    <div className="flex items-center gap-2 p-2 bg-slate-800/50 rounded-xl border border-white/10 hover:border-yellow-500/30 transition-colors">
+                      <FaMagic className="text-yellow-400" size={14} />
+                      <span className="text-xs text-slate-400 group-hover:text-white">Streaming</span>
+                      <button
+                        onClick={() => {
+                          setUseStreaming?.(!useStreaming);
+                          if (!useStreaming) {
+                            showSuccess('Streaming je uključen', 'Streaming Aktivan');
+                          } else {
+                            showInfo('Streaming je isključen', 'Standardni Chat');
+                          }
+                        }}
+                        className="flex items-center gap-1 text-sm ml-auto"
+                        title={useStreaming ? "Isključi Streaming" : "Uključi Streaming"}
+                      >
+                        {useStreaming ? (
+                          <>
+                            <FaToggleOn className="text-yellow-500" size={16} />
+                            <span className="text-yellow-400 font-medium">Uključen</span>
+                          </>
+                        ) : (
+                          <>
+                            <FaToggleOff className="text-slate-500" size={16} />
+                            <span className="text-slate-400">Isključen</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

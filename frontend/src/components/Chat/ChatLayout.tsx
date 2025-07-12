@@ -35,7 +35,11 @@ export default function ChatLayout({ initialSessionId }: ChatLayoutProps) {
     useQueryRewriting,
     setUseQueryRewriting,
     useFactChecking,
-    setUseFactChecking
+    setUseFactChecking,
+    // Streaming props
+    useStreaming,
+    setUseStreaming,
+    streamingMessageId
   } = useChat(initialSessionId);
   
   const { 
@@ -189,6 +193,10 @@ export default function ChatLayout({ initialSessionId }: ChatLayoutProps) {
           setUseQueryRewriting={setUseQueryRewriting}
           useFactChecking={useFactChecking}
           setUseFactChecking={setUseFactChecking}
+          // Streaming props
+          useStreaming={useStreaming}
+          setUseStreaming={setUseStreaming}
+          streamingMessageId={streamingMessageId}
         />
       </div>
 

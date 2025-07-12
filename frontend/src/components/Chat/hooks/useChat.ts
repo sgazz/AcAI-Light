@@ -97,6 +97,10 @@ export function useChat(initialSessionId?: string) {
   const [useEnhancedContext, setUseEnhancedContext] = useState(false);
   const [useQueryRewriting, setUseQueryRewriting] = useState(false);
   const [useFactChecking, setUseFactChecking] = useState(false);
+  
+  // Streaming state-ovi
+  const [useStreaming, setUseStreaming] = useState(true); // Ponovo uključeno
+  const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null);
 
   const loadSessionMessages = useCallback(async (sessionId: string) => {
     try {
@@ -140,11 +144,16 @@ export function useChat(initialSessionId?: string) {
 
   const createNewSession = useCallback(async (): Promise<string | undefined> => {
     try {
-      const sessionId = crypto.randomUUID();
-      setCurrentSessionId(sessionId);
-      setMessages([]);
-      localStorage.setItem('currentSessionId', sessionId);
-      return sessionId;
+      // Kreiraj sesiju preko backend-a
+      const response = await apiRequest('/chat/new-session', { method: 'POST' });
+      if (response.status === 'success' && response.data?.session_id) {
+        const sessionId = response.data.session_id;
+        setCurrentSessionId(sessionId);
+        setMessages([]);
+        localStorage.setItem('currentSessionId', sessionId);
+        return sessionId;
+      }
+      return undefined;
     } catch (error) {
       console.error('Error creating new session:', error);
       return undefined;
@@ -158,8 +167,112 @@ export function useChat(initialSessionId?: string) {
     await loadSessionMessages(sessionId);
   }, [loadSessionMessages]);
 
+  const sendMessageStreaming = useCallback(async (content: string) => {
+    if (!content.trim() || !currentSessionId) return;
+
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      sender: 'user',
+      content: content.trim(),
+      timestamp: new Date().toISOString()
+    };
+
+    // Add user message immediately
+    setMessages(prev => [...prev, userMessage]);
+    setIsLoading(true);
+
+    // Create AI message placeholder
+    const aiMessageId = crypto.randomUUID();
+    const aiMessage: Message = {
+      id: aiMessageId,
+      sender: 'ai',
+      content: '',
+      timestamp: new Date().toISOString()
+    };
+
+    setMessages(prev => [...prev, aiMessage]);
+    setStreamingMessageId(aiMessageId);
+
+    try {
+      const response = await fetch('/api/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: content.trim(),
+          session_id: currentSessionId,
+          user_id: 'default_user'
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        throw new Error('No response body');
+      }
+
+      const decoder = new TextDecoder();
+      let fullContent = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n');
+
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const data = JSON.parse(line.slice(6));
+              
+              if (data.type === 'chunk') {
+                fullContent += data.content;
+                setMessages(prev => prev.map(msg => 
+                  msg.id === aiMessageId 
+                    ? { ...msg, content: fullContent }
+                    : msg
+                ));
+              } else if (data.type === 'end') {
+                // Streaming finished
+                setStreamingMessageId(null);
+                setIsLoading(false);
+                return;
+              } else if (data.type === 'error') {
+                throw new Error(data.message);
+              }
+            } catch (e) {
+              console.error('Error parsing streaming data:', e);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in streaming chat:', error);
+      
+      // Update AI message with error
+      setMessages(prev => prev.map(msg => 
+        msg.id === aiMessageId 
+          ? { ...msg, content: 'Greška u komunikaciji sa AI asistentom. Pokušajte ponovo.' }
+          : msg
+      ));
+    } finally {
+      setStreamingMessageId(null);
+      setIsLoading(false);
+    }
+  }, [currentSessionId]);
+
   const sendMessage = useCallback(async (content: string) => {
     if (!content.trim() || !currentSessionId) return;
+
+    // Use streaming if enabled
+    if (useStreaming) {
+      return sendMessageStreaming(content);
+    }
 
     const userMessage: Message = {
       id: crypto.randomUUID(),
@@ -246,7 +359,7 @@ export function useChat(initialSessionId?: string) {
     } finally {
       setIsLoading(false);
     }
-  }, [currentSessionId, useRAG, useRerank, useEnhancedContext, useQueryRewriting, useFactChecking]);
+  }, [currentSessionId, useRAG, useRerank, useEnhancedContext, useQueryRewriting, useFactChecking, useStreaming, sendMessageStreaming]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
@@ -271,6 +384,11 @@ export function useChat(initialSessionId?: string) {
     useQueryRewriting,
     setUseQueryRewriting,
     useFactChecking,
-    setUseFactChecking
+    setUseFactChecking,
+    // Streaming state-ovi i funkcije
+    useStreaming,
+    setUseStreaming,
+    streamingMessageId,
+    setStreamingMessageId
   };
 } 
