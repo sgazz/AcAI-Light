@@ -25,6 +25,7 @@ import StudyJournal from '../components/StudyJournal';
 import CareerGuidance from '../components/CareerGuidance';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import ChatBox from '../components/ChatBox';
+import UserProfile from '../components/UserProfile';
 
 export default function Home() {
   const [selectedMenu, setSelectedMenu] = useState(-1);
@@ -32,6 +33,7 @@ export default function Home() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { toasts, showError, showSuccess, showInfo } = useToast();
   const [isOnline, setIsOnline] = useState(true);
+  const [showUserProfile, setShowUserProfile] = useState(false);
 
   // Debug selectedMenu changes
   useEffect(() => {
@@ -315,7 +317,7 @@ export default function Home() {
               w-80 lg:w-80
             `}
           >
-            <Sidebar selectedMenu={selectedMenu} onMenuSelect={handleMenuSelect} />
+            <Sidebar selectedMenu={selectedMenu} onMenuSelect={handleMenuSelect} onProfileClick={() => setShowUserProfile(true)} />
           </div>
 
           {/* Overlay for mobile */}
@@ -353,6 +355,9 @@ export default function Home() {
           isOpen={showShortcutsHelp} 
           onClose={() => setShowShortcutsHelp(false)} 
         />
+
+        {/* User Profile Modal - nezavisan od sidebar-a */}
+        <UserProfile isOpen={showUserProfile} onClose={() => setShowUserProfile(false)} />
       </div>
     </ErrorBoundary>
   );

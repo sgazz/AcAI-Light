@@ -1,12 +1,16 @@
 'use client';
 
-import { FaGraduationCap, FaMicrophone, FaUsers, FaRegLightbulb, FaProjectDiagram, FaBook, FaSuitcase, FaFileAlt, FaTachometerAlt, FaHome, FaShareAlt } from 'react-icons/fa';
+import { useState } from 'react';
+import { FaGraduationCap, FaMicrophone, FaUsers, FaRegLightbulb, FaProjectDiagram, FaBook, FaSuitcase, FaFileAlt, FaTachometerAlt, FaHome, FaShareAlt, FaSignOutAlt } from 'react-icons/fa';
 import { MdQuiz } from 'react-icons/md';
 import { HiOutlineDocumentText } from 'react-icons/hi';
+import { useAuth } from '../hooks/useAuth';
+import UserProfile from './UserProfile';
 
 interface SidebarProps {
   selectedMenu: number;
   onMenuSelect: (index: number) => void;
+  onProfileClick: () => void; // Dodato
 }
 
 const menu = [
@@ -23,7 +27,21 @@ const menu = [
   // Uklonjen Performance Test
 ];
 
-export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
+export default function Sidebar({ selectedMenu, onMenuSelect, onProfileClick }: SidebarProps) {
+  const { user, isAuthenticated, logout } = useAuth();
+
+  const handleLogout = async () => {
+    if (confirm('Da li ste sigurni da želite da se odjavite?')) {
+      await logout();
+    }
+  };
+
+  const handleUserProfileClick = () => {
+    if (isAuthenticated) {
+      onProfileClick();
+    }
+  };
+
   return (
     <aside className="flex flex-col justify-between h-full w-full lg:w-80 relative overflow-hidden">
       {/* Premium Glassmorphism Background */}
@@ -54,21 +72,44 @@ export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
         </div>
 
         {/* Premium User Profile - Positioned below header */}
-        <div className="flex items-center gap-3 p-3 lg:p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 backdrop-blur-sm flex-shrink-0 mb-6">
+        <div 
+          className={`flex items-center gap-3 p-3 lg:p-4 bg-gradient-to-r from-slate-800/50 to-slate-700/50 rounded-2xl border border-white/10 backdrop-blur-sm flex-shrink-0 mb-6 ${
+            isAuthenticated ? 'cursor-pointer hover:bg-slate-700/50 transition-all duration-200' : ''
+          }`}
+          onClick={handleUserProfileClick}
+        >
           <div className="relative">
             <img 
-              src="https://randomuser.me/api/portraits/men/32.jpg" 
+              src={user?.avatar_url || "https://randomuser.me/api/portraits/men/32.jpg"} 
               alt="avatar" 
               className="w-10 h-10 lg:w-12 lg:h-12 rounded-xl lg:rounded-2xl border-2 border-blue-500/50 shadow-lg" 
             />
             <div className="absolute -bottom-1 -right-1 w-3 h-3 lg:w-4 lg:h-4 bg-green-400 rounded-full border-2 border-slate-900 animate-pulse"></div>
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-semibold text-white text-sm lg:text-base truncate">Korisnik</div>
-            <div className="text-xs text-slate-400 truncate">Premium Member</div>
+            <div className="font-semibold text-white text-sm lg:text-base truncate">
+              {isAuthenticated ? user?.name || 'Korisnik' : 'Gost'}
+            </div>
+            <div className="text-xs text-slate-400 truncate">
+              {isAuthenticated ? (user?.is_premium ? 'Premium Member' : 'Standard Member') : 'Neprijavljen'}
+            </div>
           </div>
-          <div className="p-1.5 lg:p-2 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg lg:rounded-xl border border-white/10">
-            <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 bg-blue-400 rounded-full"></div>
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 lg:p-2 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-lg lg:rounded-xl border border-white/10">
+              <div className="w-1.5 h-1.5 lg:w-2 lg:h-2 bg-blue-400 rounded-full"></div>
+            </div>
+            {isAuthenticated && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleLogout();
+                }}
+                className="p-1.5 lg:p-2 text-slate-400 hover:text-white hover:bg-slate-700/50 rounded-lg lg:rounded-xl transition-all duration-200"
+                title="Odjavi se"
+              >
+                <FaSignOutAlt size={16} />
+              </button>
+            )}
           </div>
         </div>
 
@@ -151,6 +192,7 @@ export default function Sidebar({ selectedMenu, onMenuSelect }: SidebarProps) {
 
 
       </div>
+
     </aside>
   );
 }
