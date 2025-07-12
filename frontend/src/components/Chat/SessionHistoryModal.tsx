@@ -15,7 +15,8 @@ import {
   FaSort,
   FaSortUp,
   FaSortDown,
-  FaHistory
+  FaHistory,
+  FaPlay
 } from 'react-icons/fa';
 
 interface Session {
@@ -38,6 +39,7 @@ interface SessionHistoryModalProps {
   onArchiveSession: (sessionId: string) => void;
   onExportSession: (sessionId: string) => void;
   onShareSession: (sessionId: string) => void;
+  onResumeSession?: (sessionId: string) => void;
 }
 
 type SortField = 'name' | 'message_count' | 'last_message' | 'created_at';
@@ -53,7 +55,8 @@ export default function SessionHistoryModal({
   onRenameSession,
   onArchiveSession,
   onExportSession,
-  onShareSession
+  onShareSession,
+  onResumeSession
 }: SessionHistoryModalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'named' | 'unnamed'>('all');
@@ -354,6 +357,18 @@ export default function SessionHistoryModal({
                         >
                           <FaShare size={14} />
                         </button>
+                        {onResumeSession && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onResumeSession(session.session_id);
+                            }}
+                            className="p-2 text-slate-400 hover:text-blue-400 hover:bg-white/10 rounded-lg transition-colors"
+                            title="Nastavi"
+                          >
+                            <FaPlay size={14} />
+                          </button>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();

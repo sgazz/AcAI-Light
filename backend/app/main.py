@@ -541,10 +541,24 @@ async def get_sessions():
             # Dohvati broj poruka za svaku sesiju
             message_count = db_manager.get_message_count(session['session_id'])
             
+            # Dohvati prvu i poslednju poruku za sesiju
+            chat_history = db_manager.get_chat_history(session['session_id'], limit=1000)
+            first_message = ""
+            last_message = session['updated_at'] or session['created_at']
+            
+            if chat_history:
+                # Prva poruka (najstarija)
+                first_message = chat_history[0].get('content', '')[:100] + ('...' if len(chat_history[0].get('content', '')) > 100 else '')
+                
+                # Poslednja poruka (najnovija)
+                last_message = chat_history[-1].get('created_at', session['updated_at'] or session['created_at'])
+            
             sessions_list.append({
                 'session_id': session['session_id'],
                 'name': session['name'] or f'Session {session["session_id"][:8]}',
                 'message_count': message_count,
+                'first_message': first_message,
+                'last_message': last_message,
                 'created_at': session['created_at'],
                 'updated_at': session['updated_at']
             })

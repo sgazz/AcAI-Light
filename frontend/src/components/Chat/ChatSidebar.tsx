@@ -10,7 +10,8 @@ import {
   FaComments,
   FaSearch,
   FaFilter,
-  FaTimes
+  FaTimes,
+  FaPlay
 } from 'react-icons/fa';
 
 interface Session {
@@ -29,6 +30,7 @@ interface ChatSidebarProps {
   onNewSession: () => void;
   onDeleteSession: (sessionId: string) => void;
   onRenameSession: (sessionId: string, newName: string) => void;
+  onResumeSession?: (sessionId: string) => void;
   onClose?: () => void;
 }
 
@@ -39,6 +41,7 @@ export default function ChatSidebar({
   onNewSession,
   onDeleteSession,
   onRenameSession,
+  onResumeSession,
   onClose
 }: ChatSidebarProps) {
   const [searchQuery, setSearchQuery] = useState('');
@@ -222,6 +225,18 @@ export default function ChatSidebar({
                   >
                     <FaTrash size={12} />
                   </button>
+                  {onResumeSession && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onResumeSession(session.session_id);
+                      }}
+                      className="p-1 text-slate-400 hover:text-green-400 transition-colors"
+                      title="Nastavi razgovor"
+                    >
+                      <FaPlay size={12} />
+                    </button>
+                  )}
                 </div>
               )}
             </div>

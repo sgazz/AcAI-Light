@@ -106,7 +106,9 @@ export function useChat(initialSessionId?: string) {
     try {
       const data = await apiRequest(`/chat/history/${sessionId}`);
       if (data.status === 'success') {
-        const formattedMessages = (Array.isArray(data.messages) ? data.messages : []).map((msg: any) => ({
+        // Backend vraća data.data.messages, ne data.messages
+        const messages = data.data?.messages || data.messages || [];
+        const formattedMessages = (Array.isArray(messages) ? messages : []).map((msg: any) => ({
           id: msg.id,
           sender: msg.sender,
           content: msg.content,
@@ -125,6 +127,7 @@ export function useChat(initialSessionId?: string) {
           fact_checker_info: msg.fact_checker_info || null
         }));
         setMessages(formattedMessages);
+        console.log(`Učitano ${formattedMessages.length} poruka iz sesije ${sessionId}`);
       }
     } catch (error) {
       console.error('Error loading session messages:', error);

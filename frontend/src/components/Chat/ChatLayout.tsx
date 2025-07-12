@@ -87,6 +87,17 @@ export default function ChatLayout({ initialSessionId }: ChatLayoutProps) {
     }
   };
 
+  const handleResumeSession = async (sessionId: string) => {
+    // Prebaci na sesiju i učitaj poruke
+    await switchSession(sessionId);
+    selectSession(sessionId);
+    
+    // Zatvori sidebar na mobilnim uređajima
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  };
+
   const handleArchiveSession = (sessionId: string) => {
     // TODO: Implement archive functionality
     console.log('Archive session:', sessionId);
@@ -125,6 +136,7 @@ export default function ChatLayout({ initialSessionId }: ChatLayoutProps) {
           onNewSession={handleNewSession}
           onDeleteSession={deleteSession}
           onRenameSession={renameSession}
+          onResumeSession={handleResumeSession}
           onClose={() => setIsSidebarOpen(false)}
         />
       </div>
@@ -206,15 +218,13 @@ export default function ChatLayout({ initialSessionId }: ChatLayoutProps) {
         onClose={() => setIsHistoryModalOpen(false)}
         sessions={sessions}
         selectedSessionId={selectedSession?.session_id}
-        onSessionSelect={(sessionId) => {
-          handleSessionSelect(sessionId);
-          setIsHistoryModalOpen(false);
-        }}
+        onSessionSelect={handleSessionSelect}
         onDeleteSession={deleteSession}
         onRenameSession={renameSession}
         onArchiveSession={handleArchiveSession}
         onExportSession={handleExportSession}
         onShareSession={handleShareSession}
+        onResumeSession={handleResumeSession}
       />
     </div>
   );
