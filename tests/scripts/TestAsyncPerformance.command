@@ -31,15 +31,9 @@ fi
 
 echo ""
 
-# Proveri da li je Ollama pokrenut
-echo "🔍 Proveravam Ollama..."
-if curl -s http://localhost:11434/api/tags > /dev/null; then
-    echo "✅ Ollama je pokrenut"
-else
-    echo "❌ Ollama nije pokrenut"
-    echo "   Pokrenite Ollama sa: ollama serve"
-    exit 1
-fi
+# TODO: Proveri OpenAI API key kada bude implementiran
+echo "🔍 OpenAI API key provera..."
+echo "⚠️ OpenAI integracija je u toku - preskačem proveru"
 
 echo ""
 

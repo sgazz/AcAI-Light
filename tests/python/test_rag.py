@@ -67,7 +67,7 @@ def test_rag_system():
         rag_service = RAGService()
         
         # Test povezanosti
-        print("🔗 Testiranje povezanosti sa Ollama...")
+        print("🔗 Testiranje povezanosti sa AI servisom...")
         connection_test = rag_service.test_connection()
         print(f"   Status: {connection_test['status']}")
         print(f"   Poruka: {connection_test['message']}")

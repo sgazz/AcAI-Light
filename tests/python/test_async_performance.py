@@ -25,7 +25,7 @@ TEST_ENDPOINTS = {
         "/connections/health",
         "/connections/stats",
         "/connections/health/supabase",
-        "/connections/health/ollama"
+        "/connections/health/ai_service"
     ],
     "cache": [
         "/cache/health",
@@ -145,7 +145,7 @@ class AsyncPerformanceTester:
             print("✅ Connection health check uspešan")
             
             # 2. Proveri specifične konekcije
-            for conn_type in ["supabase", "ollama"]:
+            for conn_type in ["supabase", "ai_service"]:
                 specific_health = await self.make_request("GET", f"/connections/health/{conn_type}")
                 self.results["connection_pool"].append(specific_health)
                 

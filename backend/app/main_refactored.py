@@ -17,7 +17,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException, Depends, File, UploadFile, WebSocket, WebSocketDisconnect, Request, APIRouter, Body
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
-from ollama import Client
 import sys
 
 # Dodaj backend direktorijum u path
@@ -276,20 +275,12 @@ async def health_check():
             except Exception as e:
                 logger.error(f"Supabase health check failed: {e}")
         
-        # Proveri Ollama konekciju
-        ollama_health = False
-        try:
-            models = ollama_client.list()
-            ollama_health = len(models['models']) > 0
-        except Exception as e:
-            logger.error(f"Ollama health check failed: {e}")
-        
         return {
-            "status": "healthy" if (supabase_health and ollama_health) else "degraded",
+            "status": "healthy" if supabase_health else "degraded",
             "timestamp": datetime.now().isoformat(),
             "services": {
                 "supabase": supabase_health,
-                "ollama": ollama_health,
+                "ai_service": "openai_placeholder",  # TODO: Implement OpenAI
                 "cache": cache_manager.is_available()
             },
             "version": "3.0.0"
@@ -376,13 +367,13 @@ async def chat_endpoint(message: ChatMessage):
         # Kreiraj poboljšani prompt
         enhanced_prompt = create_enhanced_prompt(message.content, context)
         
-        # Pozovi AI model
+        # Pozovi AI model (placeholder - TODO: Implement OpenAI)
         start_time = time.time()
-        ai_response = await ollama_chat_async(
-            model="mistral:latest",
-            messages=[{"role": "user", "content": enhanced_prompt}],
-            stream=False
-        )
+        ai_response = {
+            "message": {
+                "content": "Ollama je uklonjena iz projekta. Molimo koristite alternativne AI servise. OpenAI implementacija je u toku."
+            }
+        }
         response_time = time.time() - start_time
         
         response_content = ai_response['message']['content']
@@ -597,12 +588,12 @@ async def rag_chat_endpoint(message: RAGRequest):
         # Kreiraj prompt sa RAG kontekstom
         rag_prompt = f"{SYSTEM_PROMPT}\n\n{CONTEXT_PROMPT}\n\nRelevant sources:\n{context}\n\nUser question: {message.query}\n\nAI Assistant:"
         
-        # Pozovi AI model
-        ai_response = await ollama_chat_async(
-            model="mistral:latest",
-            messages=[{"role": "user", "content": rag_prompt}],
-            stream=False
-        )
+        # Pozovi AI model (placeholder - TODO: Implement OpenAI)
+        ai_response = {
+            "message": {
+                "content": "Ollama je uklonjena iz projekta. Molimo koristite alternativne AI servise. OpenAI implementacija je u toku."
+            }
+        }
         
         response_content = ai_response['message']['content']
         total_time = time.time() - start_time
@@ -1196,8 +1187,8 @@ async def startup_event():
     """Startup event"""
     print("🚀 AcAIA Backend - Refaktorisana verzija se pokreće...")
     
-    # Preload modeli
-    await preload_ollama_models()
+    # TODO: Preload OpenAI models when implemented
+    print("⚠️ OpenAI model preloading not yet implemented")
     
     # Inicijalizuj cache
     if cache_manager.is_available():
