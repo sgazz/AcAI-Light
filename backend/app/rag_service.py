@@ -140,21 +140,18 @@ class RAGService:
             logger.error(f"Greška pri dodavanju dokumenta: {e}")
             raise
     
-    def search(self, query: str, top_k: int = 5) -> List[Dict[str, Any]]:
+    def search(self, query: str, limit: int = 5) -> List[Dict[str, Any]]:
         """Pretraži dokumente na osnovu upita"""
         try:
             if not self.embedding_model or not self.vector_index:
                 raise Exception("RAG sistem nije inicijalizovan")
-            
             # Kreiraj embedding za upit
             query_embedding = self.embedding_model.encode(query)
-            
             # Pretraži vector index
             scores, indices = self.vector_index.search(
                 query_embedding.reshape(1, -1).astype(np.float32), 
-                min(top_k, len(self.documents))
+                min(limit, len(self.documents))
             )
-            
             # Vraća rezultate
             results = []
             for i, (score, idx) in enumerate(zip(scores[0], indices[0])):
@@ -163,9 +160,8 @@ class RAGService:
                     doc['score'] = float(score)
                     doc['rank'] = i + 1
                     results.append(doc)
-            
             logger.info(f"Pretraga vratila {len(results)} rezultata za upit: {query[:50]}...")
-            return results
+            return results[:limit]
             
         except Exception as e:
             logger.error(f"Greška pri pretraživanju: {e}")

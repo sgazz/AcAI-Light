@@ -33,6 +33,11 @@ export default function Home() {
   const { toasts, showError, showSuccess, showInfo } = useToast();
   const [isOnline, setIsOnline] = useState(true);
 
+  // Debug selectedMenu changes
+  useEffect(() => {
+    console.log('selectedMenu changed to:', selectedMenu);
+  }, [selectedMenu]);
+
   // Keyboard shortcuts
   const shortcuts = [
     {
@@ -159,8 +164,12 @@ export default function Home() {
   const renderContent = () => {
     if (selectedMenu === -1) {
       return <WelcomeScreen 
-        onStartChat={() => setSelectedMenu(0)}
-        onSelectFeature={(index) => setSelectedMenu(index)}
+        onStartChat={() => {
+          setSelectedMenu(0);
+        }}
+        onSelectFeature={(index) => {
+          setSelectedMenu(index);
+        }}
         hasRecentSessions={true}
         recentSessions={[
           {

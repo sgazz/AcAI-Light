@@ -22,7 +22,10 @@ class Config:
     API_PORT = int(os.getenv("API_PORT", "8001"))
     
     # File upload konfiguracija
-    MAX_FILE_SIZE = int(os.getenv("MAX_FILE_SIZE", "52428800"))  # 50MB default
+    max_file_size_str = os.getenv("MAX_FILE_SIZE", "52428800")
+    # Ukloni komentare ako postoje
+    max_file_size_str = max_file_size_str.split('#')[0].strip()
+    MAX_FILE_SIZE = int(max_file_size_str)  # 50MB default
     ALLOWED_EXTENSIONS = os.getenv("ALLOWED_EXTENSIONS", ".pdf,.docx,.txt,.png,.jpg,.jpeg,.bmp,.tiff,.tif").split(",")
     
     # OCR konfiguracija
@@ -36,6 +39,12 @@ class Config:
     # RAG konfiguracija
     RAG_CHUNK_SIZE = int(os.getenv("RAG_CHUNK_SIZE", "500"))
     RAG_CHUNK_OVERLAP = int(os.getenv("RAG_CHUNK_OVERLAP", "50"))
+    
+    # OpenAI konfiguracija
+    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+    OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4")
+    OPENAI_MAX_TOKENS = int(os.getenv("OPENAI_MAX_TOKENS", "2000"))
+    OPENAI_TEMPERATURE = float(os.getenv("OPENAI_TEMPERATURE", "0.7"))
     
     @classmethod
     def get_allowed_extensions(cls) -> List[str]:

@@ -10,7 +10,7 @@ interface SidebarProps {
 }
 
 const menu = [
-  { icon: <div><FaRegLightbulb size={20} /></div>, label: 'Active Recall' },
+  { icon: <div><FaRegLightbulb size={20} /></div>, label: 'Chat' },
   { icon: <div><FaProjectDiagram size={20} /></div>, label: 'Mind Mapping' },
   { icon: <div><FaMicrophone size={20} /></div>, label: 'Audio Mode' },
   { icon: <div><FaUsers size={20} /></div>, label: 'Study Room' },

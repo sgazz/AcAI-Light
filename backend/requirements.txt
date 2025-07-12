@@ -41,3 +41,6 @@ psutil>=5.9.0
 
 # Cache
 redis==6.2.0
+
+# OpenAI
+openai>=1.0.0

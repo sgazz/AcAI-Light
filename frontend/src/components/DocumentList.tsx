@@ -81,7 +81,7 @@ export default function DocumentList() {
       const data = await apiRequest(DOCUMENTS_ENDPOINT);
       
       if (data.status === 'success') {
-        setDocuments(data.documents || []);
+        setDocuments(Array.isArray(data.documents) ? data.documents : []);
       } else {
         throw new Error(data.message || 'Greška pri dohvatanju dokumenata');
       }

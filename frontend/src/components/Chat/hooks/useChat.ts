@@ -37,10 +37,35 @@ interface Message {
 
 interface ChatResponse {
   status: string;
-  response: string;
-  session_id: string;
-  model: string;
-  response_time: number;
+  data?: {
+    response: string;
+    session_id: string;
+    model?: string;
+    response_time?: number;
+    cached?: boolean;
+    sources?: any[];
+    used_rag?: boolean;
+    // RAG specific fields
+    reranking_applied?: boolean;
+    reranker_info?: any;
+    original_query?: string;
+    enhanced_query?: string;
+    query_rewriting_applied?: boolean;
+    query_rewriter_info?: any;
+    fact_checking_applied?: boolean;
+    fact_checker_info?: any;
+    context_analysis?: any;
+    context_selector_used?: boolean;
+    selected_context_length?: number;
+    retrieval_results_count?: number;
+    retrieval_steps?: number;
+    query_type?: string;
+  };
+  // Fallback fields for backward compatibility
+  response?: string;
+  session_id?: string;
+  model?: string;
+  response_time?: number;
   cached?: boolean;
   sources?: any[];
   used_rag?: boolean;
@@ -77,7 +102,7 @@ export function useChat(initialSessionId?: string) {
     try {
       const data = await apiRequest(`/chat/history/${sessionId}`);
       if (data.status === 'success') {
-        const formattedMessages = data.messages.map((msg: any) => ({
+        const formattedMessages = (Array.isArray(data.messages) ? data.messages : []).map((msg: any) => ({
           id: msg.id,
           sender: msg.sender,
           content: msg.content,
@@ -151,11 +176,11 @@ export function useChat(initialSessionId?: string) {
       // Odaberi endpoint na osnovu RAG mode-a
       let endpoint = useRAG ? '/chat/rag' : '/chat';
       let body: any = {
-        message: content.trim(),
         session_id: currentSessionId,
       };
       
       if (useRAG) {
+        body.query = content.trim();
         body.use_rerank = useRerank;
         body.use_query_rewriting = useQueryRewriting;
         body.use_fact_checking = useFactChecking;
@@ -166,6 +191,7 @@ export function useChat(initialSessionId?: string) {
           endpoint = '/chat/rag-optimized';
         }
       } else {
+        body.content = content.trim();
         body.model = 'mistral:latest';
       }
 
@@ -176,22 +202,23 @@ export function useChat(initialSessionId?: string) {
       }) as ChatResponse;
 
       if (response.status === 'success') {
+        const responseData = response.data || response;
         const aiMessage: Message = {
           id: crypto.randomUUID(),
           sender: 'ai',
-          content: response.response,
+          content: responseData.response || 'Nema odgovora',
           timestamp: new Date().toISOString(),
-          sources: response.sources || [],
-          used_rag: response.used_rag || false,
+          sources: responseData.sources || [],
+          used_rag: responseData.used_rag || false,
           // RAG specific fields
-          reranking_applied: response.reranking_applied || false,
-          reranker_info: response.reranker_info || null,
-          original_query: response.original_query || undefined,
-          enhanced_query: response.enhanced_query || undefined,
-          query_rewriting_applied: response.query_rewriting_applied || false,
-          query_rewriter_info: response.query_rewriter_info || null,
-          fact_checking_applied: response.fact_checking_applied || false,
-          fact_checker_info: response.fact_checker_info || null
+          reranking_applied: responseData.reranking_applied || false,
+          reranker_info: responseData.reranker_info || null,
+          original_query: responseData.original_query || undefined,
+          enhanced_query: responseData.enhanced_query || undefined,
+          query_rewriting_applied: responseData.query_rewriting_applied || false,
+          query_rewriter_info: responseData.query_rewriter_info || null,
+          fact_checking_applied: responseData.fact_checking_applied || false,
+          fact_checker_info: responseData.fact_checker_info || null
         };
 
         setMessages(prev => [...prev, aiMessage]);

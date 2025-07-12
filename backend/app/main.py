@@ -31,6 +31,7 @@ from .rag_service import RAGService
 from .ocr_service import OCRService
 from .config import Config
 from .cache_manager import cache_manager, get_cached_ai_response, set_cached_ai_response
+from .openai_service import openai_service
 from .background_tasks import task_manager, add_background_task, get_task_status, cancel_task, get_all_tasks, get_task_stats
 from .websocket import websocket_manager, WebSocketMessage, MessageType
 from .exam_service import get_exam_service
@@ -152,14 +153,40 @@ def create_enhanced_prompt(user_message: str, context: str = "") -> str:
     
     return "\n\n".join(prompt_parts)
 
-# Placeholder funkcija za AI (zameniće se sa OpenAI)
+# OpenAI funkcija za chat
 async def ai_chat_async(model: str, messages: list, stream: bool = False):
-    """Placeholder funkcija - zameniće se sa OpenAI"""
-    return {
-        "message": {
-            "content": "AI servis je u toku implementacije. OpenAI integracija će biti dostupna uskoro."
+    """Funkcija za komunikaciju sa OpenAI API-jem"""
+    try:
+        if not openai_service.is_available():
+            return {
+                "message": {
+                    "content": "OpenAI servis nije dostupan. Proveri API ključ u .env fajlu."
+                }
+            }
+        
+        # Pozovi OpenAI servis
+        try:
+            response = await openai_service.chat_completion(
+                messages=messages,
+                model=model,
+                stream=stream
+            )
+            return response
+        except Exception as e:
+            logger.error(f"Greška pri OpenAI pozivu: {e}")
+            return {
+                "message": {
+                    "content": f"Greška pri komunikaciji sa AI servisom: {str(e)}"
+                }
+            }
+        
+    except Exception as e:
+        logger.error(f"Greška pri OpenAI pozivu: {e}")
+        return {
+            "message": {
+                "content": f"Greška pri komunikaciji sa AI servisom: {str(e)}"
+            }
         }
-    }
 
 # ============================================================================
 # BASIC ENDPOINTS
@@ -176,7 +203,7 @@ async def health_check():
         "status": "healthy",
         "timestamp": datetime.now().isoformat(),
         "services": {
-            "ai_service": "openai_placeholder",  # TODO: Implement OpenAI
+            "ai_service": "openai_available" if openai_service.is_available() else "openai_not_configured",
             "cache": cache_manager.is_available(),
             "rag": True,
             "ocr": True
@@ -232,14 +259,14 @@ async def chat_endpoint(message: dict):
         
         # Proveri cache
         cache_key = f"chat:{hashlib.md5(content.encode()).hexdigest()}"
-        cached_response = get_cached_ai_response(cache_key)
+        cached_response = await get_cached_ai_response(cache_key)
         
         if cached_response:
             logger.info(f"Cache hit za: {content[:50]}...")
             return {
                 "status": "success",
                 "data": {
-                    "response": cached_response,
+                    "response": cached_response.get('response', ''),
                     "cached": True,
                     "session_id": session_id
                 }
@@ -253,7 +280,7 @@ async def chat_endpoint(message: dict):
         # Kreiraj poboljšani prompt
         enhanced_prompt = create_enhanced_prompt(content, context)
         
-        # Pozovi AI model (placeholder)
+        # Pozovi AI model
         start_time = time.time()
         ai_response = await ai_chat_async(
             model="gpt-4",
@@ -265,7 +292,7 @@ async def chat_endpoint(message: dict):
         response_content = ai_response['message']['content']
         
         # Sačuvaj u cache
-        set_cached_ai_response(cache_key, response_content)
+        await set_cached_ai_response(cache_key, response_content)
         
         # Sačuvaj u lokalni storage ako postoji session_id
         if session_id:
@@ -401,7 +428,7 @@ async def rag_chat_endpoint(message: dict):
         
         # Proveri cache
         cache_key = f"rag:{hashlib.md5(query.encode()).hexdigest()}"
-        cached_response = get_cached_ai_response(cache_key)
+        cached_response = await get_cached_ai_response(cache_key)
         
         if cached_response:
             return {
@@ -417,26 +444,47 @@ async def rag_chat_endpoint(message: dict):
         
         # RAG search
         search_time = time.time()
-        rag_results = await rag_service.search(query, limit=5)
+        rag_results = rag_service.search(query, limit=5)
         search_time = time.time() - search_time
         
         # Kreiraj kontekst
-        context = "\n\n".join([
-            f"Source {i+1}: {result['content']}"
-            for i, result in enumerate(rag_results)
-        ])
-        
-        sources = [
-            {
-                "title": result.get('metadata', {}).get('filename', f'Source {i+1}'),
-                "content": result['content'][:200] + "...",
-                "score": result.get('score', 0)
-            }
-            for i, result in enumerate(rag_results)
-        ]
-        
-        # Kreiraj prompt sa RAG kontekstom
-        rag_prompt = f"{SYSTEM_PROMPT}\n\n{CONTEXT_PROMPT}\n\nRelevant sources:\n{context}\n\nUser question: {query}\n\nAI Assistant:"
+        if rag_results:
+            # Loguj rezultate za debugging
+            logger.info(f"RAG rezultati: {len(rag_results)} rezultata")
+            for i, result in enumerate(rag_results):
+                logger.info(f"Rezultat {i+1}: keys={list(result.keys())}, content_exists={'content' in result}")
+            
+            # Filtriraj rezultate koji imaju content
+            valid_results = [result for result in rag_results if 'content' in result and result['content']]
+            logger.info(f"Validnih rezultata: {len(valid_results)}")
+            
+            if valid_results:
+                context = "\n\n".join([
+                    f"Source {i+1}: {result['content']}"
+                    for i, result in enumerate(valid_results)
+                ])
+                
+                sources = [
+                    {
+                        "title": result.get('metadata', {}).get('filename', f'Source {i+1}'),
+                        "content": result['content'][:200] + "...",
+                        "score": result.get('score', 0)
+                    }
+                    for i, result in enumerate(valid_results)
+                ]
+            else:
+                # Ako nema validnih rezultata, koristi običan prompt
+                context = ""
+                sources = []
+                logger.warning("Nema validnih RAG rezultata sa content poljem")
+            
+            # Kreiraj prompt sa RAG kontekstom
+            rag_prompt = f"{SYSTEM_PROMPT}\n\n{CONTEXT_PROMPT}\n\nRelevant sources:\n{context}\n\nUser question: {query}\n\nAI Assistant:"
+        else:
+            # Ako nema dokumenata, koristi običan prompt
+            context = ""
+            sources = []
+            rag_prompt = f"{SYSTEM_PROMPT}\n\nKorisnik: {query}\n\nAI Assistant:"
         
         # Pozovi AI model (placeholder)
         ai_response = await ai_chat_async(
@@ -449,7 +497,7 @@ async def rag_chat_endpoint(message: dict):
         total_time = time.time() - start_time
         
         # Sačuvaj u cache
-        set_cached_ai_response(cache_key, response_content)
+        await set_cached_ai_response(cache_key, response_content)
         
         return {
             "status": "success",
@@ -515,8 +563,7 @@ async def upload_document(file: UploadFile = File(...)):
         
         # Dodaj u vector store ako je tekstualni dokument
         if file.content_type.startswith('text/'):
-            await rag_service.add_document(
-                doc_id=doc_id,
+            rag_service.add_document(
                 content=document_data["content"],
                 metadata={"filename": file.filename, "content_type": file.content_type}
             )
@@ -545,20 +592,22 @@ async def list_documents():
         docs_list = []
         for doc_id, doc_data in documents.items():
             docs_list.append({
-                "doc_id": doc_id,
+                "id": doc_id,
                 "filename": doc_data["filename"],
-                "content_type": doc_data["content_type"],
-                "size": doc_data["size"],
+                "file_type": doc_data["content_type"],
+                "file_size": doc_data["size"],
                 "created_at": doc_data["created_at"],
-                "user_id": doc_data["user_id"]
+                "user_id": doc_data["user_id"],
+                "metadata": {
+                    "total_pages": 1,  # Default vrednost
+                    "embedding_count": 0,  # Default vrednost
+                    "chunks": []
+                }
             })
         
         return {
             "status": "success",
-            "data": {
-                "documents": docs_list,
-                "total": len(docs_list)
-            }
+            "documents": docs_list
         }
         
     except Exception as e:
@@ -606,7 +655,7 @@ async def delete_document(doc_id: str):
         
         # Obriši iz vector store-a ako postoji
         try:
-            await rag_service.delete_document(doc_id)
+            rag_service.delete_document(doc_id)
         except Exception as e:
             logger.warning(f"Failed to delete document from vector store: {e}")
         

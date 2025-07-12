@@ -1,0 +1,1 @@
+Ovo je test dokument za RAG sistem. Sadrži informacije o vertigo simptomima i lečenju. Vertigo je osećaj vrtoglavice i rotacije koja može biti uzrokovana problemima sa unutrašnjim uhom ili centralnim nervnim sistemom.

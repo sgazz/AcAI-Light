@@ -76,7 +76,7 @@ export default function DocumentUpload({ onDocumentUploaded }: DocumentUploadPro
       const data = await apiRequest(DOCUMENTS_ENDPOINT);
       
       if (data.status === 'success') {
-        setDocuments(data.documents);
+        setDocuments(Array.isArray(data.documents) ? data.documents : []);
       }
     } catch (error: any) {
       console.error('Greška pri učitavanju dokumenata:', error);

@@ -22,10 +22,10 @@ export function useSessions() {
     try {
       const data = await apiRequest('/chat/sessions');
       if (data.status === 'success') {
-        setSessions(data.sessions);
+        setSessions(Array.isArray(data.sessions) ? data.sessions : []);
         
         // Set selected session if none is selected
-        if (!selectedSession && data.sessions.length > 0) {
+        if (!selectedSession && Array.isArray(data.sessions) && data.sessions.length > 0) {
           setSelectedSession(data.sessions[0]);
         }
       }

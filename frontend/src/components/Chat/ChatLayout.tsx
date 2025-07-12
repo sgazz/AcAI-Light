@@ -13,6 +13,7 @@ interface ChatLayoutProps {
 }
 
 export default function ChatLayout({ initialSessionId }: ChatLayoutProps) {
+  
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
@@ -98,7 +99,7 @@ export default function ChatLayout({ initialSessionId }: ChatLayoutProps) {
   };
 
   return (
-    <div className="h-screen flex bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
+    <div className="h-full flex bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900" style={{ minHeight: '500px' }}>
       {/* Mobile Overlay */}
       {isMobile && isSidebarOpen && (
         <div 
