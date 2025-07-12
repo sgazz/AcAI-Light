@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  # Test Database
+  test-postgres:
+    image: postgres:15-alpine
+    container_name: acaia-test-postgres
+    environment:
+      POSTGRES_DB: acaia_test
+      POSTGRES_USER: acaia_test_user
+      POSTGRES_PASSWORD: acaia_test_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - test_postgres_data:/var/lib/postgresql/data
+    networks:
+      - acaia-test-network
+
+  # Test Redis
+  test-redis:
+    image: redis:7-alpine
+    container_name: acaia-test-redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - test_redis_data:/data
+    networks:
+      - acaia-test-network
+
+  # Backend Tests
+  backend-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: acaia-backend-tests
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://acaia_test_user:acaia_test_password@test-postgres:5432/acaia_test
+      - REDIS_URL=redis://test-redis:6379
+      - TESTING=true
+    volumes:
+      - ./backend:/app/backend
+      - ./tests:/app/tests
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+    depends_on:
+      - test-postgres
+      - test-redis
+    command: ["python", "-m", "pytest", "tests/python/", "-v", "--tb=short"]
+    networks:
+      - acaia-test-network
+
+  # Frontend Tests
+  frontend-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: acaia-frontend-tests
+    environment:
+      - NODE_ENV=test
+      - NEXT_PUBLIC_API_URL=http://localhost:8001
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+    working_dir: /app/frontend
+    command: ["npm", "test", "--", "--watchAll=false", "--coverage"]
+    networks:
+      - acaia-test-network
+
+  # Integration Tests
+  integration-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: acaia-integration-tests
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - NODE_ENV=test
+      - DATABASE_URL=postgresql://acaia_test_user:acaia_test_password@test-postgres:5432/acaia_test
+      - REDIS_URL=redis://test-redis:6379
+      - TESTING=true
+    volumes:
+      - ./backend:/app/backend
+      - ./frontend:/app/frontend
+      - ./tests:/app/tests
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+    depends_on:
+      - test-postgres
+      - test-redis
+    command: ["python", "-m", "pytest", "tests/python/test_integration.py", "-v", "--tb=short"]
+    networks:
+      - acaia-test-network
+
+  # E2E Tests
+  e2e-tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: acaia-e2e-tests
+    environment:
+      - NODE_ENV=test
+      - NEXT_PUBLIC_API_URL=http://localhost:8001
+      - DATABASE_URL=postgresql://acaia_test_user:acaia_test_password@test-postgres:5432/acaia_test
+      - REDIS_URL=redis://test-redis:6379
+    volumes:
+      - ./frontend:/app/frontend
+      - ./backend:/app/backend
+      - ./tests:/app/tests
+      - /app/frontend/node_modules
+    depends_on:
+      - test-postgres
+      - test-redis
+    working_dir: /app/frontend
+    command: ["npm", "run", "test:e2e"]
+    networks:
+      - acaia-test-network
+
+volumes:
+  test_postgres_data:
+  test_redis_data:
+
+networks:
+  acaia-test-network:
+    driver: bridge 

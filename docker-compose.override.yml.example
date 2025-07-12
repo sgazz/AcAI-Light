@@ -1,0 +1,62 @@
+# Docker Compose Override Example
+# Kopirajte ovaj fajl kao docker-compose.override.yml za lokalne prilagodbe
+
+version: '3.8'
+
+services:
+  # Override za backend - development mode
+  backend:
+    build:
+      target: backend-builder
+    environment:
+      - DEBUG=true
+      - RELOAD=true
+      - NODE_ENV=development
+    volumes:
+      - ./backend:/app/backend
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./cache:/app/cache
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+
+  # Override za frontend - development mode
+  frontend:
+    build:
+      target: frontend-builder
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8001
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+    command: ["npm", "run", "dev"]
+
+  # Override za nginx - development mode
+  nginx:
+    ports:
+      - "8080:80"  # Promenite port da izbegnete konflikte
+    volumes:
+      - ./nginx/nginx.dev.conf:/etc/nginx/nginx.conf
+
+  # Dodajte development servise
+  redis:
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  postgres:
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: acaia_dev
+      POSTGRES_USER: acaia_dev_user
+      POSTGRES_PASSWORD: acaia_dev_password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/setup_scripts:/docker-entrypoint-initdb.d
+
+volumes:
+  redis_data:
+  postgres_data: 

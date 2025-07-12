@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # Backend API Service - Development
+  backend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: acaia-backend-dev
+    ports:
+      - "8001:8001"
+    environment:
+      - PYTHONPATH=/app
+      - PYTHONUNBUFFERED=1
+      - NODE_ENV=development
+      - DEBUG=1
+    volumes:
+      - ./backend:/app/backend
+      - ./uploads:/app/uploads
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./cache:/app/cache
+    env_file:
+      - .env.dev
+    restart: unless-stopped
+    command: ["uvicorn", "backend.app.main:app", "--host", "0.0.0.0", "--port", "8001", "--reload"]
+    networks:
+      - acaia-dev-network
+
+  # Frontend Service - Development
+  frontend-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: acaia-frontend-dev
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:8001
+    volumes:
+      - ./frontend:/app/frontend
+      - /app/frontend/node_modules
+    depends_on:
+      - backend-dev
+    restart: unless-stopped
+    command: ["npm", "run", "dev"]
+    networks:
+      - acaia-dev-network
+
+  # Redis Cache - Development
+  redis-dev:
+    image: redis:7-alpine
+    container_name: acaia-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_dev_data:/data
+    restart: unless-stopped
+    networks:
+      - acaia-dev-network
+
+  # PostgreSQL Database - Development
+  postgres-dev:
+    image: postgres:15-alpine
+    container_name: acaia-postgres-dev
+    environment:
+      POSTGRES_DB: acaia_dev
+      POSTGRES_USER: acaia_dev_user
+      POSTGRES_PASSWORD: acaia_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./backend/setup_scripts:/docker-entrypoint-initdb.d
+    restart: unless-stopped
+    networks:
+      - acaia-dev-network
+
+volumes:
+  redis_dev_data:
+  postgres_dev_data:
+
+networks:
+  acaia-dev-network:
+    driver: bridge 

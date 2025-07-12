@@ -24,6 +24,8 @@ dist/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.prod
+docker-compose.override.yml
 
 # Logs
 *.log

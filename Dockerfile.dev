@@ -1,0 +1,75 @@
+# AcAIA - Development Dockerfile
+# Optimizovan za development sa hot reload
+
+FROM python:3.11-slim
+
+# Metadata
+LABEL maintainer="AcAIA Team"
+LABEL description="AcAIA - Development Environment"
+LABEL version="1.0.0-dev"
+
+# Postavljanje radnog direktorijuma
+WORKDIR /app
+
+# Instalacija sistema dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    libpq-dev \
+    tesseract-ocr \
+    tesseract-ocr-srp \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libgomp1 \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Instalacija Node.js
+RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
+    && apt-get install -y nodejs
+
+# Kopiranje Python requirements
+COPY backend/requirements.txt ./backend/
+
+# Instalacija Python dependencies
+RUN pip install --no-cache-dir -r backend/requirements.txt
+
+# Kopiranje frontend package files
+COPY frontend/package*.json ./frontend/
+
+# Instalacija frontend dependencies
+WORKDIR /app/frontend
+RUN npm install
+
+# Vraćanje na glavni direktorijum
+WORKDIR /app
+
+# Kopiranje koda
+COPY backend/ ./backend/
+COPY frontend/ ./frontend/
+
+# Kreiranje potrebnih direktorijuma
+RUN mkdir -p /app/logs /app/cache /app/temp /app/uploads
+
+# Postavljanje environment varijabli
+ENV PYTHONPATH=/app
+ENV PYTHONUNBUFFERED=1
+ENV NODE_ENV=development
+
+# Expose portove
+EXPOSE 8001 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# Start script za development
+COPY start-dev.sh /app/start-dev.sh
+RUN chmod +x /app/start-dev.sh
+
+# Default komanda
+CMD ["/app/start-dev.sh"] 
