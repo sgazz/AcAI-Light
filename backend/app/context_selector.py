@@ -9,7 +9,7 @@ from .reranker import Reranker
 class ContextSelector:
     """Napredni sistem za izbor i rangiranje konteksta"""
     
-    def __init__(self, vector_store: VectorStore, reranker: Reranker = None):
+    def __init__(self, vector_store: VectorStore, reranker: Optional[Reranker] = None):
         self.vector_store = vector_store
         self.reranker = reranker
         self.logger = logging.getLogger(__name__)

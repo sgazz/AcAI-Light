@@ -27,7 +27,7 @@ class TaskPriority(Enum):
 class BackgroundTask:
     """Reprezentuje jedan background task"""
     
-    def __init__(self, task_id: str, func: Callable, args: tuple = (), kwargs: dict = None, 
+    def __init__(self, task_id: str, func: Callable, args: tuple = (), kwargs: Optional[Dict[str, Any]] = None, 
                  priority: TaskPriority = TaskPriority.NORMAL, description: str = ""):
         self.task_id = task_id
         self.func = func
@@ -79,7 +79,7 @@ class BackgroundTaskManager:
         self.executor.shutdown(wait=True)
         logger.info("Background task manager zaustavljen")
     
-    async def add_task(self, func: Callable, args: tuple = (), kwargs: dict = None,
+    async def add_task(self, func: Callable, args: tuple = (), kwargs: Optional[Dict[str, Any]] = None,
                       priority: TaskPriority = TaskPriority.NORMAL, description: str = "") -> str:
         """Dodaj novi task u queue"""
         async with self._lock:

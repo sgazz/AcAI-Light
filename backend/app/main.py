@@ -64,6 +64,7 @@ from .query_rewriter import QueryRewriter
 from .fact_checker import FactChecker, FactCheckResult
 from .study_journal_service import study_journal_service
 from .career_guidance_service import CareerGuidanceService
+from .models import SessionRenameRequest
 
 # Kreiraj FastAPI aplikaciju
 app = FastAPI(
@@ -572,6 +573,37 @@ async def delete_session(session_id: str):
     except Exception as e:
         logger.error(f"Greška pri brisanju sesije: {e}")
         raise HTTPException(status_code=500, detail="Greška pri brisanju sesije")
+
+@app.put("/chat/sessions/{session_id}/rename")
+async def rename_session(session_id: str, rename_request: SessionRenameRequest):
+    """Preimenuje chat sesiju"""
+    try:
+        # Proveri da li sesija postoji
+        sessions = db_manager.get_all_sessions("default_user")
+        session_exists = any(s['session_id'] == session_id for s in sessions)
+        
+        if not session_exists:
+            raise HTTPException(status_code=404, detail="Sesija nije pronađena")
+        
+        # Ažuriraj ime sesije
+        success = db_manager.update_session(session_id, name=rename_request.name)
+        
+        if success:
+            return {
+                "status": "success", 
+                "message": "Sesija uspešno preimenovana",
+                "data": {
+                    "session_id": session_id,
+                    "new_name": rename_request.name
+                }
+            }
+        else:
+            raise HTTPException(status_code=500, detail="Greška pri preimenovanju sesije")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Greška pri preimenovanju sesije: {e}")
+        raise HTTPException(status_code=500, detail="Greška pri preimenovanju sesije")
 
 @app.post("/chat/message/{message_id}/reaction")
 async def add_message_reaction(message_id: str, reaction_data: dict):

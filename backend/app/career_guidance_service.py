@@ -188,7 +188,7 @@ class CareerGuidanceService:
             
             assessment = {
                 'id': assessment_id,
-                'profile_id': assessment_data.get('profile_id'),
+                'profile_id': assessment_data.get('profile_id', ''),
                 'assessment_type': assessment_data.get('assessment_type', 'general'),
                 'questions': assessment_data.get('questions', []),
                 'answers': assessment_data.get('answers', []),
@@ -218,7 +218,7 @@ class CareerGuidanceService:
     
     def get_assessments_by_profile(self, profile_id: str) -> List[Dict[str, Any]]:
         """Dohvati sve assessments za određeni profile"""
-        return [a for a in self.assessments if a.get('profile_id') == profile_id]
+        return [a for a in self.assessments if a.get('profile_id', '') == profile_id]
     
     def generate_recommendations(self, profile_id: str, assessment_id: str = None) -> str:
         """Generiše career recommendations na osnovu profile-a i assessment-a"""
@@ -264,7 +264,7 @@ class CareerGuidanceService:
     def get_recommendations(self, profile_id: str = None) -> List[Dict[str, Any]]:
         """Dohvati recommendations"""
         if profile_id:
-            return [r for r in self.recommendations if r.get('profile_id') == profile_id]
+            return [r for r in self.recommendations if r.get('profile_id', '') == profile_id]
         return self.recommendations
     
     def _analyze_profile_and_generate_recommendations(self, profile: Dict[str, Any], assessments: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -343,8 +343,8 @@ class CareerGuidanceService:
                 'total_profiles': len(self.profiles),
                 'total_assessments': len(self.assessments),
                 'total_recommendations': len(self.recommendations),
-                'profiles_with_assessments': len(set(a.get('profile_id') for a in self.assessments)),
-                'profiles_with_recommendations': len(set(r.get('profile_id') for r in self.recommendations)),
+                'profiles_with_assessments': len(set(a.get('profile_id') for a in self.assessments if a.get('profile_id') is not None)),
+                'profiles_with_recommendations': len(set(r.get('profile_id') for r in self.recommendations if r.get('profile_id') is not None)),
                 'last_updated': datetime.now().isoformat()
             }
         except Exception as e:

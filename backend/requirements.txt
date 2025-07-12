@@ -38,6 +38,7 @@ python-dateutil==2.8.2
 pytz==2023.3
 aiofiles==23.2.1
 psutil>=5.9.0
+email-validator==2.2.0
 
 # Cache
 redis==6.2.0

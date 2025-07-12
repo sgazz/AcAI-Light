@@ -113,7 +113,8 @@ def check_ocr_images():
             print(f"Processed Filename: {ocr.get('processed_filename')}")
             
             # Ako OCR slika ima originalno ime, možemo da ažuriramo odgovarajući dokument
-            if ocr.get('original_filename') and not ocr.get('original_filename').startswith('tmp'):
+            original_filename = ocr.get('original_filename')
+            if original_filename and not original_filename.startswith('tmp'):
                 print(f"✅ OCR slika ima originalno ime: {ocr.get('original_filename')}")
                 
                 # Pokušaj da nađeš dokument sa processed_filename i ažuriraj ga

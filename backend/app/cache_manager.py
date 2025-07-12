@@ -1,81 +1,49 @@
-import redis
+import asyncio
 import json
 import hashlib
 from typing import Optional, Any, Dict, List
 from datetime import datetime, timedelta
 import logging
+import redis.asyncio as redis
 
-# Setup logging
+# Konfiguracija logging-a
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class CacheManager:
-    """
-    Redis-based cache manager za AcAIA aplikaciju.
-    Podržava caching za RAG upite, sesije, i druge podatke.
-    """
+    """Upravlja Redis cache-om za aplikaciju"""
     
     def __init__(self, host: str = 'localhost', port: int = 6379, db: int = 0):
-        """
-        Inicijalizacija Cache Manager-a
-        
-        Args:
-            host: Redis host
-            port: Redis port
-            db: Redis database number
-        """
+        self.redis: Optional[redis.Redis] = None
+        self.host = host
+        self.port = port
+        self.db = db
+        self._connect()
+    
+    def _connect(self):
+        """Poveži se sa Redis-om"""
         try:
             self.redis = redis.Redis(
-                host=host, 
-                port=port, 
-                db=db, 
+                host=self.host,
+                port=self.port,
+                db=self.db,
                 decode_responses=True,
                 socket_connect_timeout=5,
                 socket_timeout=5
             )
-            # Test konekcije
-            self.redis.ping()
-            logger.info(f"Cache Manager uspešno povezan sa Redis-om na {host}:{port}")
+            logger.info(f"Povezan sa Redis-om na {self.host}:{self.port}")
         except Exception as e:
             logger.error(f"Greška pri povezivanju sa Redis-om: {e}")
             self.redis = None
     
     def is_available(self) -> bool:
-        """
-        Proveri da li je cache manager dostupan
-        
-        Returns:
-            True ako je Redis dostupan, False inače
-        """
-        if not self.redis:
-            return False
-        
-        try:
-            self.redis.ping()
-            return True
-        except Exception:
-            return False
+        """Proveri da li je Redis dostupan"""
+        return self.redis is not None
     
     def _generate_key(self, prefix: str, *args) -> str:
-        """
-        Generiše cache ključ na osnovu prefix-a i argumenata
-        
-        Args:
-            prefix: Prefix za ključ
-            *args: Argumenti za generisanje ključa
-            
-        Returns:
-            Cache ključ
-        """
-        # Kombinuj sve argumente
+        """Generiši cache ključ"""
         key_parts = [prefix] + [str(arg) for arg in args]
-        key_string = ":".join(key_parts)
-        
-        # Hash za duže ključeve
-        if len(key_string) > 100:
-            return f"{prefix}:{hashlib.md5(key_string.encode()).hexdigest()}"
-        
-        return key_string
+        return ":".join(key_parts)
     
     async def get(self, key: str) -> Optional[Any]:
         """
@@ -85,13 +53,13 @@ class CacheManager:
             key: Cache ključ
             
         Returns:
-            Podatak iz cache-a ili None ako ne postoji
+            Podatak ili None
         """
         if not self.redis:
             return None
             
         try:
-            data = self.redis.get(key)
+            data = await self.redis.get(key)
             if data:
                 return json.loads(data)
             return None
@@ -116,7 +84,7 @@ class CacheManager:
             
         try:
             serialized_value = json.dumps(value, default=str)
-            self.redis.setex(key, ttl, serialized_value)
+            await self.redis.setex(key, ttl, serialized_value)
             logger.debug(f"Podatak sačuvan u cache: {key}")
             return True
         except Exception as e:
@@ -137,7 +105,7 @@ class CacheManager:
             return False
             
         try:
-            result = self.redis.delete(key)
+            result = await self.redis.delete(key)
             logger.debug(f"Podatak obrisan iz cache-a: {key}")
             return result > 0
         except Exception as e:
@@ -158,7 +126,8 @@ class CacheManager:
             return False
             
         try:
-            return bool(self.redis.exists(key))
+            result = await self.redis.exists(key)
+            return bool(result)
         except Exception as e:
             logger.error(f"Greška pri proveri postojanja ključa: {e}")
             return False
@@ -178,7 +147,8 @@ class CacheManager:
             return False
             
         try:
-            return bool(self.redis.expire(key, ttl))
+            result = await self.redis.expire(key, ttl)
+            return bool(result)
         except Exception as e:
             logger.error(f"Greška pri postavljanju TTL: {e}")
             return False
@@ -282,7 +252,7 @@ class CacheManager:
             return {"error": "Redis nije dostupan"}
             
         try:
-            info = self.redis.info()
+            info = await self.redis.info()
             return {
                 "connected_clients": info.get("connected_clients", 0),
                 "used_memory_human": info.get("used_memory_human", "0B"),
@@ -309,9 +279,9 @@ class CacheManager:
             return 0
             
         try:
-            keys = self.redis.keys(pattern)
+            keys = await self.redis.keys(pattern)
             if keys:
-                deleted = self.redis.delete(*keys)
+                deleted = await self.redis.delete(*keys)
                 logger.info(f"Obrisano {deleted} ključeva iz cache-a")
                 return deleted
             return 0
@@ -331,7 +301,7 @@ class CacheManager:
             
         try:
             # Test konekcije
-            self.redis.ping()
+            await self.redis.ping()
             
             # Test čitanja/pisanja
             test_key = "health_check_test"
@@ -417,8 +387,10 @@ class CacheManager:
         """
         try:
             # Dohvati sve AI response ključeve
+            if not self.redis:
+                return None
             pattern = "ai_response:*"
-            keys = self.redis.keys(pattern)
+            keys = await self.redis.keys(pattern)
             
             best_match = None
             best_similarity = 0.0
@@ -534,13 +506,15 @@ class CacheManager:
             
             for category, pattern in patterns.items():
                 try:
-                    keys = self.redis.keys(pattern)
-                    analytics[category] = len(keys)
-                    analytics["total_keys"] += len(keys)
+                    if self.redis:
+                        keys = await self.redis.keys(pattern)
+                        analytics[category] = len(keys)
+                        analytics["total_keys"] += len(keys)
+                    else:
+                        analytics[category] = 0
                 except Exception as e:
                     logger.error(f"Greška pri brojanju {category}: {e}")
                     analytics[category] = 0
-            
             # Izračunaj hit rate (ako imamo statistike)
             if hasattr(self, '_hit_stats'):
                 total_hits = self._hit_stats.get('hits', 0)

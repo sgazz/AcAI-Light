@@ -337,19 +337,19 @@ class WebSocketMessage(BaseModel):
 # Response modeli
 class ChatResponse(BaseResponse):
     """Model za chat response"""
-    data: Dict[str, Any] = Field(..., description="Chat podaci")
+    data: Dict[str, Any] = Field(default_factory=dict, description="Chat podaci")
 
 class SessionListResponse(BaseResponse):
     """Model za listu sesija"""
-    data: List[ChatSession] = Field(..., description="Lista sesija")
+    data: List[ChatSession] = Field(default_factory=list, description="Lista sesija")
 
 class DocumentListResponse(BaseResponse):
     """Model za listu dokumenata"""
-    data: List[Dict[str, Any]] = Field(..., description="Lista dokumenata")
+    data: List[Dict[str, Any]] = Field(default_factory=list, description="Lista dokumenata")
 
 class TaskListResponse(BaseResponse):
     """Model za listu task-ova"""
-    data: List[BackgroundTask] = Field(..., description="Lista task-ova")
+    data: List[BackgroundTask] = Field(default_factory=list, description="Lista task-ova")
 
 # Error modeli
 class ErrorResponse(BaseModel):
@@ -364,7 +364,7 @@ class SessionRenameRequest(BaseModel):
     name: str = Field(..., min_length=1, max_length=200, description="Novi naziv sesije")
 
 class SessionCategoriesRequest(BaseModel):
-    categories: List[str] = Field(..., min_items=1, max_items=20, description="Lista kategorija")
+    categories: List[str] = Field(..., description="Lista kategorija")
 
 class SessionArchiveRequest(BaseModel):
     is_archived: bool = Field(..., description="Da li arhivirati sesiju")
@@ -373,5 +373,5 @@ class SessionRestoreRequest(BaseModel):
     is_archived: bool = Field(..., description="Da li vratiti iz arhive")
 
 class SessionShareRequest(BaseModel):
-    permissions: str = Field('read', regex='^(read|write)$', description="Dozvole za deljenje")
-    expires_in: str = Field('7d', regex='^\d+d$', description="Vreme isteka linka, npr. '7d'") 
+    permissions: str = Field('read', pattern='^(read|write)$', description="Dozvole za deljenje")
+    expires_in: str = Field('7d', pattern='^\d+d$', description="Vreme isteka linka, npr. '7d'") 
